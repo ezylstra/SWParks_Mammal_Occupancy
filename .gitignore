@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# Mammal data
+data/mammals/*
+!data/mammals/.gitkeep
