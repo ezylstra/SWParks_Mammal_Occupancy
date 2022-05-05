@@ -80,7 +80,7 @@ dat <- select(dat, -ImgPath)
 
 # Extract camera location "names" from observations dataframe
   datlocs <- unique(dat[,c("Park", "Location", "LocationID")])
-  datlocs <- datlocs[with(datlocs, order(Park, Location)), ]
+  datlocs <- arrange(datlocs, Park, Location)
   head(datlocs)
   count(datlocs, Park)
   
@@ -181,21 +181,13 @@ events <- select(events, c(StdLocName, ProtocolVersion, DeployDate, RetrievalDat
 # Add column to identify Park
 events$Park <- str_split_fixed(events$StdLocName, "_", 4)[,2]
 
-# Format deployment date and time
+# Format deployment date
   # Create new date-time column
   events$d_datetime <- parse_date_time(events$DeployDate, "%m/%d/%Y %H:%M")
   # Create new date column
   events$d_date <- date(events$d_datetime)
   # Create new year column
   events$d_yr <- year(events$d_datetime)
-  # Create new month column
-  events$d_mon <- month(events$d_datetime)
-  # Create day-of-year variable (numeric)
-  events$d_yday <- yday(events$d_datetime)
-  # Convert time, if available, to a decimal value in [0,24)
-  events$d_time <- ifelse(hour(events$d_datetime) == 0, NA, hour(events$d_datetime) + minute(events$d_datetime)/60)
-  # Remove DeployDate column
-  events <- select(events, -DeployDate)
 
 # Format retrieval date and time
   # Create new date-time colu
@@ -204,21 +196,15 @@ events$Park <- str_split_fixed(events$StdLocName, "_", 4)[,2]
   events$r_date <- date(events$r_datetime)
   # Create new year column
   events$r_yr <- year(events$r_datetime)
-  # Create new month column
-  events$r_mon <- month(events$r_datetime)
-  # Create day-of-year variable (numeric)
-  events$r_yday <- yday(events$r_datetime)
-  # Convert time, if available, to a decimal value in [0,24)
-  events$r_time <- ifelse(hour(events$r_datetime) == 0, NA, hour(events$r_datetime) + minute(events$r_datetime)/60)
   # Remove RetrievalDate column
   events <- select(events, -RetrievalDate)  
   
-# Sort events dataframe by location and date, and rearrage columns
-  events <- events[ ,c(1,5,7,13,2:4,6,8:12,14:17)]
-  events <- events[with(events, order(StdLocName, d_datetime)), ]
-  
+# Reorder columns and sort events dataframe by location and date
+  events <- relocate(events, c(Park, d_date, r_date), .after = StdLocName)
+  events <- arrange(events, StdLocName, d_datetime)
+
 # Restrict events dataframe to 2016 forward
-events <- events[events$d_yr > 2015,]
+events <- filter(events, d_yr > 2015)
 
 # Summarize sampling events by park and year (and compare to mammal observation data)
 table(events$Park, events$d_yr)
@@ -292,21 +278,31 @@ table(dat[dat$during_event == 0, c('Park','yr')])
 
 # Observation at ORPI in 2020:
 filter(dat[dat$during_event == 0, ], Park == 'ORPI')
-  events[grep("Wildlife_ORPI_V102_54W", events$StdLocName), ]
-  # Sampling event at that location starts 9 days after observation in 2020
-  events %>% 
-    filter(Park == 'ORPI' & d_yr == 2020) %>%
-    summarize(mindate = min(d_date))
-  # No location at ORPI was sampled that early in 2020
-  filter(dat, dat$VisitID == 1284)
-  # All other observations with that VisitID fall within sampling period
+events[grep("Wildlife_ORPI_V102_54W", events$StdLocName), ]
 
 # Observation at CHIR in 2020: No sampling in CHIR in 2020
-
+filter(dat[dat$during_event == 0, ], Park == 'CHIR' & yr == 2020)
+  
 # Observations at CHIR in 2019
 filter(dat[dat$during_event == 0, ], Park == 'CHIR' & yr == 2019) # All at V502_003 on 2019-08-27
-  events[grep("Wildlife_CHIR_V502_003", events$StdLocName), ]
-  # Sampling event at that location ended 3 days before observation in 2019
-  events[, c(1:4,9)] %>% 
-    filter(Park == 'CHIR' & d_yr == 2019)
-  # There were other cameras in CHIR operating on that date
+events[grep("Wildlife_CHIR_V502_003", events$StdLocName), ]
+
+# Output dataframe with observations outside of known sampling events
+  dat_oe <- dat %>% 
+    filter(during_event == 0) %>% 
+    select(c(Species_code, Park, Location, StdLocName, datetime, obsdate, yr)) %>%
+    arrange(Park, datetime)
+  
+  table(dat_oe[ ,c('Park','yr')])
+  table(events$Park, events$d_yr)
+  
+  # CHIR observations in 2019 (n = 9): All at V502_003 on 2019-08-27 (after sampling event at that location)
+  # CHIR observation in 2020 (n = 1): No sampling events at CHIR in 2020
+  # MOCC observations in 2019 (n = 3053): No sampling events at MOCC in 2019
+  # MOCC observations in 2020 (n = 267): No sampling events at MOCC in 2020
+  # MOWE observations in 2018 (n = 867): 
+  # MOWE observations in 2019 (n = 649): No sampling events at MOWE in 2019
+  # ORPI observation in 2020 (n = 1): At V102_54W on 2020-03-08 (before sampling event at that location)
+
+  write.csv(dat_oe, file = "data/mammals/observations_outside_events.csv", row.names = FALSE)
+  
