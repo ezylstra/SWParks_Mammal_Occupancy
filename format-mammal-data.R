@@ -300,7 +300,7 @@ events[grep("Wildlife_CHIR_V502_003", events$StdLocName), ]
   # CHIR observation in 2020 (n = 1): No sampling events at CHIR in 2020
   # MOCC observations in 2019 (n = 3053): No sampling events at MOCC in 2019
   # MOCC observations in 2020 (n = 267): No sampling events at MOCC in 2020
-  # MOWE observations in 2018 (n = 867): 
+  # MOWE observations in 2018 (n = 867): After sampling events at MOCC ended in 2018
   # MOWE observations in 2019 (n = 649): No sampling events at MOWE in 2019
   # ORPI observation in 2020 (n = 1): At V102_54W on 2020-03-08 (before sampling event at that location)
 
