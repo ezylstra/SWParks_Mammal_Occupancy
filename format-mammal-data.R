@@ -9,7 +9,6 @@
 library(dplyr)
 library(lubridate)
 library(stringr)
-library(readr)
 
 # rm(list=ls())
 
@@ -23,12 +22,40 @@ library(readr)
 dat <- read.csv("data/mammals/MAMMALS_ALL_2022-04-18.csv")
   # Change "." to "_" in column names
   colnames(dat) <- str_replace_all(colnames(dat), "[.]", "_")
-
+  
+orpi_replace <- read.csv("data/mammals/ORPI_2020_102_54W_adjustedDates.csv")[,c(1:2,4:14,16:19)]
+  colnames(orpi_replace)[c(1:13,16:17)] <- colnames(dat)[c(1:13,15:16)]
+  
 # Camera locations
 locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
 
 # Deployment schedule
 events <- read.csv("data/mammals/SODN_Wildlife_Events.csv")[,3:26]
+
+#-----------------------------------------------------------------------------------#
+# Replace data from one ORPI camera in 2020 with data that has corrected date 
+#-----------------------------------------------------------------------------------#
+# Remove datasheet photo
+orpi_replace <- filter(orpi_replace, Common_name != 'Datasheet')
+
+# Fix a few species names/codes
+orpi_replace <- mutate(orpi_replace, 
+                       Species = ifelse(Common_name == "Unknown fox", 
+                                        "Caninae sp.",
+                                        paste(Genus, Species, sep = " ")),
+                       Species_code = ifelse(Common_name == "Unknown fox",
+                                             "UNFO", 
+                                             Species_code))
+orpi_replace <- select(orpi_replace, !Genus)
+
+# Check that number of 2020 observations at ORPI_102_54W in dat is the same as replacement file
+nrow(filter(dat, str_detect(ImgPath, "ORPI_102_54W") & FieldSeason == 2020))
+nrow(orpi_replace)
+
+#Remove original rows in dat and replace with those from new file with correct dates
+orpi_replace$Highlight <- as.character(orpi_replace$Highlight)
+dat <- filter(dat, !(str_detect(ImgPath, "ORPI_102_54W") & FieldSeason == 2020))
+dat <- bind_rows(dat, orpi_replace)
 
 #-----------------------------------------------------------------------------------#
 # Format and organize mammal observation data
