@@ -30,7 +30,7 @@ orpi_replace <- read.csv("data/mammals/ORPI_2020_102_54W_adjustedDates.csv")[,c(
 locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
 
 # Deployment schedule
-events <- read.csv("data/mammals/SODN_Wildlife_Events.csv")[,3:26]
+events <- read.csv("data/mammals/SODN_Wildlife_Events_Revised_20220512.csv")[,3:26]
 
 #-----------------------------------------------------------------------------------#
 # Replace data from one ORPI camera in 2020 with data that has corrected date 
@@ -52,7 +52,7 @@ orpi_replace <- select(orpi_replace, !Genus)
 nrow(filter(dat, str_detect(ImgPath, "ORPI_102_54W") & FieldSeason == 2020))
 nrow(orpi_replace)
 
-#Remove original rows in dat and replace with those from new file with correct dates
+# Remove original rows in dat and replace with those from new file with correct dates
 orpi_replace$Highlight <- as.character(orpi_replace$Highlight)
 dat <- filter(dat, !(str_detect(ImgPath, "ORPI_102_54W") & FieldSeason == 2020))
 dat <- bind_rows(dat, orpi_replace)
@@ -69,12 +69,13 @@ dat <- select(dat,-c(StudyAreaID, UTM_E, UTM_N, UTMZone, FileName, ImgID, ImageN
   species <- count(dat, Species, Common_name, Species_code)
   # 35 different "species" -- includes Unknowns
   species[species$n %in% range(species$n),]
-  # Number of observations per "species" ranges from 7 (Bighorn) to >12,000 (White-tailed deer) 
-  # Remove Species and Common.name variables from observations frame (only need Species.code)
+  # Number of observations per "species" ranges from 7 (Bighorn) to >12,000 (WT deer) 
+  # Remove Species and Common_name variables from observations frame (have Species_code)
   dat <- select(dat, -c(Species, Common_name))
 
-# Split up ImgPath name and append text with information about park, year, and camera location into new columns
-summary(n.backslashes <- str_count(dat$ImgPath,"\\\\"))  # ImgPath always has 7 backslashes (ie, 8 character strings)
+# Split up ImgPath name and append information about park, year, and location into new columns
+summary(n.backslashes <- str_count(dat$ImgPath,"\\\\"))  
+  # ImgPath always has 7 backslashes (ie, 8 character strings)
 n.strings <- mean(n.backslashes) + 1
 dat <- cbind(dat,str_split_fixed(dat$ImgPath, "\\\\", n.strings)[,5:7])
 names(dat)[(ncol(dat) - 2):ncol(dat)] <- c("Park", "FY_filepath", "Location")
@@ -87,7 +88,7 @@ dat <- select(dat, -ImgPath)
 
 # Format date and time
   # Create new date-time column
-  dat$datetime <- parse_date_time(dat$ImageDate,"%m/%d/%Y %I:%M:%S %p")
+  dat$datetime <- parse_date_time(dat$ImageDate,c("%m/%d/%Y %I:%M:%S %p", "%m/%d/%Y"))
   # Create new date column
   dat$obsdate <- date(dat$datetime)
   # Create year variable (numeric)
@@ -175,22 +176,25 @@ dat <- select(dat, -ImgPath)
   datlocs_tont$loc_short[!datlocs_tont$loc_short %in% locs_tont$loc_short]
   
 # Combine datlocs dataframes and merge with dat
-  datlocs <- rbind(datlocs_cagr, datlocs_chir, datlocs_mocc, datlocs_mowe, datlocs_orpi, datlocs_sagw, datlocs_tont)
+  datlocs <- rbind(datlocs_cagr, datlocs_chir, datlocs_mocc, datlocs_mowe, 
+                   datlocs_orpi, datlocs_sagw, datlocs_tont)
   # Are there duplicates from the list of cameras in the observation file (datlocs)?
   xx <- count(datlocs, Park, Location)
   xx[xx$n > 1, ]
   datlocs[datlocs$Park == "ORPI" & datlocs$Location %in% c("101_007", "102_004"), ]
-  # Yes, 101_007 camera at ORPI is associated with two LocationIDs in the observations file: 117 and 118
-  # 102_004 camera at ORPI is associated with two LocationIDs in the observations file: 135 and 136
+  # Yes, ORIPI 101_007 is associated with two LocationIDs in the observations file: 117 and 118
+  # ORPI 102_004 is associated with two LocationIDs in the observations file: 135 and 136
   locs_orpi[with(locs_orpi, order(loc_short, MarkerName)), ]
-  # Both these cameras only listed once in the camera locations file, so we"ll remove duplicates from datlocs to match
+  # Both these cameras only listed once in the camera locations file, 
+  # so we'll remove duplicates from datlocs to match
   datlocs <- unique(datlocs[ ,c("Park", "Location", "loc_short")])
 dat <- left_join(dat, datlocs, by=c("Park", "Location"))
   
 # Combine park-specific locs files and join spatial data to observations (dat)
 locs2 <- rbind(locs_cagr, locs_chir, locs_mocc, locs_mowe, locs_orpi, locs_sagw, locs_tont)
 locs2 <- rename(locs2, Park = UnitCode)
-dat <- left_join(dat, locs2[,c("Park", "loc_short", "StdLocName", "POINT_X", "POINT_Y")], by = c("Park", "loc_short"))
+dat <- left_join(dat, locs2[,c("Park", "loc_short", "StdLocName", "POINT_X", "POINT_Y")], 
+                 by = c("Park", "loc_short"))
   # check:
   sum(is.na(dat$POINT_X)) #no NAs
 
@@ -199,10 +203,11 @@ dat <- left_join(dat, locs2[,c("Park", "loc_short", "StdLocName", "POINT_X", "PO
 #-----------------------------------------------------------------------------------# 
   
 # Notes about sampling "events":
-# Occasionally (especially at smaller parks), cameras were immediately re-deployed for continuous sampling
+# Occasionally (esp at smaller parks), cameras were immediately re-deployed for continuous sampling
 # Occasionally two cameras were deployed at the same location simultaneously
+# Sometimes cameras left out for > 1 yr. Not sure how long they actually collected photos.
   
-# Remove unnecessary columns
+# Only keep necessary columns
 events <- select(events, c(StdLocName, ProtocolVersion, DeployDate, RetrievalDate, CameraName, TotalPics))
 
 # Add column to identify Park
@@ -215,6 +220,8 @@ events$Park <- str_split_fixed(events$StdLocName, "_", 4)[,2]
   events$d_date <- date(events$d_datetime)
   # Create new year column
   events$d_yr <- year(events$d_datetime)
+  # Remove DeployDate column
+  events <- select(events, -DeployDate)
 
 # Format retrieval date and time
   # Create new date-time colu
@@ -236,10 +243,6 @@ events <- filter(events, d_yr > 2015)
 # Summarize sampling events by park and year (and compare to mammal observation data)
 table(events$Park, events$d_yr)
 table(dat$Park, dat$yr)
-  # MAMMAL OBSERVATIONS IN YEARS WITH NO SAMPLING EVENTS:
-    # CHIR in 2020 (nobs = 1)
-    # MOCC in 2020 (nobs = 267)
-    # MOWE in 2019 (nobs = 649)
   # SAMPLING EVENTS WITH NO MAMMAL OBSERVATIONS:
     # CHIR in 2016
  
@@ -249,7 +252,10 @@ events$duration <- as.double(difftime(as.POSIXct(events$r_datetime), as.POSIXct(
   summary(events$duration)
   hist(events$duration, breaks = 25)
 
-# Remove events with duration ~ 0 days (all at TONT or MOCC when cameras immediately re-deployed)
+# View events with duration < 1 day
+filter(events, duration < 1)
+head(filter(events, Park == 'TONT'))
+# Remove these events (all at TONT when cameras immediately re-deployed)
 events <- filter(events, duration > 1)
 
 # Check that cameras in our observations dataset all appear in the events dataset
@@ -294,42 +300,5 @@ for (i in 1:length(eventlocs)) {
   # check:
   head(eventvec); head(events)
   
-# Create indicator in dat to identify dates that aren't during sampling events
-dat$during_event <- ifelse(dat$locdate %in% eventvec, 1, 0)
-count(dat, during_event) # Looks like some observations were not during known sampling events
-
-# Investigate observations outside events
-table(dat[dat$during_event == 0, c('Park','yr')]) 
-  # Most in MOCC (2019, 2020) and MOWE (2018, 2019)
-  # Just a handful in CHIR (2019, 2020) and ORPI (2020)
-
-# Observation at ORPI in 2020:
-filter(dat[dat$during_event == 0, ], Park == 'ORPI')
-events[grep("Wildlife_ORPI_V102_54W", events$StdLocName), ]
-
-# Observation at CHIR in 2020: No sampling in CHIR in 2020
-filter(dat[dat$during_event == 0, ], Park == 'CHIR' & yr == 2020)
-  
-# Observations at CHIR in 2019
-filter(dat[dat$during_event == 0, ], Park == 'CHIR' & yr == 2019) # All at V502_003 on 2019-08-27
-events[grep("Wildlife_CHIR_V502_003", events$StdLocName), ]
-
-# Output dataframe with observations outside of known sampling events
-  dat_oe <- dat %>% 
-    filter(during_event == 0) %>% 
-    select(c(Species_code, Park, Location, StdLocName, datetime, obsdate, yr)) %>%
-    arrange(Park, datetime)
-  
-  table(dat_oe[ ,c('Park','yr')])
-  table(events$Park, events$d_yr)
-  
-  # CHIR observations in 2019 (n = 9): All at V502_003 on 2019-08-27 (after sampling event at that location)
-  # CHIR observation in 2020 (n = 1): No sampling events at CHIR in 2020
-  # MOCC observations in 2019 (n = 3053): No sampling events at MOCC in 2019
-  # MOCC observations in 2020 (n = 267): No sampling events at MOCC in 2020
-  # MOWE observations in 2018 (n = 867): After sampling events at MOCC ended in 2018
-  # MOWE observations in 2019 (n = 649): No sampling events at MOWE in 2019
-  # ORPI observation in 2020 (n = 1): At V102_54W on 2020-03-08 (before sampling event at that location)
-
-  write.csv(dat_oe, file = "data/mammals/observations_outside_events.csv", row.names = FALSE)
-  
+# Check that all photo dates were during listed sampling events
+summary(dat$locdate %in% eventvec) # Yes, all photos during events
