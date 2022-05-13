@@ -88,7 +88,7 @@ dat <- select(dat, -ImgPath)
 
 # Format date and time
   # Create new date-time column
-  dat$datetime <- parse_date_time(dat$ImageDate,c("%m/%d/%Y %I:%M:%S %p", "%m/%d/%Y"))
+  dat$datetime <- parse_date_time(dat$ImageDate, c("%m/%d/%Y %I:%M:%S %p", "%m/%d/%Y"))
   # Create new date column
   dat$obsdate <- date(dat$datetime)
   # Create year variable (numeric)
@@ -247,7 +247,9 @@ table(dat$Park, dat$yr)
     # CHIR in 2016
  
 # Calculate length of deployment, in days
-events$duration <- as.double(difftime(as.POSIXct(events$r_datetime), as.POSIXct(events$d_datetime), units='days'))
+events$duration <- as.double(difftime(as.POSIXct(events$r_datetime), 
+                                      as.POSIXct(events$d_datetime), 
+                                      units = 'days'))
   # Summarize/Visualize 
   summary(events$duration)
   hist(events$duration, breaks = 25)
@@ -293,12 +295,12 @@ events$r_day <- as.numeric(events$r_date) - as.numeric(as.Date("2015-12-31"))
   
 # Create character strings with location and date for each mammal observation
 dat$o_day <- as.numeric(dat$obsdate) - as.numeric(as.Date("2015-12-31"))
-dat$locdate <- paste(dat$StdLocName, dat$o_day, sep="_")
+dat$locdate <- paste(dat$StdLocName, dat$o_day, sep = "_")
 
 # Create character strings with location and date for day during each sampling event
 eventvec <- as.character(vector())
 for (i in 1:length(eventlocs)) {
-  eventvec <- append(eventvec, paste(eventlocs[i], which(event_mat[i,] == 1), sep="_"))
+  eventvec <- append(eventvec, paste(eventlocs[i], which(event_mat[i,] == 1), sep = "_"))
 }
   # check:
   head(eventvec); head(events[,c(1,13:14)])
