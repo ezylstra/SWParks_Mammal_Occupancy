@@ -73,7 +73,7 @@ dat <- select(dat,-c(StudyAreaID, UTM_E, UTM_N, UTMZone, FileName, ImgID, ImageN
   # Remove Species and Common_name variables from observations frame (have Species_code)
   dat <- select(dat, -c(Species, Common_name))
 
-# Split up ImgPath name and append information about park, year, and location into new columns
+# Split up ImgPath and append information about park, year, and location into new columns
 summary(n.backslashes <- str_count(dat$ImgPath,"\\\\"))  
   # ImgPath always has 7 backslashes (ie, 8 character strings)
 n.strings <- mean(n.backslashes) + 1
@@ -263,34 +263,37 @@ obslocs <- sort(unique(dat$StdLocName))
 obslocs[!obslocs %in% events$StdLocName]  # Yes, all appear in events
   
 # Convert deployment/retrieval dates to integers, setting Jan 1 2016 equal to 1
-events$d_jul <- as.numeric(events$d_date) - as.numeric(as.Date("2015-12-31"))
-events$r_jul <- as.numeric(events$r_date) - as.numeric(as.Date("2015-12-31"))
+events$d_day <- as.numeric(events$d_date) - as.numeric(as.Date("2015-12-31"))
+events$r_day <- as.numeric(events$r_date) - as.numeric(as.Date("2015-12-31"))
 
 # Create location by date matrix (1 indicates date was during a sampling event, 0 otherwise)
   
-  # Create empty matrix
+  # Create matrix with all 0s
   eventlocs <- sort(unique(events$StdLocName))
-  event_mat <- matrix(0, nrow = length(eventlocs), ncol = max(events$r_jul))  
+  event_mat <- matrix(0, nrow = length(eventlocs), ncol = max(events$r_day))  
   
   # Replace 0s with 1s during each sampling event
   for (i in 1:nrow(event_mat)) {
     temp <- events[events$StdLocName == eventlocs[i], ]
     
     for (j in 1:nrow(temp)) {
-      event_mat[i, temp$d_jul[j]:temp$r_jul[j]] <- 1
+      event_mat[i, temp$d_day[j]:temp$r_day[j]] <- 1
     }
   }
-  # checks (for random locations, are there only 1s during sampling event and 0s outside of sampling event?):
-  events[events$StdLocName == eventlocs[206], c("StdLocName", "d_date", "r_date", "d_jul","r_jul")]
+  # checks at random locations (only 1s during sampling event and 0s outside of event?):
+  events[events$StdLocName == eventlocs[206], 
+         c("StdLocName", "d_date", "r_date", "d_day","r_day")]
   sum(event_mat[206, 1:390] == 1); sum(event_mat[206, 1:390] == 0) 
   sum(event_mat[206, 391:424] == 1); sum(event_mat[206, 391:424] == 0) 
-  events[events$StdLocName == eventlocs[111], c("StdLocName", "d_date", "r_date", "d_jul","r_jul")]
+  
+  events[events$StdLocName == eventlocs[111], 
+         c("StdLocName", "d_date", "r_date", "d_day","r_day")]
   sum(event_mat[111, 1:115] == 1); sum(event_mat[111, 1:115] == 0) 
   sum(event_mat[111, 810:853] == 1); sum(event_mat[111, 810:853] == 0) 
   
 # Create character strings with location and date for each mammal observation
-dat$o_jul <- as.numeric(dat$obsdate) - as.numeric(as.Date("2015-12-31"))
-dat$locdate <- paste(dat$StdLocName, dat$o_jul, sep="_")
+dat$o_day <- as.numeric(dat$obsdate) - as.numeric(as.Date("2015-12-31"))
+dat$locdate <- paste(dat$StdLocName, dat$o_day, sep="_")
 
 # Create character strings with location and date for day during each sampling event
 eventvec <- as.character(vector())
@@ -298,7 +301,7 @@ for (i in 1:length(eventlocs)) {
   eventvec <- append(eventvec, paste(eventlocs[i], which(event_mat[i,] == 1), sep="_"))
 }
   # check:
-  head(eventvec); head(events)
+  head(eventvec); head(events[,c(1,13:14)])
   
 # Check that all photo dates were during listed sampling events
 summary(dat$locdate %in% eventvec) # Yes, all photos during events
