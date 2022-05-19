@@ -10,8 +10,6 @@ library(dplyr)
 library(lubridate)
 library(stringr)
 
-# rm(list=ls())
-
 #-----------------------------------------------------------------------------------#
 # Import data
 #-----------------------------------------------------------------------------------#
@@ -208,7 +206,9 @@ dat <- left_join(dat, locs2[,c("Park", "loc_short", "StdLocName", "POINT_X", "PO
 # Sometimes cameras left out for > 1 yr. Not sure how long they actually collected photos.
   
 # Only keep necessary columns
-events <- select(events, c(StdLocName, ProtocolVersion, DeployDate, RetrievalDate, CameraName, TotalPics))
+events <- select(events, c(StdLocName, ProtocolVersion, DeployDate, RetrievalDate, 
+                           CameraName, MountMethod, BatteryStatus, CameraSensitivity, 
+                           DelaySec, ImagePer, TotalPics))
 
 # Add column to identify Park
 events$Park <- str_split_fixed(events$StdLocName, "_", 4)[,2]
@@ -243,16 +243,17 @@ events <- filter(events, d_yr > 2015)
 # Summarize sampling events by park and year (and compare to mammal observation data)
 table(events$Park, events$d_yr)
 table(dat$Park, dat$yr)
-  # SAMPLING EVENTS WITH NO MAMMAL OBSERVATIONS:
-    # CHIR in 2016
- 
+  # There are sampling events in CHIR in 2016 with no corresponding observations
+  # Sampling methods were different that year, so probably ok not to track 
+  # these down
+
 # Calculate length of deployment, in days
 events$duration <- as.double(difftime(as.POSIXct(events$r_datetime), 
                                       as.POSIXct(events$d_datetime), 
                                       units = 'days'))
   # Summarize/Visualize 
   summary(events$duration)
-  hist(events$duration, breaks = 25)
+  # hist(events$duration, breaks = 25)
 
 # View events with duration < 1 day
 filter(events, duration < 1)
@@ -272,7 +273,8 @@ events$r_day <- as.numeric(events$r_date) - as.numeric(as.Date("2015-12-31"))
   
   # Create matrix with all 0s
   eventlocs <- sort(unique(events$StdLocName))
-  event_mat <- matrix(0, nrow = length(eventlocs), ncol = max(events$r_day))  
+  event_mat <- matrix(0, nrow = length(eventlocs), ncol = max(events$r_day)) 
+  rownames(event_mat) <- eventlocs
   
   # Replace 0s with 1s during each sampling event
   for (i in 1:nrow(event_mat)) {
@@ -307,3 +309,9 @@ for (i in 1:length(eventlocs)) {
   
 # Check that all photo dates were during listed sampling events
 summary(dat$locdate %in% eventvec) # Yes, all photos during events
+
+#-----------------------------------------------------------------------------------#
+# Remove objects that are no longer needed
+#-----------------------------------------------------------------------------------# 
+
+rm(list = setdiff(ls(), c("dat", "locs", "events", "event_mat", "species")))
