@@ -6,9 +6,11 @@
 # 2022-04-28
 ########################################################################################################
 
-library(dplyr)
-library(lubridate)
-library(stringr)
+# Need to load these packages if not calling this script via source()
+
+# library(dplyr)
+# library(lubridate)
+# library(stringr)
 
 #-----------------------------------------------------------------------------------#
 # Import data
