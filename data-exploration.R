@@ -9,28 +9,32 @@
 library(dplyr)
 library(lubridate)
 library(stringr)
-
-#-------------------------------------------------------------------------------#
-# Run script to import, format data
-#-------------------------------------------------------------------------------#
-source("format-mammal-data.R")
+library(ggplot2)
 
 # rm(list = ls())
 
 #-------------------------------------------------------------------------------#
+# Run script to import, format data
+#-------------------------------------------------------------------------------#
+
+source("format-mammal-data.R")
+
+#-------------------------------------------------------------------------------#
 # Visualize when and where cameras were deployed
 #-------------------------------------------------------------------------------#
-table(events$Park, events$d_yr)
 
-events$d_yday <- yday(events$d_date)
-events$r_yday <- yday(events$r_date)
+# More generally
+events <- events %>% 
+  group_by(Park) %>% 
+  mutate(locnum = as.numeric(as.factor(StdLocName))) %>%
+  as.data.frame()
 
-events_py <- as.data.frame(group_by(events, Park, d_yr) %>% 
-  summarize(n_events = length(d_yday), 
-            start_date = min(d_yday),
-            end_date = max(r_yday)))
-
-events_py
+# Plot SAGW events
+ggplot() +
+  geom_segment(filter(events, Park == "SAGW"),
+               mapping = aes(x = d_date, xend = r_date, y = locnum, yend = locnum),
+               size = 1, color = 'dodgerblue3') +
+  labs(x = 'Date', y = 'Camera number')
 
 
 
