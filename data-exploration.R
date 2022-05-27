@@ -23,18 +23,28 @@ source("format-mammal-data.R")
 # Visualize when and where cameras were deployed
 #-------------------------------------------------------------------------------#
 
-# More generally
+# Create a park-specific index for camera location (1-65)
 events <- events %>% 
   group_by(Park) %>% 
   mutate(locnum = as.numeric(as.factor(StdLocName))) %>%
   as.data.frame()
 
-# Plot SAGW events
-ggplot() +
-  geom_segment(filter(events, Park == "SAGW"),
+# Plot events at three main parks, excluding 2016 (different locs sampled at CHIR)
+ggplot() + 
+  geom_segment(filter(events, Park %in% c("CHIR", "ORPI", "SAGW") & d_yr > 2016),
                mapping = aes(x = d_date, xend = r_date, y = locnum, yend = locnum),
                size = 1, color = 'dodgerblue3') +
-  labs(x = 'Date', y = 'Camera number')
+  labs(x = 'Date', y = 'Camera number') + 
+  facet_grid(rows = vars(Park))
+
+# Plot events at four smaller parks
+ggplot() + 
+  geom_segment(filter(events, !Park %in% c("CHIR", "ORPI", "SAGW") & d_yr > 2016),
+               mapping = aes(x = d_date, xend = r_date, y = locnum, yend = locnum),
+               size = 1, color = 'dodgerblue3') +
+  labs(x = 'Date', y = 'Camera number') + 
+  facet_grid(rows = vars(Park))
+
 
 
 
