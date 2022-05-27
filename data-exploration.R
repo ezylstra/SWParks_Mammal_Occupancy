@@ -33,17 +33,23 @@ events <- events %>%
 ggplot() + 
   geom_segment(filter(events, Park %in% c("CHIR", "ORPI", "SAGW") & d_yr > 2016),
                mapping = aes(x = d_date, xend = r_date, y = locnum, yend = locnum),
-               size = 1, color = 'dodgerblue3') +
+               size = 0.5, color = 'dodgerblue3') +
   labs(x = 'Date', y = 'Camera number') + 
   facet_grid(rows = vars(Park))
+ggsave("output/SamplingEvents_3Parks.jpg", 
+       width = 6.5, height = 6.5, 
+       units = "in")
 
 # Plot events at four smaller parks
 ggplot() + 
   geom_segment(filter(events, !Park %in% c("CHIR", "ORPI", "SAGW") & d_yr > 2016),
                mapping = aes(x = d_date, xend = r_date, y = locnum, yend = locnum),
-               size = 1, color = 'dodgerblue3') +
+               size = 0.5, color = 'dodgerblue3') +
   labs(x = 'Date', y = 'Camera number') + 
   facet_grid(rows = vars(Park))
+ggsave("output/SamplingEvents_OtherParks.jpg", 
+       width = 6.5, height = 6.5, 
+       units = "in")
 
 
 
