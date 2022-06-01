@@ -34,25 +34,37 @@ events <- events %>%
 ggplot() + 
   geom_segment(filter(events, Park %in% c("CHIR", "ORPI", "SAGW") & d_yr > 2016),
                mapping = aes(x = d_date, xend = r_date, y = locnum, yend = locnum),
-               size = 0.5, color = "dodgerblue3") +
+               size = 0.3, color = "dodgerblue3") +
+  geom_segment(filter(events, Park %in% c("CHIR", "ORPI", "SAGW") & d_yr > 2016),
+               mapping = aes(x = d_date, xend = d_date, y = locnum+0.4, yend = locnum-0.4),
+               size = 0.3, color = "dodgerblue3") + 
+  geom_segment(filter(events, Park %in% c("CHIR", "ORPI", "SAGW") & d_yr > 2016),
+               mapping = aes(x = r_date, xend = r_date, y = locnum+0.4, yend = locnum-0.4),
+               size = 0.3, color = "dodgerblue3") + 
   labs(x = 'Date', y = "Camera number") + 
   facet_grid(rows = vars(Park))
 # Save plot in output/folder
-  # ggsave("output/SamplingEvents_3Parks.jpg", 
-  #        width = 6.5, height = 6.5, 
-  #        units = "in")
+# ggsave("output/SamplingEvents_3Parks.jpg",
+#        width = 6.5, height = 6.5,
+#        units = "in")
 
 # Plot events at four smaller parks
 ggplot() + 
   geom_segment(filter(events, !Park %in% c("CHIR", "ORPI", "SAGW") & d_yr > 2016),
                mapping = aes(x = d_date, xend = r_date, y = locnum, yend = locnum),
                size = 0.5, color = "dodgerblue3") +
+  geom_segment(filter(events, !Park %in% c("CHIR", "ORPI", "SAGW") & d_yr > 2016),
+               mapping = aes(x = d_date, xend = d_date, y = locnum+0.4, yend = locnum-0.4),
+               size = 0.3, color = "dodgerblue3") + 
+  geom_segment(filter(events, !Park %in% c("CHIR", "ORPI", "SAGW") & d_yr > 2016),
+               mapping = aes(x = r_date, xend = r_date, y = locnum+0.4, yend = locnum-0.4),
+               size = 0.3, color = "dodgerblue3") + 
   labs(x = 'Date', y = "Camera number") + 
   facet_grid(rows = vars(Park))
 # Save plot in output/folder
-  # ggsave("output/SamplingEvents_OtherParks.jpg", 
-  #        width = 6.5, height = 6.5, 
-  #        units = "in")
+# ggsave("output/SamplingEvents_OtherParks.jpg",
+#        width = 6.5, height = 6.5,
+#        units = "in")
 
 #-------------------------------------------------------------------------------#
 # Visualize deployments and photos
@@ -76,7 +88,13 @@ ggcust_segs <- function(dat, park, year, xlims){
   ggplot() +
     geom_segment(filter(dat, Park == park & d_yr == year),
                  mapping = aes(x = d_date, xend = r_date, y = locnum, yend = locnum),
-                 size = 0.5, color = "dodgerblue3") +    
+                 size = 0.3, color = "dodgerblue3") + 
+    geom_segment(filter(dat, Park == park & d_yr == year),
+                 mapping = aes(x = d_date, xend = d_date, y = locnum+0.4, yend = locnum-0.4),
+                 size = 0.3, color = "dodgerblue3") + 
+    geom_segment(filter(dat, Park == park & d_yr == year),
+                 mapping = aes(x = r_date, xend = r_date, y = locnum+0.4, yend = locnum-0.4),
+                 size = 0.3, color = "dodgerblue3") + 
     labs(x = "", y = "Camera number") + 
     coord_cartesian(xlim = xlims) + 
     theme(text=element_text(size = 8),
@@ -88,7 +106,11 @@ ggcust_segs <- function(dat, park, year, xlims){
 # SAGW
 s17h <- ggcust_hist(dat, "SAGW", 2017, xlims = as.Date(c("2017-01-01", "2017-03-31"))) +
   annotate("text", x = as.Date("2017-03-31"), y = Inf, hjust=1, vjust=1.5, label = "2017", size = 3.5)
-s17s <- ggcust_segs(events, "SAGW", 2017, xlims = as.Date(c("2017-01-01", "2017-03-31")))
+s17s <- ggcust_segs(events, "SAGW", 2017, xlims = as.Date(c("2017-01-01", "2017-03-31"))) +
+  geom_segment(filter(events, Park == "SAGW" & d_yr == 2017), 
+               mapping = aes(x = d_date, xend = d_date, y = locnum+0.3, yend = locnum-0.3),
+               size = 0.5, color = "dodgerblue3")
+s17 <- grid.arrange(s17h, s17s, nrow = 2)
 
 s18h <- ggcust_hist(dat, "SAGW", 2018, xlims = as.Date(c("2018-01-01", "2018-03-31"))) +
   annotate("text", x = as.Date("2018-03-31"), y = Inf, hjust=1, vjust=1.5, label = "2018", size = 3.5)
@@ -114,10 +136,10 @@ s22 <- grid.arrange(s22h, s22s, nrow = 2)
 
 sALL <- grid.arrange(s17, s18, s20, s21, s22, nrow = 2)
 # Save plot in output/folder
-ggsave("output/Events&Obs_SAGW.jpg",
-       sALL,
-       width = 6.5, height = 6.5,
-       units = "in")
+# ggsave("output/Events&Obs_SAGW.jpg",
+#        sALL,
+#        width = 6.5, height = 6.5,
+#        units = "in")
 
 # ORPI
 o17h <- ggcust_hist(dat, "ORPI", 2017, xlims = as.Date(c("2017-03-01", "2017-11-30"))) +
@@ -143,10 +165,10 @@ o21 <- grid.arrange(o21h, o21s, nrow = 2)
 
 oALL <- grid.arrange(o17, o18, o20, o21, nrow = 2)
 # Save plot in output/folder
-ggsave("output/Events&Obs_ORPI.jpg",
-       oALL,
-       width = 6.5, height = 6.5,
-       units = "in")
+# ggsave("output/Events&Obs_ORPI.jpg",
+#        oALL,
+#        width = 6.5, height = 6.5,
+#        units = "in")
 
 # CHIR
 c17h <- ggcust_hist(dat, "CHIR", 2017, xlims = as.Date(c("2017-01-01", "2017-12-31"))) +
@@ -157,7 +179,6 @@ c18h <- ggcust_hist(dat, "CHIR", 2018, xlims = as.Date(c("2018-01-01", "2018-12-
   annotate("text", x = as.Date("2018-12-31"), y = Inf, hjust=1, vjust=1.5, label = "2018", size = 3.5)
 c18s <- ggcust_segs(events, "CHIR", 2018, xlims = as.Date(c("2018-01-01", "2018-12-31")))
 
-
 #Need to adjust start dates for 2019, since cameras were up before Jan 1
 c19h <- ggcust_hist(dat, "CHIR", 2019, xlims = as.Date(c("2019-01-01", "2019-12-31"))) +
   annotate("text", x = as.Date("2019-12-31"), y = Inf, hjust=1, vjust=1.5, label = "2019", size = 3.5)
@@ -165,7 +186,13 @@ c19s <- ggplot() +
   geom_segment(filter(events, Park == "CHIR" & d_yr == 2019),
                mapping = aes(x = as.Date("2019-01-01"), xend = r_date, 
                              y = locnum, yend = locnum),
-               size = 0.5, color = "dodgerblue3") +    
+               size = 0.3, color = "dodgerblue3") +   
+  geom_segment(filter(events, Park == "CHIR" & d_yr == 2019),
+               mapping = aes(x = d_date, xend = d_date, y = locnum+0.4, yend = locnum-0.4),
+               size = 0.3, color = "dodgerblue3") + 
+  geom_segment(filter(events, Park == "CHIR" & d_yr == 2019),
+               mapping = aes(x = r_date, xend = r_date, y = locnum+0.4, yend = locnum-0.4),
+               size = 0.3, color = "dodgerblue3") +   
   labs(x = "", y = "Camera number") + 
   coord_cartesian(xlim = as.Date(c("2019-01-01", "2019-12-31"))) + 
   theme(text=element_text(size = 8),
@@ -183,10 +210,10 @@ c21 <- grid.arrange(c21h, c21s, nrow = 2)
 
 cALL <- grid.arrange(c17, c18, c19, c21, nrow = 2)
 # Save plot in output/folder
-ggsave("output/Events&obs_CHIR.jpg",
-       cALL,
-       width = 6.5, height = 6.5,
-       units = "in")
+# ggsave("output/Events&obs_CHIR.jpg",
+#        cALL,
+#        width = 6.5, height = 6.5,
+#        units = "in")
 
 
 # TO DO:
