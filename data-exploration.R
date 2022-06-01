@@ -215,6 +215,7 @@ cALL <- grid.arrange(c17, c18, c19, c21, nrow = 2)
 #-------------------------------------------------------------------------------#
 # Detections by species
 #-------------------------------------------------------------------------------#
+
 (species <- arrange(species, desc(n)))
 
 park_yr <- dat %>%
@@ -307,5 +308,34 @@ spp_chir_yr
 rm(n_chir_yr, p_chir_yr)
 
 #-------------------------------------------------------------------------------#
-# 
+# Calculate time between photos of the same species at same location
 #-------------------------------------------------------------------------------#
+ 
+dat <- arrange(dat, Park, loc_short, Species_code, yr, obsdate, obstime)
+dat$time_btw <- NA
+for (i in 2:nrow(dat)) {
+  if(dat$Park[i] == dat$Park[i-1] &
+     dat$loc_short[i] == dat$loc_short[i-1] & 
+     dat$Species_code[i] == dat$Species_code[i-1] &
+     dat$yr[i] == dat$yr[i-1]) {
+    dat$time_btw[i] <- as.double(difftime(dat$datetime[i], 
+                                          dat$datetime[i-1], 
+                                          units = "mins"))
+  } else {
+    dat$time_btw[i] <- NA
+  }
+}
+# checks:
+head(dat[,c(4:5,8,14,20)], 20)
+tail(dat[,c(4:5,8,14,20)], 20)
+
+# species average
+tb_spp <- dat %>%
+  group_by(Species_code) %>%
+  summarize(n_diffs = sum(!is.na(time_btw)),
+            sec_btw_md = round(median(time_btw, na.rm = TRUE),2),
+            secs_btw_mn = round(mean(time_btw, na.rm = TRUE),2)) %>%
+  arrange(desc(n_diffs)) %>%
+  as.data.frame()
+tb_spp
+
