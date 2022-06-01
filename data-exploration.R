@@ -9,6 +9,7 @@
 library(dplyr)
 library(lubridate)
 library(stringr)
+library(tidyr)
 library(ggplot2)
 library(gridExtra)
 
@@ -70,7 +71,7 @@ ggplot() +
 # Visualize deployments and photos
 #-------------------------------------------------------------------------------#
 
-# Functions to create histograms with photo dates and chart with deployments
+# Functions to create histograms with photo dates and charts with deployments
 ggcust_hist <- function(dat, park, year, xlims){
   dd <- filter(dat, Park == park & yr == year)
   ggplot(dd, aes(obsdate)) + 
@@ -106,11 +107,7 @@ ggcust_segs <- function(dat, park, year, xlims){
 # SAGW
 s17h <- ggcust_hist(dat, "SAGW", 2017, xlims = as.Date(c("2017-01-01", "2017-03-31"))) +
   annotate("text", x = as.Date("2017-03-31"), y = Inf, hjust=1, vjust=1.5, label = "2017", size = 3.5)
-s17s <- ggcust_segs(events, "SAGW", 2017, xlims = as.Date(c("2017-01-01", "2017-03-31"))) +
-  geom_segment(filter(events, Park == "SAGW" & d_yr == 2017), 
-               mapping = aes(x = d_date, xend = d_date, y = locnum+0.3, yend = locnum-0.3),
-               size = 0.5, color = "dodgerblue3")
-s17 <- grid.arrange(s17h, s17s, nrow = 2)
+s17s <- ggcust_segs(events, "SAGW", 2017, xlims = as.Date(c("2017-01-01", "2017-03-31")))
 
 s18h <- ggcust_hist(dat, "SAGW", 2018, xlims = as.Date(c("2018-01-01", "2018-03-31"))) +
   annotate("text", x = as.Date("2018-03-31"), y = Inf, hjust=1, vjust=1.5, label = "2018", size = 3.5)
@@ -215,7 +212,100 @@ cALL <- grid.arrange(c17, c18, c19, c21, nrow = 2)
 #        width = 6.5, height = 6.5,
 #        units = "in")
 
+#-------------------------------------------------------------------------------#
+# Detections by species
+#-------------------------------------------------------------------------------#
+(species <- arrange(species, desc(n)))
 
-# TO DO:
-# Summarize detections for common species - by park, year
-# (time between detections for common species - 7-day occasion reasonable?)
+park_yr <- dat %>%
+  group_by(Park, yr) %>%
+  summarize(all_spp = length(Species_code)) %>%
+  as.data.frame()
+
+spp_park_yr <- dat %>%
+  group_by(Park, yr, Species_code) %>%
+  summarize(n_photos = length(Species_code)) %>%
+  as.data.frame()
+
+spp_park_yr <- left_join(spp_park_yr, park_yr)
+spp_park_yr <- mutate(spp_park_yr, prop_photos = n_photos / all_spp)
+spp_park_yr <- arrange(spp_park_yr, Park, yr, desc(prop_photos))
+
+# Tables for SAGW, where cameras deployed during same period each year
+# Number of photos
+n_sagw_yr <- spp_park_yr %>% 
+  filter(Park == "SAGW") %>%
+  select(yr, Species_code, n_photos) %>%
+  spread(key = yr, value = n_photos, fill = 0)
+oldnames <- names(n_sagw_yr)[2:6]
+n_sagw_yr <-n_sagw_yr %>% 
+  rename_with(~ paste0("n_",oldnames), all_of(oldnames)) %>%
+  arrange(desc(n_2017))
+# Proportion of photos
+p_sagw_yr <- spp_park_yr %>% 
+  filter(Park == "SAGW") %>%
+  select(yr, Species_code, prop_photos) %>%
+  spread(key = yr, value = prop_photos, fill = 0) %>%
+  mutate(across(2:6, round, 3))
+oldnames <- names(p_sagw_yr)[2:6]
+p_sagw_yr <- p_sagw_yr %>% 
+  rename_with(~ paste0("p_",oldnames), all_of(oldnames)) %>%
+  arrange(desc(p_2017))
+
+spp_sagw_yr <- left_join(n_sagw_yr, p_sagw_yr)
+spp_sagw_yr
+rm(n_sagw_yr, p_sagw_yr)
+
+# Table for ORPI, mostly deployments in April-ish (but stayed out longer in 2020)
+# Number of photos
+n_orpi_yr <- spp_park_yr %>% 
+  filter(Park == "ORPI") %>%
+  select(yr, Species_code, n_photos) %>%
+  spread(key = yr, value = n_photos, fill = 0)
+oldnames <- names(n_orpi_yr)[2:6]
+n_orpi_yr <-n_orpi_yr %>% 
+  rename_with(~ paste0("n_",oldnames), all_of(oldnames)) %>%
+  arrange(desc(n_2017))
+# Number of photos
+p_orpi_yr <- spp_park_yr %>% 
+  filter(Park == "ORPI") %>%
+  select(yr, Species_code, prop_photos) %>%
+  spread(key = yr, value = prop_photos, fill = 0) %>%
+  mutate(across(2:6, round, 3))
+oldnames <- names(p_orpi_yr)[2:6]
+p_orpi_yr <- p_orpi_yr %>% 
+  rename_with(~ paste0("p_",oldnames), all_of(oldnames)) %>%
+  arrange(desc(p_2017))
+
+spp_orpi_yr <- left_join(n_orpi_yr, p_orpi_yr)
+spp_orpi_yr
+rm(n_orpi_yr, p_orpi_yr)
+
+# Table for CHIR (but note that deployments are at diff times of year)
+# Number of photos
+n_chir_yr <- spp_park_yr %>% 
+  filter(Park == "CHIR" & yr != 2020) %>%
+  select(yr, Species_code, n_photos) %>%
+  spread(key = yr, value = n_photos, fill = 0)
+oldnames <- names(n_chir_yr)[2:5]
+n_chir_yr <-n_chir_yr %>% 
+  rename_with(~ paste0("n_",oldnames), all_of(oldnames)) %>%
+  arrange(desc(n_2017))
+# Number of photos
+p_chir_yr <- spp_park_yr %>% 
+  filter(Park == "CHIR" & yr != 2020) %>%
+  select(yr, Species_code, prop_photos) %>%
+  spread(key = yr, value = prop_photos, fill = 0) %>%
+  mutate(across(2:5, round, 3))
+oldnames <- names(p_chir_yr)[2:5]
+p_chir_yr <- p_chir_yr %>% 
+  rename_with(~ paste0("p_",oldnames), all_of(oldnames)) %>%
+  arrange(desc(p_2017))
+
+spp_chir_yr <- left_join(n_chir_yr, p_chir_yr)
+spp_chir_yr
+rm(n_chir_yr, p_chir_yr)
+
+#-------------------------------------------------------------------------------#
+# 
+#-------------------------------------------------------------------------------#
