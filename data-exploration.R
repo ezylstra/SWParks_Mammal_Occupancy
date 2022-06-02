@@ -233,79 +233,71 @@ spp_park_yr <- mutate(spp_park_yr, prop_photos = n_photos / all_spp)
 spp_park_yr <- arrange(spp_park_yr, Park, yr, desc(prop_photos))
 
 # Tables for SAGW, where cameras deployed during same period each year
-# Number of photos
-n_sagw_yr <- spp_park_yr %>% 
-  filter(Park == "SAGW") %>%
-  select(yr, Species_code, n_photos) %>%
-  spread(key = yr, value = n_photos, fill = 0)
-oldnames <- names(n_sagw_yr)[2:6]
-n_sagw_yr <-n_sagw_yr %>% 
-  rename_with(~ paste0("n_",oldnames), all_of(oldnames)) %>%
-  arrange(desc(n_2017))
-# Proportion of photos
-p_sagw_yr <- spp_park_yr %>% 
-  filter(Park == "SAGW") %>%
-  select(yr, Species_code, prop_photos) %>%
-  spread(key = yr, value = prop_photos, fill = 0) %>%
-  mutate(across(2:6, round, 3))
-oldnames <- names(p_sagw_yr)[2:6]
-p_sagw_yr <- p_sagw_yr %>% 
-  rename_with(~ paste0("p_",oldnames), all_of(oldnames)) %>%
-  arrange(desc(p_2017))
-
-spp_sagw_yr <- left_join(n_sagw_yr, p_sagw_yr)
-spp_sagw_yr
-rm(n_sagw_yr, p_sagw_yr)
+  # Number of photos
+  n_sagw_yr <- spp_park_yr %>% 
+    filter(Park == "SAGW") %>%
+    select(yr, Species_code, n_photos) %>%
+    spread(key = yr, value = n_photos, fill = 0)
+  n_sagw_yr$total <- rowSums(n_sagw_yr[,2:6])
+  # Proportion of photos
+  p_sagw_yr <- spp_park_yr %>% 
+    filter(Park == "SAGW") %>%
+    select(yr, Species_code, prop_photos) %>%
+    spread(key = yr, value = prop_photos, fill = 0) %>%
+    mutate(across(2:6, round, 3)) %>%
+    rename_with(~ paste0("p_", colnames(n_sagw_yr)[2:6]), all_of(colnames(n_sagw_yr)[2:6]))
+  # Combine
+  spp_sagw_yr <- left_join(n_sagw_yr, p_sagw_yr)
+  (spp_sagw_yr <- arrange(spp_sagw_yr, desc(total)))
+  rm(n_sagw_yr, p_sagw_yr)
 
 # Table for ORPI, mostly deployments in April-ish (but stayed out longer in 2020)
-# Number of photos
-n_orpi_yr <- spp_park_yr %>% 
-  filter(Park == "ORPI") %>%
-  select(yr, Species_code, n_photos) %>%
-  spread(key = yr, value = n_photos, fill = 0)
-oldnames <- names(n_orpi_yr)[2:6]
-n_orpi_yr <-n_orpi_yr %>% 
-  rename_with(~ paste0("n_",oldnames), all_of(oldnames)) %>%
-  arrange(desc(n_2017))
-# Number of photos
-p_orpi_yr <- spp_park_yr %>% 
-  filter(Park == "ORPI") %>%
-  select(yr, Species_code, prop_photos) %>%
-  spread(key = yr, value = prop_photos, fill = 0) %>%
-  mutate(across(2:6, round, 3))
-oldnames <- names(p_orpi_yr)[2:6]
-p_orpi_yr <- p_orpi_yr %>% 
-  rename_with(~ paste0("p_",oldnames), all_of(oldnames)) %>%
-  arrange(desc(p_2017))
-
-spp_orpi_yr <- left_join(n_orpi_yr, p_orpi_yr)
-spp_orpi_yr
-rm(n_orpi_yr, p_orpi_yr)
+  # Number of photos
+  n_orpi_yr <- spp_park_yr %>% 
+    filter(Park == "ORPI") %>%
+    select(yr, Species_code, n_photos) %>%
+    spread(key = yr, value = n_photos, fill = 0)
+  n_orpi_yr$total <- rowSums(n_orpi_yr[,2:6])
+  # Proportion of photos
+  p_orpi_yr <- spp_park_yr %>% 
+    filter(Park == "ORPI") %>%
+    select(yr, Species_code, prop_photos) %>%
+    spread(key = yr, value = prop_photos, fill = 0) %>%
+    mutate(across(2:6, round, 3)) %>%
+    rename_with(~ paste0("p_", colnames(n_orpi_yr)[2:6]), all_of(colnames(n_orpi_yr)[2:6]))
+  # Combine
+  spp_orpi_yr <- left_join(n_orpi_yr, p_orpi_yr)
+  (spp_orpi_yr <- arrange(spp_orpi_yr, desc(total)))
+  rm(n_orpi_yr, p_orpi_yr)
 
 # Table for CHIR (but note that deployments are at diff times of year)
-# Number of photos
-n_chir_yr <- spp_park_yr %>% 
-  filter(Park == "CHIR" & yr != 2020) %>%
-  select(yr, Species_code, n_photos) %>%
-  spread(key = yr, value = n_photos, fill = 0)
-oldnames <- names(n_chir_yr)[2:5]
-n_chir_yr <-n_chir_yr %>% 
-  rename_with(~ paste0("n_",oldnames), all_of(oldnames)) %>%
-  arrange(desc(n_2017))
-# Number of photos
-p_chir_yr <- spp_park_yr %>% 
-  filter(Park == "CHIR" & yr != 2020) %>%
-  select(yr, Species_code, prop_photos) %>%
-  spread(key = yr, value = prop_photos, fill = 0) %>%
-  mutate(across(2:5, round, 3))
-oldnames <- names(p_chir_yr)[2:5]
-p_chir_yr <- p_chir_yr %>% 
-  rename_with(~ paste0("p_",oldnames), all_of(oldnames)) %>%
-  arrange(desc(p_2017))
-
-spp_chir_yr <- left_join(n_chir_yr, p_chir_yr)
-spp_chir_yr
-rm(n_chir_yr, p_chir_yr)
+  # Number of photos
+  n_chir_yr <- spp_park_yr %>% 
+    filter(Park == "CHIR" & yr != 2020) %>%
+    select(yr, Species_code, n_photos) %>%
+    spread(key = yr, value = n_photos, fill = 0)
+  n_chir_yr$total <- rowSums(n_chir_yr[,2:5])
+  # Proportion of photos
+  p_chir_yr <- spp_park_yr %>% 
+    filter(Park == "CHIR" & yr != 2020) %>%
+    select(yr, Species_code, prop_photos) %>%
+    spread(key = yr, value = prop_photos, fill = 0) %>%
+    mutate(across(2:5, round, 3)) %>%
+    rename_with(~ paste0("p_", colnames(n_chir_yr)[2:5]), all_of(colnames(n_chir_yr)[2:5]))
+  # Combine
+  spp_chir_yr <- left_join(n_chir_yr, p_chir_yr)
+  (spp_chir_yr <- arrange(spp_chir_yr, desc(total)))
+  rm(n_chir_yr, p_chir_yr)
+  
+# Add rank for each park to species dataframe
+for (i in 1:nrow(species)) {
+  species$CHIR_rank[i] <- ifelse(!species$Species_code[i] %in% spp_chir_yr$Species_code, NA,
+                                 which(spp_chir_yr$Species_code == species$Species_code[i]))
+  species$ORPI_rank[i] <- ifelse(!species$Species_code[i] %in% spp_orpi_yr$Species_code, NA,
+                                 which(spp_orpi_yr$Species_code == species$Species_code[i]))
+  species$SAGW_rank[i] <- ifelse(!species$Species_code[i] %in% spp_sagw_yr$Species_code, NA,
+                                 which(spp_sagw_yr$Species_code == species$Species_code[i]))
+}
 
 #-------------------------------------------------------------------------------#
 # Calculate time between photos of the same species at same location
