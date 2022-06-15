@@ -28,7 +28,8 @@ spp <- "LECA"
 
 park <- "SAGW"
 
-# Retain a maximum of one observation per day at each location
+# Subset by species and park, and retain a maximum of one observation per day 
+# at each location
 datsub <- dat %>% 
   filter(Species_code == spp & Park == park) %>%
   select(LocationID, StdLocName, obsdate, yr, mon, yday, o_day, POINT_X, POINT_Y) %>%
@@ -40,7 +41,7 @@ datsub <- dat %>%
 
 # Length of secondary occasions, in days
 occ_length <- 7
-  # May want to evaluate whether 7 days is the best choice (Iannarilli et al. 2019?)
+  # May want to evaluate if 7 days is the best choice (Iannarilli et al. 2019?)
 
 # Add colnames to event_mat 
 days_df <- data.frame(daynum = 1:max(dat$o_day), 
@@ -62,24 +63,24 @@ days_df$n_cameras <- colSums(ddh)
 # Calculate proportion of cameras in selected park that are deployed each day
 days_df$prop_deploy <- days_df$n_cameras / nrow(ddh)
 
-# Identify those dates when > threshold proportion of cameras deployed
+# Identify those dates when the proportion of cameras deployed >= threshold
 threshold <- 0.60
-days_df$abovethresh <- 1*(days_df$prop_deploy > threshold)
+days_df$at_thresh <- 1*(days_df$prop_deploy >= threshold)
   
 # Look at consecutive days with sufficient number of cameras deployed
-data.frame(unclass(rle(days_df$abovethresh)))
+data.frame(unclass(rle(days_df$at_thresh)))
   # filter(days_df, yr == 2017 & prop_deploy > 0)
 
 # Identify the first day in each year that the threshold was met
 firstday_yr <- days_df %>%
-  filter(abovethresh == 1) %>%
+  filter(at_thresh == 1) %>%
   group_by(yr) %>%
   summarize(day1 = min(daynum)) %>%
   as.data.frame
 
 # Generate occasion number (within a year)
 days_df$occasion <- NA
-for (i in days_df$daynum[days_df$abovethresh == 1]) {
+for (i in days_df$daynum[days_df$at_thresh == 1]) {
   days_df$occasion[i] <- 
     ceiling((i - firstday_yr$day1[firstday_yr$yr == days_df$yr[i]] + 1) / occ_length)
 }
@@ -108,7 +109,7 @@ ddh <- ddh[, colnames(ddh) %in% days_df$daynum[days_df$keep == 1]]
 # Change 0s in dh to NA (NA = camera wasn't operational)
 ddh[ddh == 0] <- NA
 
-# Change 1s in dh to 0 (0 will indicate that the species wasn't detected)
+# Change 1s in dh to 0 (0 indicates that the species wasn't detected)
 ddh[ddh == 1] <- 0
 
 # Replace 0s with 1s when the species was detected
@@ -120,11 +121,11 @@ for (i in 1:nrow(datsub)) {
 table(ddh)
 days_df[days_df$daynum %in% datsub$o_day[!datsub$o_day %in% colnames(ddh)],]
   # Detections that aren't included in detection histories are either:
-    # on days when a low proportion of cameras were deployed (< threshold)
-    # or, during occasions that were < occ_length
+    # on days when few cameras were deployed (< threshold)
+    # or, during occasions that were shorter than occ_length
 
 # Create a function to aggregate daily detection data during each occasion
-  # NA if the camera was not operation during entire occasion (all values = NA)
+  # NA if the camera was not operational during entire occasion (all values = NA)
   # 1 if species was detected one or more times (regardless if there are NAs)
   # 0 if species was never detected
   paNA <- function(x) {
