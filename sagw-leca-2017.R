@@ -30,6 +30,10 @@ year <- 2017
 # Use day number (day 1 = 01 Jan 2016) for column names in event_mat 
 colnames(event_mat) <- 1:ncol(event_mat)
 
+#-------------------------------------------------------------------------------#
+# Create detection histories for selected park, species, and year
+#-------------------------------------------------------------------------------#
+
 # Extract sampling occasion info for selected park and year
 occasions <- occasions %>%
   filter(Park == park & yr == year)
@@ -110,7 +114,7 @@ for (i in 1:ncol(dh)) {
   dh[,i] <- apply(multiday, 1, paNA)
   effort[,i] <- apply(multiday, 1, propNA)
 }
-  # Might need to replace 0 values in effort with NA
+  # Might need to replace 0 values with NAs in effort matrix
 
 #-------------------------------------------------------------------------------#
 # Spatial covariates
@@ -121,4 +125,18 @@ spatial_covs <- locs_park
 
 # Ensure the order is the same as what's in the detection history matrix
 spatial_covs <- spatial_covs[match(rownames(dh), spatial_covs$loc),]
+
+# Identify continuous covariates
+covs_cont <- c("long", "lat")
+
+# Scale continuous covariates by mean, SD
+for (i in covs_cont) {
+  meani <- mean(spatial_covs[,i])
+  sdi <- sd(spatial_covs[,i])
+  spatial_covs[,paste0(i, "_z")] <- (spatial_covs[,i] - meani) / sdi
+}
+
+
+
+
 
