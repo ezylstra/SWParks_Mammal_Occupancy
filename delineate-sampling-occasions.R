@@ -23,13 +23,6 @@ days_df$yr <- year(days_df$date)
 # Use day number (day 1 = 01 Jan 2016) for column names in event_mat 
 colnames(event_mat) <- days_df[,1]
 
-# In photo observation dataframe, retain a maximum of one observation per day 
-# of each species at each location
-obs <- dat %>% 
-  select(LocationID, StdLocName, Park, Species_code, obsdate, yr, o_day) %>%
-  arrange(Park, StdLocName, Species_code, obsdate) %>%
-  distinct
-
 # Set the length of sampling occasions, in days
 occ_length <- 7
   # May want to evaluate if 7 days is the best choice (Iannarilli et al. 2019?)
