@@ -6,3 +6,7 @@
 # Mammal data
 data/mammals/*
 !data/mammals/.gitkeep
+
+# Spatial data associated with camera locations
+data/locations/*
+!data/locations/.gitkeep
