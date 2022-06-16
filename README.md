@@ -5,8 +5,7 @@ Using camera trap data to assess occupancy of mammals in Southwestern National P
 
 ## Dependencies
 
-JAGS 4.3.1 (At least at the moment, we're using JAGS to run Bayesian occupancy models)
-This version of JAGS is needed if running R 4.2.x
+JAGS 4.3.1 (At least at the moment, we're using JAGS to run Bayesian occupancy models. This version of JAGS is needed if running R 4.2.x)
 
 The project also uses the following R packages:
 
@@ -36,4 +35,4 @@ The project also uses the following R packages:
 
 ## Data
 
-Because these datasets potentially include information about senstive species, the raw data are not publicly available.
+Because these datasets potentially include information about sensitive species, the raw data are not publicly available.
