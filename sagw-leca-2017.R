@@ -13,6 +13,7 @@ library(dplyr)
 library(lubridate)
 library(stringr)
 library(tidyr)
+library(jagsUI)
 
 # rm(list = ls())
 
@@ -89,7 +90,7 @@ sum(ddh == 1, na.rm = TRUE)
 sum(obs$o_day %in% occ_days)
 
 # Create a function to aggregate daily detection data during each occasion
-  # NA if the camera was not operational throughout entire occasion (all values = NA)
+  # NA if camera wasn't operational throughout entire occasion (all values = NA)
   # 1 if species was detected one or more times (regardless if there are NAs)
   # 0 if species was never detected
   paNA <- function(x) {
@@ -140,11 +141,53 @@ for (i in covs_cont) {
 # Package things up for JAGS
 #-------------------------------------------------------------------------------#
 
+# Function to create a matrix with information about known latent states, z[i]
+# JAGS won't try to estimate z when site is known to be occupied (denoted with 1)
+known_state_occ <- function(dh){
+  state <- apply(dh, 1, function(x) ifelse(sum(is.na(x)) == length(x), NA, max(x, na.rm=T)))
+  state[state==0] <- NA
+  return(state)
+}
+
+# Function to create initial values for unknown latent states, z[i]
+inits_state_occ <- function(dh){
+  state <- apply(dh, 1, function(x) ifelse(sum(is.na(x)) == length(x), NA, max(x, na.rm=T)))
+  # Initial value of 1 whenever occupancy state is unknown
+  state[state==1] <- 2
+  state[is.na(state) | state==0] <- 1
+  state[state==2] <- NA
+  return(state)
+}  
+
+# Bundle data for JAGS
+jags_data <- list(y = dh,
+                  n_sites = nrow(dh),
+                  n_surveys = ncol(dh),
+                  lat = spatial_covs$lat_z,
+                  effort = effort,
+                  z = known_state_occ(dh))
+
+# List of parameters to monitor
+params <- c("mean_psi", "beta0", "beta1", 
+            "mean_p", "alpha0", "alpha1",
+            "z")
+
+# Initial values
+inits <- function(){list(mean_psi = runif(1, 0, 1),
+                         beta1 = runif(1, -2, 2),
+                         mean_p = runif(1, 0, 1),
+                         alpha1 = runif(1, -2, 2),
+                         z = inits_state_occ(dh))}
 
 #-------------------------------------------------------------------------------#
 # Run model in JAGS
 #-------------------------------------------------------------------------------#
 
+nc <- 3    # Number of chains
+na <- 100  # Number of iterations to run in the adaptive phase
+nb <- 100  # Number of iterations to discard (burn-in)
+ni <- 500  # Number of iterations per chain (including burn-in)
+nt <- 1    # Thinning rate
 
 #-------------------------------------------------------------------------------#
 #Look at model results
