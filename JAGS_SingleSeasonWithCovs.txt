@@ -1,0 +1,29 @@
+model {
+
+	# Priors
+		mean_psi ~ dunif(0, 1)    # Mean occupancy on the probability scale
+		beta0 <- logit(mean_psi)  # Mean occupancy on the logit scale
+		beta1 ~ dnorm(0,0.1)      # Effect of latitude on occupancy (logit scale)
+		mean_p ~ dunif(0, 1)      # Mean detection probability on the probability scale
+		alpha0 <- logit(mean_p)   # Mean detection probability on the logit scale
+		alpha1 ~ dnorm(0,0.1)     # Effect of effort on detection probability (logit scale)
+	
+	# Likelihood
+	
+		for (i in 1:n_sites) {
+	
+			# Ecological model
+			z[i] ~ dbern(psi[i])
+			logit(psi[i]) <- beta0 + beta1 * lat[i]
+			
+			for (j in 1:n_surveys) {
+			
+				# Observation model
+				y[i,j] ~ dbern(p_eff[i,j])
+				p_eff[i,j] <- z[i] * p[i,j]
+				logit(p[i,j]) <- alpha0 + alpha1 * effort[i,j]
+				
+			} # j
+		} # i
+
+}
