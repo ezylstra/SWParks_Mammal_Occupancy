@@ -169,8 +169,7 @@ jags_data <- list(y = dh,
 
 # List of parameters to monitor
 params <- c("mean_psi", "beta0", "beta1", 
-            "mean_p", "alpha0", "alpha1",
-            "z")
+            "mean_p", "alpha0", "alpha1")
 
 # Initial values
 inits <- function(){list(mean_psi = runif(1, 0, 1),
@@ -183,12 +182,30 @@ inits <- function(){list(mean_psi = runif(1, 0, 1),
 # Run model in JAGS
 #-------------------------------------------------------------------------------#
 
-nc <- 3    # Number of chains
-na <- 100  # Number of iterations to run in the adaptive phase
-nb <- 100  # Number of iterations to discard (burn-in)
-ni <- 500  # Number of iterations per chain (including burn-in)
-nt <- 1    # Thinning rate
+nc <- 3      # Number of chains
+na <- 2000   # Number of iterations to run in the adaptive phase
+nb <- 5000   # Number of iterations to discard (burn-in)
+ni <- 20000  # Number of iterations per chain (including burn-in)
+nt <- 10     # Thinning rate
 
-#-------------------------------------------------------------------------------#
-#Look at model results
-#-------------------------------------------------------------------------------#
+out <- jags(data = jags_data,
+            inits = inits,
+            parameters.to.save = params,
+            model.file = "JAGS_SingleSeasonWithCovs.txt",
+            n.chains = nc,
+            n.adapt = na,
+            n.burnin = nb,
+            n.iter = ni,
+            n.thin = nt,
+            parallel = TRUE)
+
+print(out)
+plot(out)
+
+# Mean detection probability not estimated well
+  # Model parameterization?
+  # Priors?
+  # Is this the time to learn nimble?
+  # Different, better covariates (latitude and effort just placeholders, really)
+
+# For comparison, should run same model in unmarked
