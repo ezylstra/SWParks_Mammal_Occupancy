@@ -189,10 +189,10 @@ inits <- function(){list(mean_psi = runif(1, 0, 1),
 #-------------------------------------------------------------------------------#
 
 nc <- 3      # Number of chains
-na <- 2000   # Number of iterations to run in the adaptive phase
-nb <- 5000   # Number of iterations to discard (burn-in)
-ni <- 20000  # Number of iterations per chain (including burn-in)
-nt <- 10     # Thinning rate
+na <- 3000   # Number of iterations to run in the adaptive phase
+nb <- 10000   # Number of iterations to discard (burn-in)
+ni <- 40000  # Number of iterations per chain (including burn-in)
+nt <- 20     # Thinning rate
 
 out <- jags(data = jags_data,
             inits = inits,
@@ -205,21 +205,69 @@ out <- jags(data = jags_data,
             n.thin = nt,
             parallel = TRUE)
 
-print(out)
-plot(out)
+#-------------------------------------------------------------------------------#
+# Visualize and summarize MCMC output
+#-------------------------------------------------------------------------------#
 
-# Mean detection probability not estimated well
+# First look at parameter estimates and summary of MCMC settings
+print(out)
+
+# A number of packages provide functions to visualize/summarize MCMC output. 
+# Highlighting two options below
+
+# Using the MCMCvis package 
+# more info: https://cran.r-project.org/web/packages/MCMCvis/vignettes/MCMCvis.html
+library(MCMCvis)
+
+  # Parameter estimates (incl Rhat, n.eff)
+  MCMCsummary(out, round = 2)
+  
+  # Trace and density plots 
+  MCMCtrace(out, 
+            # params = c("mean_psi", "beta0"), 
+            pdf = FALSE)
+  MCMCtrace(out, type = "trace", pdf = FALSE)
+  MCMCtrace(out, type = "density", Rhat = TRUE, pdf = FALSE)
+  
+  # Whisker plots
+  par(mfrow = c(1,1))
+  MCMCplot(out, 
+           params = c("beta0", "beta1", "alpha0", "alpha1"), 
+           ci = c(50, 90))
+
+# Using the coda package 
+# more info: https://cran.r-project.org/web/packages/coda/coda.pdf
+# more info: https://www.r-bloggers.com/2010/08/mcmc-diagnostics-in-r-with-the-coda-package/
+library(coda)  
+  
+  # Extract the MCMC samples
+  samples <- as.mcmc.list(out$samples)
+  
+  # Look at MCMC samples for first chain:
+  head(samples[[1]])
+  
+  # Trace and density plots
+  coda::traceplot(samples)
+  coda::densplot(samples)
+  
+  # Autocorrelation plots
+  coda::autocorr.plot(samples)
+  
+  # Gelman-Rubin convergence diagnostics
+  coda::gelman.diag(samples)
+  coda::gelman.plot(samples)
+
+# What do results for this model look like?
+  # Mean detection probability not estimated well
   # Looking at the detection histories, that's likely because there seems to be 
     # huge variation among sites (either detected consistently or not at all).
     # Adding a site-level covariate for detection that can explain this would 
     # probably help.
-# Also may want to think about
-  # Model parameterization (eg, putting detection in long form)
-  # Priors
-  # Using nimble instead of JAGS
 
-
+#-------------------------------------------------------------------------------#
 # For comparison, running the same model in unmarked
+#-------------------------------------------------------------------------------#
+
 library(unmarked)
 umf <- unmarkedFrameOccu(y = dh,
                          siteCovs = data.frame(lat = spatial_covs$lat_z,
