@@ -17,10 +17,17 @@ library(jagsUI)
 
 # rm(list = ls())
 
-# Load photo observations, camera location info, event matrix, and species list
+# Load photo, location, events, species data 
 source("format-mammal-data.R")
 
-# Load sampling occasion data
+  # dat = information about each photo (date, time, species, location)
+  # events = information about each camera deployment (dates, location, duration)
+  # event_mat = camera location x day matrix with 1/0 indicating whether camera
+  #             was deployed or not
+  # locs = information about each camera location (park, lat/long, name)
+  # species = table with species observed (species code, common name, # of obs)
+
+# Load sampling occasion data (park, year, start/end, duration)
 occasions <- read.csv("data/occasions/occasions-all-parks.csv")
 
 # Identify park, species, and year of interest
