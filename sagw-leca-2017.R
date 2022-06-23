@@ -209,9 +209,23 @@ print(out)
 plot(out)
 
 # Mean detection probability not estimated well
-  # Model parameterization?
-  # Priors?
-  # Is this the time to learn nimble?
-  # Different, better covariates (latitude and effort just placeholders, really)
+  # Looking at the detection histories, that's likely because there seems to be 
+    # huge variation among sites (either detected consistently or not at all).
+    # Adding a site-level covariate for detection that can explain this would 
+    # probably help.
+# Also may want to think about
+  # Model parameterization (eg, putting detection in long form)
+  # Priors
+  # Using nimble instead of JAGS
 
-# For comparison, should run same model in unmarked
+
+# For comparison, running the same model in unmarked
+library(unmarked)
+umf <- unmarkedFrameOccu(y = dh,
+                         siteCovs = data.frame(lat = spatial_covs$lat_z,
+                                               long = spatial_covs$long_z),
+                         obsCovs = list(effort = effort))
+summary(m_lat_effort <- occu(~ effort ~ lat, data = umf)) 
+  # Estimates of psi, latitude effect are similar to Bayesian results
+  # Estimates of p, effort are different (but like the Bayesian results,
+  # are characterized by huge uncertainty)
