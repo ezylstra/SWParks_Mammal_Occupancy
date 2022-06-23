@@ -46,7 +46,19 @@ colnames(event_mat) <- 1:ncol(event_mat)
 occasions <- occasions %>%
   filter(Park == park & yr == year)
 
-# Select photo observations for park, species and year
+# Convert occasion start/end dates to day numbers
+occasions$start_day <- 
+  as.numeric(date(occasions$start)) - as.numeric(as.Date("2015-12-31"))
+occasions$end_day <- 
+  as.numeric(date(occasions$end)) - as.numeric(as.Date("2015-12-31"))
+
+# Create a list of days included in sampling occasions
+occ_days <- NULL
+for (i in 1:nrow(occasions)) {
+  occ_days <- append(occ_days, occasions$start_day[i]:occasions$end_day[i])
+}
+
+# Extract photo observations for park, species and year
 # Retain a maximum of one observation per day at each location
 obs <- dat %>% 
   filter(Park == park & Species_code == species & yr == year) %>%
@@ -63,42 +75,30 @@ locs_park <- locs %>%
 # Extract rows from events matrix that correspond to locations in selected park
 event_mat <- event_mat[rownames(event_mat) %in% locs_park$loc,]
 
-# Convert occasion start/end dates to day numbers
-occasions$start_day <- 
-  as.numeric(date(occasions$start)) - as.numeric(as.Date("2015-12-31"))
-occasions$end_day <- 
-  as.numeric(date(occasions$end)) - as.numeric(as.Date("2015-12-31"))
-
-# Create a list of days included in sampling occasions
-occ_days <- NULL
-for (i in 1:nrow(occasions)) {
-  occ_days <- append(occ_days, occasions$start_day[i]:occasions$end_day[i])
-}
-
 # Extract columns from events matrix that correspond to sampling occasions
 event_mat <- event_mat[,colnames(event_mat) %in% occ_days]
 
-# Convert the events matrix into detection histories (ddh = daily dh)
+# Convert the events matrix into daily detection histories (ddh)
 ddh <- event_mat
 
-# Change 0s to NA (NA = camera wasn't deployed)
-ddh[ddh == 0] <- NA
-
-# Change 1s to 0 (0 indicates that the species wasn't detected)
-ddh[ddh == 1] <- 0
-
-# Replace 0s with 1s when the species was detected
-for (i in 1:nrow(obs)) {
-  ddh[rownames(ddh) == obs$StdLocName[i], 
-      colnames(ddh) == as.character(obs$o_day[i])] <- 1
-}
-# checks:
-sum(ddh == 1, na.rm = TRUE)
-sum(obs$o_day %in% occ_days)
+  # Change 0s to NA (NA = camera wasn't deployed)
+  ddh[ddh == 0] <- NA
+  
+  # Change 1s to 0 (0 indicates that the species wasn't detected)
+  ddh[ddh == 1] <- 0
+  
+  # Replace 0s with 1s when the species was detected
+  for (i in 1:nrow(obs)) {
+    ddh[rownames(ddh) == obs$StdLocName[i], 
+        colnames(ddh) == as.character(obs$o_day[i])] <- 1
+  }
+  # checks:
+  sum(ddh == 1, na.rm = TRUE)
+  sum(obs$o_day %in% occ_days)
 
 # Create a function to aggregate daily detection data during each occasion
   # NA if camera wasn't operational throughout entire occasion (all values = NA)
-  # 1 if species was detected one or more times (regardless if there are NAs)
+  # 1 if species was detected one or more times (even if there are NAs)
   # 0 if species was never detected
   paNA <- function(x) {
     if (sum(is.na(x)) == length(x)) {NA} else 
@@ -112,17 +112,16 @@ sum(obs$o_day %in% occ_days)
   }
 
 # Summarize detection data (dh) and effort during each occasion 
-dh <- effort <-  matrix(NA, 
-                        nrow = nrow(ddh), 
-                        ncol = ncol(ddh) / occasions$duration[1],
-                        dimnames = list(rownames(ddh), NULL))
+dh <- effort <- matrix(NA, 
+                       nrow = nrow(ddh), 
+                       ncol = ncol(ddh) / occasions$duration[1],
+                       dimnames = list(rownames(ddh), NULL))
 
 for (i in 1:ncol(dh)) {
   multiday <- ddh[,colnames(ddh) %in% occasions$start_day[i]:occasions$end_day[i]]
   dh[,i] <- apply(multiday, 1, paNA)
   effort[,i] <- apply(multiday, 1, propNA)
 }
-  # Might need to replace 0 values with NAs in effort matrix
 
 #-------------------------------------------------------------------------------#
 # Spatial covariates
@@ -149,7 +148,7 @@ for (i in covs_cont) {
 #-------------------------------------------------------------------------------#
 
 # Function to create a matrix with information about known latent states, z[i]
-# JAGS won't try to estimate z when site is known to be occupied (denoted with 1)
+# JAGS won't try to estimate z when site is known to be occupied
 known_state_occ <- function(dh){
   state <- apply(dh, 1, function(x) ifelse(sum(is.na(x)) == length(x), NA, max(x, na.rm=T)))
   state[state==0] <- NA
