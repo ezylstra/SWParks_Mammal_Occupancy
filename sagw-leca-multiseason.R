@@ -83,35 +83,35 @@ event_mat <- event_mat[,colnames(event_mat) %in% occ_days]
 # Convert the events matrix into daily detection histories (ddh)
 ddh <- event_mat
 
-# Change 0s to NA (NA = camera wasn't deployed)
-ddh[ddh == 0] <- NA
-
-# Change 1s to 0 (0 indicates that the species wasn't detected)
-ddh[ddh == 1] <- 0
-
-# Replace 0s with 1s when the species was detected
-for (i in 1:nrow(obs)) {
-  ddh[rownames(ddh) == obs$StdLocName[i], 
-      colnames(ddh) == as.character(obs$o_day[i])] <- 1
-}
-# checks:
-sum(ddh == 1, na.rm = TRUE)
-sum(obs$o_day %in% occ_days)
+  # Change 0s to NA (NA = camera wasn't deployed)
+  ddh[ddh == 0] <- NA
+  
+  # Change 1s to 0 (0 indicates that the species wasn't detected)
+  ddh[ddh == 1] <- 0
+  
+  # Replace 0s with 1s when the species was detected
+  for (i in 1:nrow(obs)) {
+    ddh[rownames(ddh) == obs$StdLocName[i], 
+        colnames(ddh) == as.character(obs$o_day[i])] <- 1
+  }
+  # checks:
+  sum(ddh == 1, na.rm = TRUE)
+  sum(obs$o_day %in% occ_days)
 
 # Create a function to aggregate daily detection data during each occasion
   # NA if camera wasn't operational throughout entire occasion (all values = NA)
   # 1 if species was detected one or more times (even if there are NAs)
   # 0 if species was never detected
-paNA <- function(x) {
-  if (sum(is.na(x)) == length(x)) {NA} else 
-    if (sum(x, na.rm = TRUE) == 0) {0} else {1} 
-}
+  paNA <- function(x) {
+    if (sum(is.na(x)) == length(x)) {NA} else 
+      if (sum(x, na.rm = TRUE) == 0) {0} else {1} 
+  }
 
 # Create a function to calculate the proportion of a sampling period a camera
 # was operational
-propNA <- function(x) {
-  (occasions$duration[1] - sum(is.na(x))) / occasions$duration[1]
-}
+  propNA <- function(x) {
+    (occasions$duration[1] - sum(is.na(x))) / occasions$duration[1]
+  }
 
 # Summarize detection data (dh) and effort during each occasion 
 dh <- effort <- matrix(NA, 
@@ -130,9 +130,9 @@ for (i in 1:ncol(dh)) {
 # be used with different combinations of covariates, and sometimes this
 # results in shorter run times. 
 
-# Basically, instead of having site * occasion matrices, we'll 
-# create long vectors with detection and effort data, along with accompanying 
-# variables to indicate the site, location, and year for the given observations.
+# Basically, instead of having site * occasion matrices, we'll create long
+# vectors with detection and effort data, along with accompanying variables to
+# indicate the site, location, and year associated with the given observations.
 
 # Convert detection data into long form
 dh_df <- as.data.frame(dh)
