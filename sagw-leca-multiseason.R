@@ -43,7 +43,8 @@ colnames(event_mat) <- 1:ncol(event_mat)
 
 # Extract sampling occasion info for selected park
 occasions <- occasions %>%
-  filter(Park == park)
+  filter(Park == park) %>%
+  arrange(yr, occasion)
 
 # Add occasion ID
 occasions$yr_occ <- paste0(occasions$yr, "_", occasions$occasion)
@@ -164,3 +165,121 @@ surveys <- left_join(dh_long, eff_long)
 # Add year and trend columns
 surveys$yr <- as.numeric(str_sub(surveys$occ, 1,4))
 surveys$trend <- surveys$yr - min(surveys$yr)
+
+# Add site, season, occasion indicators
+surveys$season_index <- surveys$trend + 1
+surveys$occ_index <- as.numeric(str_sub(surveys$occ,6,nchar(surveys$occ)))
+for (i in 1:nrow(surveys)) {
+  surveys$site_index[i] <- which(rownames(dh) == surveys$loc[i])
+}
+
+#-------------------------------------------------------------------------------#
+# Spatial covariates
+#-------------------------------------------------------------------------------#
+# Will expand this section as more covariates become available
+
+spatial_covs <- locs_park 
+
+# Ensure the order is the same as what's in the detection history matrix
+spatial_covs <- spatial_covs[match(rownames(dh), spatial_covs$loc),]
+
+# Identify continuous covariates
+covs_cont <- c("long", "lat")
+
+# Scale continuous covariates by mean, SD
+for (i in covs_cont) {
+  meani <- mean(spatial_covs[,i])
+  sdi <- sd(spatial_covs[,i])
+  spatial_covs[,paste0(i, "_z")] <- (spatial_covs[,i] - meani) / sdi
+}
+
+# Attach spatial covariates to surveys dataframe so we can use them as 
+# covariates for detection
+surveys <- left_join(surveys, spatial_covs[,c("loc", "long_z", "lat_z")])
+
+#-------------------------------------------------------------------------------#
+# Package things up for JAGS
+#-------------------------------------------------------------------------------#
+
+# z (latent occupancy for each site & season) is what we're interested in
+# In JAGS, z will be stored in a matrix (n_sites * n_seasons)
+
+# In order to create initial values for z, we'll need to summarize detections 
+# over occasions at each site in each season. Either use xtabs() to:
+  # Create an array with detection data (row = site, col = occasion, slice = season)
+  # Then can use an apply function, summarizing over columns
+  # eg, state <- apply(array, c(1,3), function(x) ifelse(sum(is.na(x)) == length(x), NA, max(x, na.rm=T)))
+
+# Or, I might be able to do this group_by and summarize functions in dplyr...
+
+
+
+
+
+# Create object with covariates for occupancy in first season
+# Here, using latitude and latitude ^2
+cov_psi <- spatial_covs %>%
+  select(lat_z) %>%
+  mutate(lat_z2 = lat_z * lat_z) %>%
+  as.matrix
+n_cov_psi <- ncol(cov_psi)
+
+# Create object with covariates for detection
+# Here, using latitude and effort
+cov_p <- surveys %>%
+  select(lat_z, effort) %>%
+  as.matrix
+n_cov_p <- ncol(cov_p)
+
+# Bundle data for JAGS
+jags_data <- list(y = surveys$det,
+                  n_sites = nrow(dh),
+                  n_seasons = ncol(dh),
+                  n_obs = nrow(surveys),
+                  cov_psi = cov_psi,
+                  n_cov_psi = ncol(cov_psi),
+                  cov_p = cov_p,
+                  n_cov_p = ncol(cov_p),
+                  lat = spatial_covs$lat_z,
+                  long = spatial_covs$long_z,
+                  site = surveys$site_index,
+                  season = surveys$season_index,
+                  z = known_state_occ(yarray))
+
+# List of parameters to monitor
+params <- c("mean_psi", "beta_psi0", "beta_psi",
+            "mean_p", "beta_p0", "beta_p",
+            "beta_eps0", "beta_eps1",
+            "beta_gam0", "beta_gam1")
+
+# Initial values
+inits <- function(){list(mean_psi = runif(1, 0, 1),
+                         beta_psi = runif(n_cov_psi, -2, -2),
+                         mean_p = runif(1, 0, 1),
+                         beta_p = runif(n_cov_p, -2, 2),
+                         beta_eps0 = runif(1, -1, 1),
+                         beta_eps1 = runif(1, -2 ,2),
+                         beta_gam0 = runif(1, -1, 1),
+                         beta_gam1 = runif(1, -2, 2),
+                         z = inits_state_occ(yarray))}
+
+#-------------------------------------------------------------------------------#
+# Run model in JAGS
+#-------------------------------------------------------------------------------#
+
+nc <- 3      # Number of chains
+na <- 3000   # Number of iterations to run in the adaptive phase
+nb <- 10000  # Number of iterations to discard (burn-in)
+ni <- 20000  # Number of iterations per chain (including burn-in)
+nt <- 10     # Thinning rate
+
+out <- jags(data = jags_data,
+            inits = inits,
+            parameters.to.save = params,
+            model.file = "JAGS_MultiSeasonWithCovs.txt",
+            n.chains = nc,
+            n.adapt = na,
+            n.burnin = nb,
+            n.iter = ni,
+            n.thin = nt,
+            parallel = TRUE)
