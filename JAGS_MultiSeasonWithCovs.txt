@@ -1,0 +1,60 @@
+model {
+
+	# Priors
+	
+		mean_psi ~ dunif(0,1)    # Mean occupancy on the probability scale
+		beta_psi0 <- logit(mean_psi)  # Mean occupancy on the logit scale
+		
+		for (i in 1:n_cov_phi) {
+		  beta_psi[i] ~ dnorm(0,0.1)  # Effect of each covariate on occupancy (logit scale)
+		}
+		
+		mean_p ~ dunif(0, 1)      # Mean detection probability on the probability scale
+		beta_p0 <- logit(mean_p)   # Mean detection probability on the logit scale
+		
+		for (i in 1:n_cov_p) {
+		  beta_p[i] ~ dnorm(0,0.1)  # Effect of each covariate on detection (logit scale)
+		}		
+		
+		beta_eps0 ~ dlogis(0,1)    # Mean extinction probability (on logit scale)
+		beta_eps1 ~ dnorm(0,0.1)   # Effect of latitude on extinction (logit scale)
+
+		beta_gam0 ~ dlogis(0,1)   # Mean colonization probability (on logit scale)
+		beta_gam1 ~ dnorm(0,0.1)  # Effect of longitude on colonization (logit scale)
+
+
+	# Likelihood
+	
+		# Ecological model
+		
+		for (i in 1:n_sites) {
+			
+			logit(psi[i]) <- beta_psi0 + inprod(beta_psi[], cov_psi[i,])
+			z[i,1] ~ dbern(psi[i])
+			
+			for (t in 2:n_seasons) {
+			
+				# Extinction probabiliy at site i between season t-1 and t
+				logit(eps[i,t-1]) <- beta_eps0 + beta_eps1 * lat[i]
+														 
+				# Colonization probability at site i between season t-1 and t
+				logit(gamma[i,t-1]) <- beta_gam0 + beta_gam1 * long[i]
+														 
+				# Probability of site i being occupied in season t
+				Ez[i,t-1] <- gamma[i,t-1] * (1 - z[i,t-1]) + (1 - eps[i,t-1]) * z[i,t-1]
+				z[i,t] ~ dbern(Ez[i,t-1])
+				
+			} # t
+		} # i
+
+		# Observation model (data in long form)
+  
+    for(w in 1:n_obs){
+      
+			logit(p[w]) <- beta_p0 + inprod(beta_p[], cov_p[w,])
+			y[w] ~ dbern(z[site[w],season[w]]*p[w])
+    
+   } #w
+	 
+}
+
