@@ -5,7 +5,7 @@ model {
 		mean_psi ~ dunif(0,1)    # Mean occupancy on the probability scale
 		beta_psi0 <- logit(mean_psi)  # Mean occupancy on the logit scale
 		
-		for (i in 1:n_cov_phi) {
+		for (i in 1:n_cov_psi) {
 		  beta_psi[i] ~ dnorm(0,0.1)  # Effect of each covariate on occupancy (logit scale)
 		}
 		
