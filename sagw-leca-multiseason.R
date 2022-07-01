@@ -3,7 +3,7 @@
 # SAGW, LECA (black-tailed jackrabbit)
 
 # ER Zylstra
-# 2022-06-23
+# Updated 2022-06-30
 ################################################################################
 
 # Note: Will probably want to create a template script for this type of analysis
@@ -128,12 +128,12 @@ for (i in 1:ncol(dh)) {
 
 # In contrast to our single-season model, we'll put detection/survey data in 
 # long form. This makes it easier to create universal model scripts that can
-# be used with different combinations of covariates, and sometimes this
-# results in shorter run times. 
+# be used with different combinations of temporal and spatial covariates. This 
+# may also result in shorter run times. 
 
-# Basically, instead of having site * occasion matrices, we'll create long
-# vectors with detection and effort data, along with accompanying variables to
-# indicate the site, location, and year associated with the given observations.
+# Basically, instead of having site * occasion * season arrays, we'll create 
+# long vectors with detection and effort data, along with accompanying variables 
+# to indicate site, location, and season associated with the given observations.
 
 # Convert detection data into long form
 dh_df <- as.data.frame(dh)
@@ -159,9 +159,7 @@ eff_long <- eff_df %>%
 
 # Merge detection and effort data
 surveys <- left_join(dh_long, eff_long)
-  # Count unique combinations of detection, effort data
-  count(surveys, det, effort) 
-  
+
 # Add year and trend columns
 surveys$yr <- as.numeric(str_sub(surveys$occ, 1,4))
 surveys$trend <- surveys$yr - min(surveys$yr)
@@ -202,19 +200,61 @@ surveys <- left_join(surveys, spatial_covs[,c("loc", "long_z", "lat_z")])
 #-------------------------------------------------------------------------------#
 
 # z (latent occupancy for each site & season) is what we're interested in
-# In JAGS, z will be stored in a matrix (n_sites * n_seasons)
+# In JAGS, z will be stored in a matrix (n_sites[i] * n_seasons[t])
 
 # In order to create initial values for z, we'll need to summarize detections 
-# over occasions at each site in each season. Either use xtabs() to:
-  # Create an array with detection data (row = site, col = occasion, slice = season)
-  # Then can use an apply function, summarizing over columns
+# over occasions at each site in each season. To do this:
+  # Create an array with detection data (row = site, col = occ, slice = season)
+  # Then use an apply function, summarizing over columns
   # eg, state <- apply(array, c(1,3), function(x) ifelse(sum(is.na(x)) == length(x), NA, max(x, na.rm=T)))
 
-# Or, I might be able to do this group_by and summarize functions in dplyr...
+n_sites <- max(surveys$site_index) # 60
+n_seasons <- max(surveys$season_index) # 6
+max_n_occasions <- max(surveys$occ_index) # 6
+season_occ <- data.frame(season_index = 1:n_seasons)
+season_occ$yr <- surveys$yr[match(season_occ$season_index, surveys$season_index)]
+for (i in 1:n_seasons) {
+  season_occ$n_occasions[i] <- 
+    ifelse(sum(surveys$season_index == i) == 0, NA, 
+           max(surveys$occ_index[surveys$season_index == i]))
+}
 
+# Create an array with detection data (row = site, col = occ, slice = season)
+y_array <- array(NA, dim = c(n_sites, max_n_occasions, n_seasons))
+for (i in 1:n_seasons) {
+  if (is.na(season_occ$n_occasions[i])) {next}
+  y_array[,1:season_occ$n_occasions[i],i] <-
+    as.matrix(dh_df[,grep(season_occ$yr[i], colnames(dh_df))])
+}
 
+# Function to create a matrix with information about known latent states, z[i,t]
+# JAGS won't try to estimate z when site is known to be occupied
+known_state_occ <- function(y_array){
+  state <- apply(y_array, 
+                 c(1,3), 
+                 function(x) ifelse(sum(is.na(x)) == length(x), 
+                                    NA, max(x, na.rm=T)))
+  state[state==0] <- NA
+  return(state)
+}
+# check:
+known_state_occ(y_array)
 
-
+# Function to create initial values for unknown latent states, z[i, t]
+inits_state_occ <- function(y_array){
+  state <- apply(y_array, 
+                 c(1,3), 
+                 function(x) ifelse(sum(is.na(x)) == length(x), 
+                                    NA, 
+                                    max(x, na.rm=T)))
+  # Initial value of 1 whenever occupancy state is unknown
+  state[state==1] <- 2
+  state[is.na(state) | state==0] <- 1
+  state[state==2] <- NA
+  return(state)
+}  
+# check:
+inits_state_occ(y_array)
 
 # Create object with covariates for occupancy in first season
 # Here, using latitude and latitude ^2
@@ -233,8 +273,8 @@ n_cov_p <- ncol(cov_p)
 
 # Bundle data for JAGS
 jags_data <- list(y = surveys$det,
-                  n_sites = nrow(dh),
-                  n_seasons = ncol(dh),
+                  n_sites = n_sites,
+                  n_seasons = n_seasons,
                   n_obs = nrow(surveys),
                   cov_psi = cov_psi,
                   n_cov_psi = ncol(cov_psi),
@@ -244,7 +284,7 @@ jags_data <- list(y = surveys$det,
                   long = spatial_covs$long_z,
                   site = surveys$site_index,
                   season = surveys$season_index,
-                  z = known_state_occ(yarray))
+                  z = known_state_occ(y_array))
 
 # List of parameters to monitor
 params <- c("mean_psi", "beta_psi0", "beta_psi",
@@ -261,7 +301,7 @@ inits <- function(){list(mean_psi = runif(1, 0, 1),
                          beta_eps1 = runif(1, -2 ,2),
                          beta_gam0 = runif(1, -1, 1),
                          beta_gam1 = runif(1, -2, 2),
-                         z = inits_state_occ(yarray))}
+                         z = inits_state_occ(y_array))}
 
 #-------------------------------------------------------------------------------#
 # Run model in JAGS
@@ -283,3 +323,5 @@ out <- jags(data = jags_data,
             n.iter = ni,
             n.thin = nt,
             parallel = TRUE)
+
+print(out)
