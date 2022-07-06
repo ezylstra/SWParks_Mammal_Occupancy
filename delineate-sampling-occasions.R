@@ -23,6 +23,7 @@ source("format-mammal-data.R")
   # species = table with species observed (species code, common name, # of obs)
 
 # Create a dataframe with information about each day of the study
+# Day number (daynum): day 1 = 01 Jan 2016)
 days_df <- data.frame(daynum = 1:max(dat$o_day), 
                       date = seq(as.Date("2016-01-01"), max(dat$obsdate), by = 1))
 days_df$yr <- year(days_df$date)
@@ -66,7 +67,7 @@ for (park in c("SAGW")) {
   
   # Look at consecutive days with sufficient number of cameras deployed
   # data.frame(unclass(rle(days_park$at_thresh)))
-  # filter(days_df, yr == 2017 & prop_deploy > 0)
+  # filter(days_park, yr == 2017 & prop_deploy > 0)
   
   # Identify the first day in each year that the threshold was met
   firstday_yr <- days_park %>%
