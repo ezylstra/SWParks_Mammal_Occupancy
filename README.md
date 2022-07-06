@@ -35,6 +35,8 @@ The project also uses the following R packages:
 2. Create detection histories and run occupancy model(s)
    1. **sagw-leca-2017.R**: Example of a single-season occupancy analysis, using data for black-tailed jackrabbits at Saguaro National Park in 2017.
    2. **JAGS_SingleSeasonWithCovs.txt**: Example of a JAGS model file. Used to run the single-season model for jackrabbits in Saguaro.
+   3. **sagw-leca-multiseason.R**: Example of a multi-season (dynamic) occupancy anaysis, using data for blck-tailed jackrabbits at Saguaro National Park.
+   4. **JAGS_MultiSeasonWithCovs.txt**: Example of a JAGS model file. Used to run the multi-season, dynamic model for jackrabbits in Saguaro.
 
 ## Data
 
