@@ -19,8 +19,8 @@ model {
 			for (j in 1:n_surveys) {
 			
 				# Observation model
-				y[i,j] ~ dbern(p_eff[i,j])
-				p_eff[i,j] <- z[i] * p[i,j]
+				y[i,j] ~ dbern(p_z[i,j])
+				p_z[i,j] <- z[i] * p[i,j]
 				logit(p[i,j]) <- alpha0 + alpha1 * effort[i,j]
 				
 			} # j
