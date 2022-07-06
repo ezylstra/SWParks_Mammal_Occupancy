@@ -206,7 +206,6 @@ surveys <- left_join(surveys, spatial_covs[,c("loc", "long_z", "lat_z")])
 # over occasions at each site in each season. To do this:
   # Create an array with detection data (row = site, col = occ, slice = season)
   # Then use an apply function, summarizing over columns
-  # eg, state <- apply(array, c(1,3), function(x) ifelse(sum(is.na(x)) == length(x), NA, max(x, na.rm=T)))
 
 n_sites <- max(surveys$site_index) # 60
 n_seasons <- max(surveys$season_index) # 6
@@ -257,7 +256,7 @@ inits_state_occ <- function(y_array){
 inits_state_occ(y_array)
 
 # Create object with covariates for occupancy in first season
-# Here, using latitude and latitude ^2
+# Here, using latitude and latitude^2
 cov_psi <- spatial_covs %>%
   select(lat_z) %>%
   mutate(lat_z2 = lat_z * lat_z) %>%
