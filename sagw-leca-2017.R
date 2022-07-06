@@ -147,7 +147,7 @@ for (i in covs_cont) {
 # Package things up for JAGS
 #-------------------------------------------------------------------------------#
 
-# Function to create a matrix with information about known latent states, z[i]
+# Function to create a vector with information about known latent states, z[i]
 # JAGS won't try to estimate z when site is known to be occupied
 known_state_occ <- function(dh){
   state <- apply(dh, 1, function(x) ifelse(sum(is.na(x)) == length(x), NA, max(x, na.rm=T)))
@@ -190,7 +190,7 @@ inits <- function(){list(mean_psi = runif(1, 0, 1),
 
 nc <- 3      # Number of chains
 na <- 3000   # Number of iterations to run in the adaptive phase
-nb <- 10000   # Number of iterations to discard (burn-in)
+nb <- 10000  # Number of iterations to discard (burn-in)
 ni <- 40000  # Number of iterations per chain (including burn-in)
 nt <- 20     # Thinning rate
 
