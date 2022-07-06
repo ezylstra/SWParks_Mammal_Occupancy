@@ -15,6 +15,13 @@ library(tidyr)
 
 source("format-mammal-data.R")
 
+  # dat = information about each photo (date, time, species, location)
+  # events = information about each camera deployment (dates, location, duration)
+  # event_mat = camera location x day matrix with 1/0 indicating whether camera
+  #             was deployed or not
+  # locs = information about each camera location (park, lat/long, name)
+  # species = table with species observed (species code, common name, # of obs)
+
 # Create a dataframe with information about each day of the study
 days_df <- data.frame(daynum = 1:max(dat$o_day), 
                       date = seq(as.Date("2016-01-01"), max(dat$obsdate), by = 1))
