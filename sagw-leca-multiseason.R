@@ -324,3 +324,36 @@ out <- jags(data = jags_data,
             parallel = TRUE)
 
 print(out)
+
+library(MCMCvis)
+
+# Trace and density plots 
+MCMCtrace(out,pdf = FALSE)
+
+#-------------------------------------------------------------------------------#
+# For comparison, running the same model in unmarked
+#-------------------------------------------------------------------------------#
+
+library(unmarked)
+dh_full <- cbind(dh[,1:5], rep(NA, n_sites),
+                 dh[,6:9], rep(NA, n_sites), rep(NA, n_sites),
+                 matrix(NA, ncol = 6, nrow = n_sites),
+                 dh[,10:15],
+                 dh[,16:20], rep(NA, n_sites),
+                 dh[,21:25], rep(NA, n_sites))
+eff_full <- cbind(effort[,1:5], rep(NA, n_sites),
+                  effort[,6:9], rep(NA, n_sites), rep(NA, n_sites),
+                  matrix(NA, ncol = 6, nrow = n_sites),
+                  effort[,10:15],
+                  effort[,16:20], rep(NA, n_sites),
+                  effort[,21:25], rep(NA, n_sites))
+
+umf <- unmarkedMultFrame(y = dh_full,
+                         siteCovs = data.frame(lat = spatial_covs$lat_z,
+                                               lat2 = spatial_covs$lat_z^2,
+                                               long = spatial_covs$long_z),
+                         obsCovs = list(effort = eff_full),
+                         numPrimary = max(surveys$season_index))
+summary(umf)
+summary(m <- colext(~ lat + lat2, ~ long, ~ lat, ~ lat + effort, data = umf)) 
+# Estimates are pretty similar, but again, detection estimated poorly
