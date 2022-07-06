@@ -34,7 +34,7 @@ model {
 			
 			for (t in 2:n_seasons) {
 			
-				# Extinction probabiliy at site i between season t-1 and t
+				# Extinction probability at site i between season t-1 and t
 				logit(eps[i,t-1]) <- beta_eps0 + beta_eps1 * lat[i]
 														 
 				# Colonization probability at site i between season t-1 and t
