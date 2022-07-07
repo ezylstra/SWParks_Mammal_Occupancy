@@ -55,6 +55,13 @@ model {
 			y[w] ~ dbern(z[site[w],season[w]]*p[w])
     
    } #w
-	 
+   
+   # Derived parameters
+   
+   # Estimated occupancy each season
+   for (t in 1:n_seasons) {
+     PAO[t] <- sum(z[1:n_sites,t])/n_sites
+   }
+
 }
 

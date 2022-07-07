@@ -290,7 +290,8 @@ jags_data <- list(y = surveys$det,
 params <- c("mean_psi", "beta_psi0", "beta_psi",
             "mean_p", "beta_p0", "beta_p",
             "beta_eps0", "beta_eps1",
-            "beta_gam0", "beta_gam1")
+            "beta_gam0", "beta_gam1",
+            "PAO")
 
 # Initial values
 inits <- function(){list(mean_psi = runif(1, 0, 1),
