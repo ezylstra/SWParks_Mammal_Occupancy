@@ -13,7 +13,7 @@ library(tidyr)
 
 # rm(list = ls())
 
-source("format-mammal-data.R")
+source("src/format-mammal-data.R")
 
   # dat = information about each photo (date, time, species, location)
   # events = information about each camera deployment (dates, location, duration)

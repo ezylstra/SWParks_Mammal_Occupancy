@@ -19,7 +19,7 @@ library(gridExtra)
 # Run script to import, format data
 #-------------------------------------------------------------------------------#
 
-source("format-mammal-data.R")
+source("src/format-mammal-data.R")
 
 #-------------------------------------------------------------------------------#
 # Visualize when and where cameras were deployed

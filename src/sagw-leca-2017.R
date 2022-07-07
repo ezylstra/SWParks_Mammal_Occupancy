@@ -18,7 +18,7 @@ library(jagsUI)
 # rm(list = ls())
 
 # Load photo, location, events, species data 
-source("format-mammal-data.R")
+source("src/format-mammal-data.R")
 
   # dat = information about each photo (date, time, species, location)
   # events = information about each camera deployment (dates, location, duration)
@@ -197,7 +197,7 @@ nt <- 20     # Thinning rate
 out <- jags(data = jags_data,
             inits = inits,
             parameters.to.save = params,
-            model.file = "JAGS_SingleSeasonWithCovs.txt",
+            model.file = "JAGS/JAGS_SingleSeasonWithCovs.txt",
             n.chains = nc,
             n.adapt = na,
             n.burnin = nb,

@@ -14,11 +14,12 @@ library(lubridate)
 library(stringr)
 library(tidyr)
 library(jagsUI)
+library(MCMCvis)
 
 # rm(list = ls())
 
 # Load photo, location, events, species data 
-source("format-mammal-data.R")
+source("src/format-mammal-data.R")
 
   # dat = information about each photo (date, time, species, location)
   # events = information about each camera deployment (dates, location, duration)
@@ -315,7 +316,7 @@ nt <- 10     # Thinning rate
 out <- jags(data = jags_data,
             inits = inits,
             parameters.to.save = params,
-            model.file = "JAGS_MultiSeasonWithCovs.txt",
+            model.file = "JAGS/JAGS_MultiSeasonWithCovs.txt",
             n.chains = nc,
             n.adapt = na,
             n.burnin = nb,
@@ -324,8 +325,6 @@ out <- jags(data = jags_data,
             parallel = TRUE)
 
 print(out)
-
-library(MCMCvis)
 
 # Trace and density plots 
 MCMCtrace(out,pdf = FALSE)
