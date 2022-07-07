@@ -238,7 +238,7 @@ known_state_occ <- function(y_array){
   return(state)
 }
 # check:
-known_state_occ(y_array)
+# known_state_occ(y_array)
 
 # Function to create initial values for unknown latent states, z[i, t]
 inits_state_occ <- function(y_array){
@@ -254,7 +254,7 @@ inits_state_occ <- function(y_array){
   return(state)
 }  
 # check:
-inits_state_occ(y_array)
+# inits_state_occ(y_array)
 
 # Create object with covariates for occupancy in first season
 # Here, using latitude and latitude^2
@@ -327,7 +327,15 @@ out <- jags(data = jags_data,
 print(out)
 
 # Trace and density plots 
-MCMCtrace(out,pdf = FALSE)
+# MCMCtrace(out,pdf = FALSE)
+
+# Save model to file in output/models
+model_file <- paste0("output/models/",
+                     tolower(park), "-",
+                     tolower(species), "-",
+                     "MS-test.rds")
+saveRDS(object = out,
+        file = model_file)
 
 #-------------------------------------------------------------------------------#
 # For comparison, running the same model in unmarked
