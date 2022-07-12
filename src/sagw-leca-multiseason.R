@@ -3,7 +3,7 @@
 # SAGW, LECA (black-tailed jackrabbit)
 
 # ER Zylstra
-# Updated 2022-06-30
+# Updated 2022-07-12
 ################################################################################
 
 # Note: Will probably want to create a template script for this type of analysis
@@ -161,6 +161,14 @@ eff_long <- eff_df %>%
 # Merge detection and effort data
 surveys <- left_join(dh_long, eff_long)
 
+# Remove rows with det = NA (no survey data for that occasion/location)
+surveys <- filter(surveys, !is.na(det))
+
+# Scale effort covariate by mean, SD
+# (note that this results in standardized values that range from -10 to 0.25)
+surveys <- surveys %>%
+  mutate(effort_z = (effort - mean(effort))/sd(effort))
+
 # Add year and trend columns
 surveys$yr <- as.numeric(str_sub(surveys$occ, 1,4))
 surveys$trend <- surveys$yr - min(surveys$yr)
@@ -267,7 +275,7 @@ n_cov_psi <- ncol(cov_psi)
 # Create object with covariates for detection
 # Here, using latitude and effort
 cov_p <- surveys %>%
-  select(lat_z, effort) %>%
+  select(lat_z, effort_z) %>%
   as.matrix
 n_cov_p <- ncol(cov_p)
 
