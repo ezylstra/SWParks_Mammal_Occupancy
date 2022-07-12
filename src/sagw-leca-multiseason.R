@@ -357,12 +357,16 @@ dh_full <- cbind(dh[,1:5], rep(NA, n_sites),
                  dh[,10:15],
                  dh[,16:20], rep(NA, n_sites),
                  dh[,21:25], rep(NA, n_sites))
-eff_full <- cbind(effort[,1:5], rep(NA, n_sites),
-                  effort[,6:9], rep(NA, n_sites), rep(NA, n_sites),
+
+eff_mean <- mean(c(effort[effort!=0]))
+eff_sd <- sd(c(effort[effort!=0]))
+effort_z <- (effort - eff_mean)/eff_sd
+eff_full <- cbind(effort_z[,1:5], rep(NA, n_sites),
+                  effort_z[,6:9], rep(NA, n_sites), rep(NA, n_sites),
                   matrix(NA, ncol = 6, nrow = n_sites),
-                  effort[,10:15],
-                  effort[,16:20], rep(NA, n_sites),
-                  effort[,21:25], rep(NA, n_sites))
+                  effort_z[,10:15],
+                  effort_z[,16:20], rep(NA, n_sites),
+                  effort_z[,21:25], rep(NA, n_sites))
 
 umf <- unmarkedMultFrame(y = dh_full,
                          siteCovs = data.frame(lat = spatial_covs$lat_z,
