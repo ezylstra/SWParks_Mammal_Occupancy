@@ -10,7 +10,7 @@ library(dplyr)
 library(lubridate)
 library(stringr)
 library(tidyr)
-# library(jagsUI)
+library(jagsUI)
 
 # Load photo, location, events, species data 
 source("src/format-mammal-data.R")
