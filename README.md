@@ -46,7 +46,7 @@ The project also uses the following R packages:
 
 + data:
    + locations: information about survey/camera locations
-   + mammals: photo and sampling event data (because these datasets potentially include information about sensitive species, some of the raw data are not publicly available)
+   + mammals: photo and sampling event data (_because these datasets potentially include information about sensitive species, some of the raw data are not publicly available_)
    + occasions: information about sampling occasions in each park and year (created in delineate-sampling-occasions.R)
    + rasters: rasters with covariate data
 + JAGS: JAGS model files (.txt files)
