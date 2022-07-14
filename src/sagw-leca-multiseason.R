@@ -335,7 +335,7 @@ out <- jags(data = jags_data,
 
 print(out)
 
-# Trace and density plots 
+# Trace and density plots
 # MCMCtrace(out,pdf = FALSE)
 
 # Save model to file in output/models
@@ -375,5 +375,98 @@ umf <- unmarkedMultFrame(y = dh_full,
                          obsCovs = list(effort = eff_full),
                          numPrimary = max(surveys$season_index))
 summary(umf)
-summary(m <- colext(~ lat + lat2, ~ long, ~ lat, ~ lat + effort, data = umf)) 
-# Estimates are pretty similar, but again, detection estimated poorly
+summary(m <- colext(~ lat + lat2, ~ long, ~ lat, ~ lat + effort, data = umf))
+# Estimates are pretty similar
+
+#-------------------------------------------------------------------------------#
+# Interpreting/plotting effects of covariates (examples)
+#-------------------------------------------------------------------------------#
+
+# Load JAGS model if we ran it previously:
+# model_file <- paste0("output/models/",
+#                      tolower(park), "-",
+#                      tolower(species), "-",
+#                      "MS-test.rds")
+# out <- readRDS(file = model_file)
+
+# Extract posterior samples from jagsUI object and combine into one dataframe
+samples <- out$samples
+samples <- do.call(rbind, samples)
+
+# Estimate detection probability for a particular level of effort
+# (assuming constant latitude)
+
+  # Camera operating for all 7 days
+  eff7 <- 1
+  eff7_z <- (eff7 - mean(surveys$effort)) / sd(surveys$effort)
+    # logit(p[w]) <- beta_p0 + beta_p[1] * lat[w] + beta_p[2] * effort[w]
+    # Assuming latitude = mean (so lat_z = 0), we're left with:
+    # logit(p[eff7_z]) <- beta_p0 + beta_p[2] * eff7_z
+  # Create a matrix of covariate values (including the intercept)
+  X_p <- cbind(int = 1, effort = eff7_z)
+  # Create a matrix with posterior samples for the parameters we need
+  betas_p <- samples[,c("beta_p0", "beta_p[2]")]
+  # A little matrix math gives you a vector of predicted values on logit scale
+  # Vector length is equal to the number of posterior samples (here, 3000)
+  pred_logit_p <- X_p %*% t(betas_p)
+  # Backtransform to the probability scale
+  pred_prob_p <- exp(pred_logit_p) / (1 + exp(pred_logit_p))
+  # Summarize these values to get an estimate with 95% credible interval
+  mean(pred_prob_p)
+  quantile(pred_prob_p, probs = c(0.025, 0.975))
+  
+  # Camera operating for 3 of 7 days  
+  eff3 <- 3/7
+  eff3_z <- (eff3 - mean(surveys$effort)) / sd(surveys$effort)
+  X_p <- cbind(int = 1, effort = eff3_z)
+  pred_logit_p <- X_p %*% t(betas_p)
+  pred_prob_p <- exp(pred_logit_p) / (1 + exp(pred_logit_p))
+  mean(pred_prob_p)
+  quantile(pred_prob_p, probs = c(0.025, 0.975))
+
+# Estimate how colonization probability would change with a 1-unit(SD) 
+# increase in longitude
+  
+  # Here it's important to remember that logit is the log of the odds
+  # Odds are the probability event happens / probability event doesn't happen
+  # So logit(gamma[i]) = log(gamma[i] / (1-gamma[i])) = log(odds)
+  # Odds a site gets colonized at mean longitude = exp(beta_gam0)
+  # Odds a site gets colonized with 1-SD increase in longitude = 
+    # exp(beta_gam0 + beta_gam1 * 1) = exp(beta_gam0)*exp(beta_gam1)
+  # So the odds will change by a FACTOR of exp(beta_gam1):
+  # Odds[long+1SD] = Odds[mean long] * exp(beta_gam1)
+  
+  beta_gam1 <- samples[,c("beta_gam1")]
+  change <- exp(beta_gam1)
+  mean(change) # 0.42
+  quantile(change, probs = c(0.025, 0.975)) #0.22, 0.72
+  # The odds a site is colonized are estimated to be 58% lower for each 
+  # 1-SD increase in longitude (95% CI = 28-78%)
+  
+# Plot effect of latitude on initial occupancy
+
+  # logit(psi[i]) <- beta_psi0 + beta_psi[1] * lat[i] + beta_psi[2] * lat^2[i]
+  
+  # Generate a vector of latitudes that span the range at surveyed locations
+  latit <- seq(min(spatial_covs$lat), max(spatial_covs$lat), length = 100)
+  # Standardize these values
+  latit_z <- (latit - mean(spatial_covs$lat)) / sd(spatial_covs$lat)
+  # Create a matrix of covariate values (including the intercept [1])
+  X_psi <- cbind(int = 1, lat = latit_z, lat2 = latit_z^2)
+  # Create a matrix with posterior samples for the parameters we need
+  betas_psi <- samples[,grep("beta_psi", colnames(samples))]
+  # A little matrix math gives you a matrix of predicted values on logit scale
+  # Matrix dimensions = 100 x 3000 (3000 predicted values for each lat in seq)
+  pred_logit_psi <- X_psi %*% t(betas_psi)
+  # Backtransform to the probability scale
+  pred_prob_psi <- exp(pred_logit_psi) / (1 + exp(pred_logit_psi))
+  # Calculate mean and credible interval for each value
+  mean_psi <- apply(pred_prob_psi, 1, mean)
+  cri_psi <- apply(pred_prob_psi, 1, quantile, probs = c(0.025, 0.975)) 
+  
+  # Plot predictions
+  plot(mean_psi ~ latit, type = "l", bty = "l", ylim = c(0, 1), 
+       xlab = "Latitude", ylab = "Predicted occupancy")
+  polygon(c(latit, rev(latit)), c(cri_psi[1,], rev(cri_psi[2,])), 
+          col = rgb(0, 0, 0, 0.2), border = NA)
+  
