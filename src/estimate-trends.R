@@ -3,7 +3,7 @@
 # SAGW, LECA (black-tailed jackrabbit)
 
 # ER Zylstra
-# Updated 2022-07-07
+# Updated 2022-07-14
 ################################################################################
 
 library(dplyr)
@@ -11,6 +11,7 @@ library(lubridate)
 library(stringr)
 library(tidyr)
 library(jagsUI)
+library(ggplot2)
 
 # Load photo, location, events, species data 
 source("src/format-mammal-data.R")
@@ -39,10 +40,41 @@ model_file <- paste0("output/models/",
                      "MS-test.rds")
 jags_model <- readRDS(file = model_file)
 
+# Extract posterior samples
+samples <- jags_model$samples
+samples <- do.call(rbind, samples)
+pao <- samples[,grep("PAO", colnames(samples))]
+
+# For each MCMC iteration, estimate a linear trend in occupancy
+# (should probably do this on the logit scale)
+# (note: this is a trend for surveyed locations only)
+pao_logit <- log(pao / (1 - pao))
+year_trend <- 0:(ncol(pao_logit) - 1)
+trends <- data.frame(iter = 1:nrow(pao_logit), int = NA, slope = NA)
+for (i in 1:nrow(pao_logit)) {
+  m <- lm(pao_logit[i,] ~ year_trend)
+  trends[i,2:3] <- coef(m)
+}
+
+# Summarize trend estimates
+summary(trends$slope)
+
+# Plot trends on the logit scale (each gray line represents one MCMC iteration)
+trends <- trends %>%
+  mutate(yr2022 = int + 5 * slope)
+
+ggplot() +
+  geom_segment(trends,
+               mapping = aes(x = 2017, xend = 2022, y = int, yend = yr2022),
+               size = 0.3, col = "gray") +
+  geom_segment(trends,
+               mapping = aes(x = 2017, xend = 2022, y = mean(int), yend = mean(yr2022)),
+               size = 0.8, col = "dodgerblue3") +
+  labs(x = "Year", y = "logit(Proportion of sites occupied)")
+
+
 # TO DO:
-# extract posterior samples for PAO
-
-
+# Plot (logit-linear) trends on the probability scale.
 
 
 
