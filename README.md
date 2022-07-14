@@ -38,6 +38,15 @@ The project also uses the following R packages:
    3. **sagw-leca-multiseason.R**: Example of a multi-season (dynamic) occupancy anaysis, using data for blck-tailed jackrabbits at Saguaro National Park.
    4. **JAGS_MultiSeasonWithCovs.txt**: Example of a JAGS model file. Used to run the multi-season, dynamic model for jackrabbits in Saguaro.
 
-## Data
+## Directory structure
 
-Because these datasets potentially include information about sensitive species, the raw data are not publicly available.
++ data:
+   + locations: information about survey/camera locations
+   + mammals: photo and sampling event data (because these datasets potentially include information about sensitive species, some of the raw data are not publicly available)
+   + occasions: information about sampling occasions in each park and year (created in delineate-sampling-occasions.R)
+   + rasters: rasters with covariate data
++ JAGS: JAGS model files (.txt files)
++ output: (note: some files may not be under version control, but directory structure is)
+   + models: output from models run in JAGS (jagsUI objects)
++ src: R scripts to process/format data and to run occupancy models in JAGS and interpret/visualize the results.
+
