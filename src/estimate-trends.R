@@ -71,7 +71,8 @@ ggplot() +
                mapping = aes(x = 2017, xend = 2022, y = int, yend = yr2022),
                size = 0.3, col = "gray") +
   geom_segment(trends,
-               mapping = aes(x = 2017, xend = 2022, y = mean(int), yend = mean(yr2022)),
+               mapping = aes(x = 2017, xend = 2022, 
+                             y = median(int), yend = median(yr2022)),
                size = 0.8, col = "dodgerblue3") +
   labs(x = "Year", y = "logit(Proportion of sites occupied)")
 
