@@ -41,6 +41,7 @@ The project also uses the following R packages:
    3. **map-detection-data.R**: Create map with jackrabbit detection data (using NPS imagery)
    4. **sagw-leca-multiseason.R**: Example of a multi-season (dynamic) occupancy anaysis, using data for blck-tailed jackrabbits at Saguaro National Park.
    5. **JAGS_MultiSeasonWithCovs.txt**: Example of a JAGS model file. Used to run the multi-season, dynamic model for jackrabbits in Saguaro.
+   6. **estimate-trends.R**: Script to estimate logit-linear trends in the estimated proportion of sites occupied over time, based on a dynamic, multi-season model.
 
 ## Directory structure
 
