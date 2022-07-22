@@ -5,6 +5,8 @@
 # 2022-07-22
 ################################################################################
 
+
+
 # relies on the dh_long and locs_park from the sagw-leca-multiseason code
 # learning how to make maps in R and branches im GitHub
 
@@ -13,7 +15,7 @@ library(tmap) # for mapping spatial data
 library(leaflet) # Another package for mapping spatial data
 library(dplyr)
 
-
+# Compute presence/absence (naive occupancy) and percent of weeks/occ present within each year
 naive <- dh_df %>%
   pivot_longer(!loc,
                names_to = c("year","week"),
@@ -25,30 +27,27 @@ naive <- dh_df %>%
   summarize(Pct_Present = sum(det)/n(), Present = ifelse(Pct_Present>0,1,0), .groups="keep")
   arrange(loc, year, Species) 
 
-# 
-
+# make into 
 naive_sf <- st_as_sf(naive %>% 
                        #tibble::rownames_to_column(., "loc") %>%
                        left_join(., locs_park, by = "loc"), 
                      coords=c("long","lat"), crs=4326)
 
-# I was struggling with the maps and so was trying different ways of making the simple features
-naive_present <- naive %>% 
-  filter(Present==1) %>%
-  #tibble::rownames_to_column(., "loc") %>%
-  left_join(., locs_park, by = "loc")
-naive_present_sf <- st_as_sf(naive_present, 
-                             coords=c("long","lat"), crs=4326)
-naive_absent_sf <- naive_sf %>% filter(Present ==0 | is.na(Present))
+naive_present_sf <- naive_sf %>% filter(Present == 1)
+naive_absent_sf <- naive_sf %>% filter(Present == 0 | is.na(Present))
 
-# want to make a map collage with presence/absence by year
-  # probably won't be interactive but could/should be informative
+# code below based on NPS IMD Intro to R Training: https://katemmiller.github.io/IMD_R_Training_Intro/
+
+# Map collage with presence/absence by year for a given species
+  # probably won't be interactive but could be informative
+
 
 
 
 # Try to make a map
 
 # Load park tiles
+
 NPSbasic = 'https://atlas-stg.geoplatform.gov/styles/v1/atlas-user/ck58pyquo009v01p99xebegr9/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYXRsYXMtdXNlciIsImEiOiJjazFmdGx2bjQwMDAwMG5wZmYwbmJwbmE2In0.lWXK2UexpXuyVitesLdwUg'
 
 NPSimagery = 'https://atlas-stg.geoplatform.gov/styles/v1/atlas-user/ck72fwp2642dv07o7tbqinvz4/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYXRsYXMtdXNlciIsImEiOiJjazFmdGx2bjQwMDAwMG5wZmYwbmJwbmE2In0.lWXK2UexpXuyVitesLdwUg'
