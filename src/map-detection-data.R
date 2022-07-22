@@ -35,9 +35,10 @@ naive_present_sf <- st_as_sf(naive_present,
                              coords=c("long","lat"), crs=4326)
 naive_sf_absent <- naive_sf %>% filter(Present ==0 | is.na(Present))
 
-# Try to make a map
+# Try to make an interactive map
 
 # Load park tiles
+# code below modified from NPS IMD Intro to R Training: https://katemmiller.github.io/IMD_R_Training_Intro/
 NPSbasic = 'https://atlas-stg.geoplatform.gov/styles/v1/atlas-user/ck58pyquo009v01p99xebegr9/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYXRsYXMtdXNlciIsImEiOiJjazFmdGx2bjQwMDAwMG5wZmYwbmJwbmE2In0.lWXK2UexpXuyVitesLdwUg'
 
 NPSimagery = 'https://atlas-stg.geoplatform.gov/styles/v1/atlas-user/ck72fwp2642dv07o7tbqinvz4/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYXRsYXMtdXNlciIsImEiOiJjazFmdGx2bjQwMDAwMG5wZmYwbmJwbmE2In0.lWXK2UexpXuyVitesLdwUg'
@@ -152,3 +153,4 @@ naive_map_pct <-
   addScaleBar(position = 'bottomright') %>% 
   scaleBarOptions(maxWidth = 10, metric = TRUE) 
 
+naive_map_pct 
