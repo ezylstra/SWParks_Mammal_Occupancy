@@ -8,14 +8,22 @@
 
 
 # relies on the dh_long and locs_park from the sagw-leca-multiseason code
-# learning how to make maps in R and branches im GitHub
+# learning how to make maps in R and branches in GitHub
 
 library(sf) # for working with simple features
 library(tmap) # for mapping spatial data
 library(leaflet) # Another package for mapping spatial data
 library(dplyr)
 
-# Compute presence/absence (naive occupancy) and percent of weeks/occ present within each year
+# re-import observation data to get scientific and common name of species back
+# Observations
+species_name <- read.csv("data/mammals/MAMMALS_ALL_2022-04-18.csv") %>%
+  dplyr::select(Species, Common.name, Species.code) %>%
+  distinct() %>%
+  rename(Scientific_name = Species, Common_name = Common.name, Species = Species.code)
+
+
+# Compute presence/absence (naive) and percent of weeks/occ present within each year
 naive <- dh_df %>%
   pivot_longer(!loc,
                names_to = c("year","week"),
@@ -24,142 +32,92 @@ naive <- dh_df %>%
   mutate(Species = species) %>%
   group_by(loc,year, Species) %>%
   filter(!is.na(det)) %>% #remove NAs from calculations rather than setting them to 0
-  summarize(Pct_Present = sum(det)/n(), Present = ifelse(Pct_Present>0,1,0), .groups="keep")
-  arrange(loc, year, Species) 
+  summarize(Pct_Present = sum(det)/n(), Present = ifelse(Pct_Present>0,1,0), .groups="keep") %>%
+  mutate(Detection = ifelse(Present==1,"Detected","Not Detected")) %>%
+  arrange(loc, year, Species) %>%
+  left_join(species_name, by = "Species")
 
-# make into 
+# Proportion of cameras with detection - naive estimate, not accounting for 
+naive %>% ungroup() %>% group_by(year, Species) %>% summarize(Pct_Detected = sum(Present)/n(), .groups="keep")
+
+
+# make into simple feature
 naive_sf <- st_as_sf(naive %>% 
                        #tibble::rownames_to_column(., "loc") %>%
                        left_join(., locs_park, by = "loc"), 
-                     coords=c("long","lat"), crs=4326)
+                     coords=c("long","lat"), crs=4326) # not 100% that WGS84 is correct
 
 naive_present_sf <- naive_sf %>% filter(Present == 1)
 naive_absent_sf <- naive_sf %>% filter(Present == 0 | is.na(Present))
 
+
+
+# extract species scientific name and common name
+sci_name <- as.character(species_name %>% 
+                           filter(Species == species) %>% 
+                           dplyr::select(Scientific_name))
+common_name <- as.character(species_name %>% 
+                           filter(Species == species) %>% 
+                           dplyr::select(Common_name))
+
 # code below based on NPS IMD Intro to R Training: https://katemmiller.github.io/IMD_R_Training_Intro/
 
+# load NPS boundaries (split into sub-units)
+  # NPS boundaries from 20220106
+park_boundaries1 <- st_read('./data/locations/SWNCwildlife_nps_boundary_20220106.shp')
+
+# check that projections match
+st_crs(naive_sf) == st_crs(park_boundaries1) # FALSE; park_boundaries crs = 4269, naive_sf crs = 4326
+
+# project park_boundaries to 4326 (WGS84)
+park_boundaries <- st_transform(park_boundaries1, crs=4326)
+
+# quick plot of park boundaries, by unit_code [column 2]
+plot(park_boundaries[2])
+
+# filter park_boundaries to select park unit of interest
+unit_boundary <- park_boundaries %>% filter(UNIT_CODE == park)
+
+# quick plot of unit boundary, by unit_code [column 2]
+plot(unit_boundary[2])
+
+# extract unit name 
+unit_name <- unit_boundary$UNIT_NAME
+
+
+
+
 # Map collage with presence/absence by year for a given species
-  # probably won't be interactive but could be informative
+  # not interactive but potentially informative
+# To Do
+  # want to define my own colors for detected & not detected
+
+
+# make bounding box for map to see entire unit boundary
+yearly_map_bb <- st_bbox(unit_boundary) 
+
+yearly_map <-
+  # unit boundary
+  tm_shape(unit_boundary) +
+  tm_borders('black',lwd=1) +
+  
+  # detections, bboc = sets the bounding box equal to the unit_boundary extent
+  tm_shape(naive_sf, bbox=yearly_map_bb) +
+  tm_dots("Detection", size=1, palette=c("Detected"='blue', "Not Detected" = 'grey')) + 
+  
+  # facet by year, free.coords = FALSE forces each facet to use the bounding box set above
+  tm_facets(by="year", free.coords = FALSE) + 
+  
+  # Other map features
+  #tm_compass(size = 2, type = 'arrow', text.size = 1, position = c('left', 'bottom')) +
+  #tm_scale_bar(text.size = 1.25, position = c('center', 'bottom')) + 
+  tm_layout(inner.margins = c(0.2, 0.02, 0.02, 0.02), # make room for legend
+            outer.margins = 0,
+            legend.just = 'right',
+            legend.position = c('left', 'top'),
+            main.title = paste("Naive estimates of", common_name, "at", unit_name, sep=" "), main.title.size = 1)
+
+yearly_map
 
 
 
-
-# Try to make a map
-
-# Load park tiles
-
-NPSbasic = 'https://atlas-stg.geoplatform.gov/styles/v1/atlas-user/ck58pyquo009v01p99xebegr9/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYXRsYXMtdXNlciIsImEiOiJjazFmdGx2bjQwMDAwMG5wZmYwbmJwbmE2In0.lWXK2UexpXuyVitesLdwUg'
-
-NPSimagery = 'https://atlas-stg.geoplatform.gov/styles/v1/atlas-user/ck72fwp2642dv07o7tbqinvz4/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYXRsYXMtdXNlciIsImEiOiJjazFmdGx2bjQwMDAwMG5wZmYwbmJwbmE2In0.lWXK2UexpXuyVitesLdwUg'
-
-NPSslate = 'https://atlas-stg.geoplatform.gov/styles/v1/atlas-user/ck5cpvc2e0avf01p9zaw4co8o/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYXRsYXMtdXNlciIsImEiOiJjazFmdGx2bjQwMDAwMG5wZmYwbmJwbmE2In0.lWXK2UexpXuyVitesLdwUg'
-
-NPSlight = 'https://atlas-stg.geoplatform.gov/styles/v1/atlas-user/ck5cpia2u0auf01p9vbugvcpv/tiles/256/{z}/{x}/{y}@2x?access_token=pk.eyJ1IjoiYXRsYXMtdXNlciIsImEiOiJjazFmdGx2bjQwMDAwMG5wZmYwbmJwbmE2In0.lWXK2UexpXuyVitesLdwUg'
-
-naive_map_lf <-
-  leaflet() %>% 
-  setView(lng = -111.166, lat = 32.298, zoom = 13) %>% 
-  # parktiles
-  addTiles(group = 'Map',
-           urlTemplate = NPSbasic) %>%
-  addTiles(group = 'Imagery',
-           urlTemplate = NPSimagery) %>%
-  addTiles(group = 'Light',
-           urlTemplate = NPSlight) %>%
-  addTiles(group = 'Slate',
-           urlTemplate = NPSslate) %>% 
-  addLayersControl(map = .,
-                   baseGroups = c('Map', 'Imagery', 'Light', 'Slate'),
-                   options = layersControlOptions(collapsed = T)) %>% 
-  # points
-  # addCircleMarkers(data = naive_present_sf[year=2017],
-  #                  lng = st_coordinates(naive_present_sf)[,1],
-  #                  lat = st_coordinates(naive_present_sf)[,2],
-  #                  fillColor = '#56B4E9',
-  #                  radius = 4,
-  #                  stroke = FALSE, # turn off outline
-  #                  fillOpacity = 1) %>% 
-  addCircleMarkers(data = naive_sf_absent[year=2017],
-                   lng = st_coordinates(naive_sf_absent)[,1],
-                   lat = st_coordinates(naive_sf_absent)[,2],
-                   fillColor = '#99999',
-                   radius = 4,
-                   stroke = FALSE, # turn off outline
-                   fillOpacity = 1) %>%
-  # scale bar and settings
-  addScaleBar(position = 'bottomright') %>% 
-  scaleBarOptions(maxWidth = 10, metric = TRUE) 
-
-naive_map_lf
-
-# make map by percent weeks with detection 
-naive_sf_0 <- naive_sf %>% filter(Pct_Present ==0)
-naive_sf_20 <- naive_sf %>% filter(Pct_Present ==0.2)
-naive_sf_40 <- naive_sf %>% filter(Pct_Present ==0.4)
-naive_sf_60 <- naive_sf %>% filter(Pct_Present ==0.6)
-naive_sf_80 <- naive_sf %>% filter(Pct_Present ==0.8)
-naive_sf_100 <- naive_sf %>% filter(Pct_Present ==1)
-
-naive_map_pct <-
-  leaflet() %>% 
-  setView(lng = -111.166, lat = 32.298, zoom = 12) %>% 
-  # parktiles
-  addTiles(group = 'Map',
-           urlTemplate = NPSbasic) %>%
-  addTiles(group = 'Imagery',
-           urlTemplate = NPSimagery) %>%
-  addTiles(group = 'Light',
-           urlTemplate = NPSlight) %>%
-  addTiles(group = 'Slate',
-           urlTemplate = NPSslate) %>% 
-  addLayersControl(map = .,
-                   baseGroups = c('Map', 'Imagery', 'Light', 'Slate'),
-                   options = layersControlOptions(collapsed = T)) %>% 
-  # points
-  addCircleMarkers(data = naive_sf_0,
-                   lng = st_coordinates(naive_sf_0)[,1],
-                   lat = st_coordinates(naive_sf_0)[,2],
-                   fillColor = '#FFFFFF',
-                   radius = 4,
-                   stroke = FALSE, # turn off outline
-                   fillOpacity = 1) %>% 
-  addCircleMarkers(data = naive_sf_20,
-                   lng = st_coordinates(naive_sf_20)[,1],
-                   lat = st_coordinates(naive_sf_20)[,2],
-                   fillColor = '#d5d2db',
-                   radius = 4,
-                   stroke = FALSE, # turn off outline
-                   fillOpacity = 1) %>%
-  addCircleMarkers(data = naive_sf_40,
-                   lng = st_coordinates(naive_sf_40)[,1],
-                   lat = st_coordinates(naive_sf_40)[,2],
-                   fillColor = '#aba5b7',
-                   radius = 4,
-                   stroke = FALSE, # turn off outline
-                   fillOpacity = 1) %>%
-  addCircleMarkers(data = naive_sf_60,
-                   lng = st_coordinates(naive_sf_60)[,1],
-                   lat = st_coordinates(naive_sf_60)[,2],
-                   fillColor = '#827893',
-                   radius = 4,
-                   stroke = FALSE, # turn off outline
-                   fillOpacity = 1) %>%
-  addCircleMarkers(data = naive_sf_80,
-                   lng = st_coordinates(naive_sf_80)[,1],
-                   lat = st_coordinates(naive_sf_80)[,2],
-                   fillColor = '#584b6f',
-                   radius = 4,
-                   stroke = FALSE, # turn off outline
-                   fillOpacity = 1) %>%
-  addCircleMarkers(data = naive_sf_100,
-                   lng = st_coordinates(naive_sf_100)[,1],
-                   lat = st_coordinates(naive_sf_100)[,2],
-                   fillColor = '#2e1e4b',
-                   radius = 4,
-                   stroke = FALSE, # turn off outline
-                   fillOpacity = 1) %>%
-  # scale bar and settings
-  addScaleBar(position = 'bottomright') %>% 
-  scaleBarOptions(maxWidth = 10, metric = TRUE) 
-
-naive_map_pct 
