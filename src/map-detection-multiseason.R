@@ -7,7 +7,7 @@
 
 
 
-# relies on the dh_long and locs_park from the sagw-leca-multiseason code
+# relies on dh_df, locs_park, and species from the sagw-leca-multiseason code
 # learning how to make maps in R and branches in GitHub
 
 library(sf) # for working with simple features
@@ -37,7 +37,7 @@ naive <- dh_df %>%
   arrange(loc, year, Species) %>%
   left_join(species_name, by = "Species")
 
-# Proportion of cameras with detection - naive estimate, not accounting for 
+# Proportion of cameras with at least one detection, each year
 naive %>% ungroup() %>% group_by(year, Species) %>% summarize(Pct_Detected = sum(Present)/n(), .groups="keep")
 
 
