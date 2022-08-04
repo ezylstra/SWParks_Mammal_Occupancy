@@ -73,6 +73,9 @@ dat <- select(dat,-c(StudyAreaName, StudyAreaID,
                      FileName, VisitID, ImgID, ImageNum, Highlight,
                      SpeciesID, DetailText, Individuals))
 
+# Rename StudyAreaAbbr column
+dat <- rename(dat, Park = StudyAreaAbbr)
+
 # Exclude photo observations of everything but mammals (squirrels or bigger)
 birds <- c("bird species", "unknown bird", "unknown sparrow", "unknown raven",
            "unknown woodpecker", "unknown jay", "unknown kingbird", 
