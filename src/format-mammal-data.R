@@ -8,9 +8,11 @@
 
 # Need to load these packages if not calling this script via source()
 
-# library(dplyr)
-# library(lubridate)
-# library(stringr)
+library(dplyr)
+library(lubridate)
+library(stringr)
+
+rm(list = ls())
 
 #-----------------------------------------------------------------------------------#
 # Import data
@@ -20,9 +22,7 @@
 
 # Observations
 dat <- read.csv("data/mammals/MAMMALS_ALL_2022-08-01.csv")
-  # Change "." to "_" in column names
-  colnames(dat) <- str_replace_all(colnames(dat), "[.]", "_")
-  
+
 #orpi_replace <- read.csv("data/mammals/ORPI_2020_102_54W_adjustedDates.csv")[,c(1:2,4:14,16:19)]
 #  colnames(orpi_replace)[c(1:13,16:17)] <- colnames(dat)[c(1:13,15:16)]
   
@@ -64,32 +64,77 @@ events <- read.csv("data/mammals/SODN_Wildlife_Events_Revised_20220512.csv")[,3:
 # Format and organize mammal observation data
 #-----------------------------------------------------------------------------------#
 
-# Rename column names in new data frame (because of new output-csv file)
-dat <- rename(dat, Common_name = CommonName)
+# Remove rows with StudyAreaName == "OTHER"
+dat <- filter(dat, StudyAreaName != "OTHER")
 
 # Remove empty or unnecessary columns:
-dat <- select(dat,-c(StudyAreaID, UTM_E, UTM_N, UTMZone, FileName, ImgID, ImageNum, Highlight))
+dat <- select(dat,-c(StudyAreaName, StudyAreaID, 
+                     UTM_E, UTM_N, UTMZone, 
+                     FileName, VisitID, ImgID, ImageNum, Highlight,
+                     SpeciesID, DetailText, Individuals))
+
+# Exclude photo observations of everything but mammals (squirrels or bigger)
+birds <- c("bird species", "unknown bird", "unknown sparrow", "unknown raven",
+           "unknown woodpecker", "unknown jay", "unknown kingbird", 
+           "zone-tailed hawk", "red-tailed hawk", "turkey vulture",
+           "great-horned owl", "western screech-owl", "barn owl", 
+           "lesser nighthawk", "greater roadrunner", "wild turkey", 
+           "gilded flicker", "northern flicker", "gila woodpecker",
+           "great-tailed grackle", "common raven", "northern mockingbird",  
+           "mexican jay", "california scrub-jay", "curve-billed thrasher",
+           "eurasian collared dove", "white-winged dove", "mourning dove", 
+           "northern cardinal", "gambel's quail", "montezuma quail",
+           "cactus wren", "canyon wren", "bewick's wren", "rock wren",
+           "dark-eyed junco", "black-throated sparrow",  
+           "rufous-crowned sparrow", "canyon towhee", "spotted towhee")
+
+herps <- c("unknown reptile", "gophersnake", "clark's spiny lizard", 
+           "eastern collared lizard", "western whiptail", "desert tortoise", 
+           "side-blotched lizard", "common side-blotched lizard")
+
+mammals_to_exclude <- c("human", "unknown rodent", "unknown kangaroo rat", 
+                        "unknown deer mouse", "unknown woodrat", 
+                        "desert kangaroo rat", "merriam's kangaroo rat", 
+                        "white-throated woodrat", "cliff chipmunk", 
+                        "round-tailed ground squirrel",
+                        "harris's antelope squirrel")
+
+other <- c("datasheet", "camera lost", "vehicle", "",
+           "tarantula", "unknown animal")
+
+dat <- dat %>%
+  mutate(CommonName_lower = tolower(CommonName)) %>%
+  filter(! CommonName_lower %in% c(birds,
+                                   herps, 
+                                   mammals_to_exclude,
+                                   other)) %>%
+  select(-CommonName_lower) 
 
 # Species
   # Create separate table with "species" information
-  species <- count(dat, Common_name, paste0(dat$Genus, " ", dat$Species), ShortName)
+  species <- count(dat, CommonName, paste0(dat$Genus, " ", dat$Species), ShortName)
   colnames(species) <- c("Common_name", "Species", "Species_code", "n")
-   # 99 different "species" -- includes Unknowns
-  species[species$n %in% range(species$n),]
-  # Number of observations per "species" ranges from 7 (Bighorn) to >12,000 (WT deer) 
-  # Remove Species and Common_name variables from observations frame (have Species_code)
-  dat <- select(dat, -c(Species, Genus, Common_name))
+   # 35 different "species" -- includes Unknowns
+  species[species$n %in% range(species$n[-which(grepl("Unk", species$Common_name))]),]
+    # Number of observations per known species ranges from 
+    # 10 (Arizona gray squirrel) to >13,000 (WT deer) 
+  # Remove Species and Common_name variables from observations frame 
+  # and rename column with species code
+  dat <- dat %>%
+    select(-c(Species, Genus, CommonName)) %>%
+    rename(Species_code = ShortName)
 
 # Split up ImgPath and append information about park, year, and location into new columns
 summary(n.backslashes <- str_count(dat$ImgPath,"\\\\"))  
   # ImgPath always has 7 backslashes (ie, 8 character strings)
 n.strings <- mean(n.backslashes) + 1
-dat <- cbind(dat,str_split_fixed(dat$ImgPath, "\\\\", n.strings)[,5:7])
-names(dat)[(ncol(dat) - 2):ncol(dat)] <- c("Park", "FY_filepath", "Location")
+dat <- cbind(dat,str_split_fixed(dat$ImgPath, "\\\\", n.strings)[,6:7])
+names(dat)[(ncol(dat) - 1):ncol(dat)] <- c("FY_filepath", "Location")
   # checks:
   head(dat)
-  count(dat, Park)         #7 parks (no GICL)
   count(dat, FY_filepath)  #7 FYs (16-22)
+  # Will look at locations more below
+
 # Remove ImgPath column
 dat <- select(dat, -ImgPath)
 
