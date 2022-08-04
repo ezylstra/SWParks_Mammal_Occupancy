@@ -19,12 +19,12 @@
 # Excluding a few unnecessary columns to avoid formatting issues
 
 # Observations
-dat <- read.csv("data/mammals/MAMMALS_ALL_2022-04-18.csv")
+dat <- read.csv("data/mammals/MAMMALS_ALL_2022-08-01.csv")
   # Change "." to "_" in column names
   colnames(dat) <- str_replace_all(colnames(dat), "[.]", "_")
   
-orpi_replace <- read.csv("data/mammals/ORPI_2020_102_54W_adjustedDates.csv")[,c(1:2,4:14,16:19)]
-  colnames(orpi_replace)[c(1:13,16:17)] <- colnames(dat)[c(1:13,15:16)]
+#orpi_replace <- read.csv("data/mammals/ORPI_2020_102_54W_adjustedDates.csv")[,c(1:2,4:14,16:19)]
+#  colnames(orpi_replace)[c(1:13,16:17)] <- colnames(dat)[c(1:13,15:16)]
   
 # Camera locations
 locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
@@ -35,43 +35,50 @@ events <- read.csv("data/mammals/SODN_Wildlife_Events_Revised_20220512.csv")[,3:
 #-----------------------------------------------------------------------------------#
 # Replace data from one ORPI camera in 2020 with data that has corrected date 
 #-----------------------------------------------------------------------------------#
+
+# ORPI date adjustment should no longer be necessary, because of new csv
+
 # Remove datasheet photo
-orpi_replace <- filter(orpi_replace, Common_name != 'Datasheet')
+#orpi_replace <- filter(orpi_replace, Common_name != 'Datasheet')
 
 # Fix a few species names/codes
-orpi_replace <- mutate(orpi_replace, 
-                       Species = ifelse(Common_name == "Unknown fox", 
-                                        "Caninae sp.",
-                                        paste(Genus, Species, sep = " ")),
-                       Species_code = ifelse(Common_name == "Unknown fox",
-                                             "UNFO", 
-                                             Species_code))
-orpi_replace <- select(orpi_replace, !Genus)
+#orpi_replace <- mutate(orpi_replace, 
+#                       Species = ifelse(Common_name == "Unknown fox", 
+#                                        "Caninae sp.",
+#                                        paste(Genus, Species, sep = " ")),
+#                       Species_code = ifelse(Common_name == "Unknown fox",
+#                                             "UNFO", 
+#                                             Species_code))
+#orpi_replace <- select(orpi_replace, !Genus)
 
 # Check that number of 2020 observations at ORPI_102_54W in dat is the same as replacement file
-nrow(filter(dat, str_detect(ImgPath, "ORPI_102_54W") & FieldSeason == 2020))
-nrow(orpi_replace)
+#nrow(filter(dat, str_detect(ImgPath, "ORPI_102_54W") & FieldSeason == 2020))
+#nrow(orpi_replace)
 
 # Remove original rows in dat and replace with those from new file with correct dates
-orpi_replace$Highlight <- as.character(orpi_replace$Highlight)
-dat <- filter(dat, !(str_detect(ImgPath, "ORPI_102_54W") & FieldSeason == 2020))
-dat <- bind_rows(dat, orpi_replace)
+#orpi_replace$Highlight <- as.character(orpi_replace$Highlight)
+#dat <- filter(dat, !(str_detect(ImgPath, "ORPI_102_54W") & FieldSeason == 2020))
+#dat <- bind_rows(dat, orpi_replace)
 
 #-----------------------------------------------------------------------------------#
 # Format and organize mammal observation data
 #-----------------------------------------------------------------------------------#
+
+# Rename column names in new data frame (because of new output-csv file)
+dat <- rename(dat, Common_name = CommonName)
 
 # Remove empty or unnecessary columns:
 dat <- select(dat,-c(StudyAreaID, UTM_E, UTM_N, UTMZone, FileName, ImgID, ImageNum, Highlight))
 
 # Species
   # Create separate table with "species" information
-  species <- count(dat, Species, Common_name, Species_code)
-  # 35 different "species" -- includes Unknowns
+  species <- count(dat, Common_name, paste0(dat$Genus, " ", dat$Species), ShortName)
+  colnames(species) <- c("Common_name", "Species", "Species_code", "n")
+   # 99 different "species" -- includes Unknowns
   species[species$n %in% range(species$n),]
   # Number of observations per "species" ranges from 7 (Bighorn) to >12,000 (WT deer) 
   # Remove Species and Common_name variables from observations frame (have Species_code)
-  dat <- select(dat, -c(Species, Common_name))
+  dat <- select(dat, -c(Species, Genus, Common_name))
 
 # Split up ImgPath and append information about park, year, and location into new columns
 summary(n.backslashes <- str_count(dat$ImgPath,"\\\\"))  
