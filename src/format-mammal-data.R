@@ -222,7 +222,10 @@ dat <- select(dat, -ImgPath)
   # In locs$MarkerName (WBC_XXXX_XXX): remove leading WBC_, replace with MOWE_
   # In dat$LocationName (XXXX_XXX): add MOWE_   
   
-  
+#TODO: 
+# actually make the changes to LocationName, MarkerName listed above
+# attach lat/longs from locs to dat (and get rid of existing Lat/Long fields in dat)  
+# check that all locations in dat have lat/longs
   
 
 # # Extract camera location "names" from observations dataframe
@@ -293,29 +296,29 @@ dat <- select(dat, -ImgPath)
 #   datlocs_tont$loc_short <- datlocs_tont$Location
 #   # check: all cameras in observations file in the camera locations file? (if result is character(0), then yes)
 #   datlocs_tont$loc_short[!datlocs_tont$loc_short %in% locs_tont$loc_short]
-  
-# Combine datlocs dataframes and merge with dat
-  datlocs <- rbind(datlocs_cagr, datlocs_chir, datlocs_mocc, datlocs_mowe, 
-                   datlocs_orpi, datlocs_sagw, datlocs_tont)
-  # Are there duplicates from the list of cameras in the observation file (datlocs)?
-  xx <- count(datlocs, Park, Location)
-  xx[xx$n > 1, ]
-  datlocs[datlocs$Park == "ORPI" & datlocs$Location %in% c("101_007", "102_004"), ]
-  # Yes, ORIPI 101_007 is associated with two LocationIDs in the observations file: 117 and 118
-  # ORPI 102_004 is associated with two LocationIDs in the observations file: 135 and 136
-  locs_orpi[with(locs_orpi, order(loc_short, MarkerName)), ]
-  # Both these cameras only listed once in the camera locations file, 
-  # so we'll remove duplicates from datlocs to match
-  datlocs <- unique(datlocs[ ,c("Park", "Location", "loc_short")])
-dat <- left_join(dat, datlocs, by=c("Park", "Location"))
-  
-# Combine park-specific locs files and join spatial data to observations (dat)
-locs2 <- rbind(locs_cagr, locs_chir, locs_mocc, locs_mowe, locs_orpi, locs_sagw, locs_tont)
-locs2 <- rename(locs2, Park = UnitCode)
-dat <- left_join(dat, locs2[,c("Park", "loc_short", "StdLocName", "POINT_X", "POINT_Y")], 
-                 by = c("Park", "loc_short"))
-  # check:
-  sum(is.na(dat$POINT_X)) #no NAs
+#   
+# # Combine datlocs dataframes and merge with dat
+#   datlocs <- rbind(datlocs_cagr, datlocs_chir, datlocs_mocc, datlocs_mowe, 
+#                    datlocs_orpi, datlocs_sagw, datlocs_tont)
+#   # Are there duplicates from the list of cameras in the observation file (datlocs)?
+#   xx <- count(datlocs, Park, Location)
+#   xx[xx$n > 1, ]
+#   datlocs[datlocs$Park == "ORPI" & datlocs$Location %in% c("101_007", "102_004"), ]
+#   # Yes, ORIPI 101_007 is associated with two LocationIDs in the observations file: 117 and 118
+#   # ORPI 102_004 is associated with two LocationIDs in the observations file: 135 and 136
+#   locs_orpi[with(locs_orpi, order(loc_short, MarkerName)), ]
+#   # Both these cameras only listed once in the camera locations file, 
+#   # so we'll remove duplicates from datlocs to match
+#   datlocs <- unique(datlocs[ ,c("Park", "Location", "loc_short")])
+# dat <- left_join(dat, datlocs, by=c("Park", "Location"))
+#   
+# # Combine park-specific locs files and join spatial data to observations (dat)
+# locs2 <- rbind(locs_cagr, locs_chir, locs_mocc, locs_mowe, locs_orpi, locs_sagw, locs_tont)
+# locs2 <- rename(locs2, Park = UnitCode)
+# dat <- left_join(dat, locs2[,c("Park", "loc_short", "StdLocName", "POINT_X", "POINT_Y")], 
+#                  by = c("Park", "loc_short"))
+#   # check:
+#   sum(is.na(dat$POINT_X)) #no NAs
 
 #-----------------------------------------------------------------------------------#
 # Linking events file to observations
