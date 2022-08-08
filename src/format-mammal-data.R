@@ -18,8 +18,6 @@ rm(list = ls())
 # Import data
 #------------------------------------------------------------------------------#
 
-# Excluding a few unnecessary columns to avoid formatting issues
-
 # Observations
 dat <- read.csv("data/mammals/MAMMALS_ALL_2022-08-01.csv")
 
@@ -75,7 +73,7 @@ dat <- select(dat,-c(StudyAreaName, StudyAreaID,
                      FileName, VisitID, ImgID, ImageNum, Highlight,
                      SpeciesID, DetailText, Individuals))
 
-# Rename StudyAreaAbbr column and change MOCA to MOCC to be consistent
+# Rename StudyAreaAbbr column and change MOCA entries to MOCC to be consistent
 # with other data sources
 dat <- dat %>%
   rename(Park = StudyAreaAbbr) %>%
@@ -119,7 +117,7 @@ dat <- dat %>%
   select(-CommonName_lower) 
 
 # Species
-  # Create separate table with "species" information
+  # Create separate table with species information
   species <- count(dat, 
                    CommonName, 
                    paste0(dat$Genus, " ", dat$Species), 
@@ -131,12 +129,12 @@ dat <- dat %>%
     # Number of observations per known species ranges from 
     # 10 (Arizona gray squirrel) to >13,000 (WT deer) 
   # Remove Species and Common_name variables from observations dataframe 
-  # and rename column with species code
+  # and rename column with species codes
   dat <- dat %>%
     select(-c(Species, Genus, CommonName)) %>%
     rename(Species_code = ShortName)
 
-# Extract information from ImgPath about the yr used to organize/file photos
+# Extract year from ImgPath (used to organize/file photos)
 summary(n.backslashes <- str_count(dat$ImgPath, "\\\\"))  
   # ImgPath always has 7 backslashes (ie, 8 character strings)
 n.strings <- mean(n.backslashes) + 1
@@ -174,154 +172,46 @@ dat <- select(dat, -ImgPath)
 # future iteration), and some lat/longs are missing for smaller parks.  
 # For now, we'll use lat/longs from the locs csv
 
-# Will create a simple location name to match things up between dat and locs
-# Most will look like: PARK_XXX_XXX
-# BUT want to keep StdLocName because that's exactly what appears in the events
-# dataframe
+# Will create a simple location name (loc_short) to match things up between 
+# dat and locs. Most entries will look like: PARK_XXX_XXX
+# Note: do want to keep StdLocName column in locs because that's exactly what 
+# appears in the events dataframe
 
-# SAGW
-  sort(unique(dat$LocationName[dat$Park == "SAGW"]))
-  sort(locs$MarkerName[locs$UnitCode == "SAGW"])
-  # In dat$LocationName (XXX_XXX): add SAGW_
-  # In locs$MarkerName (WXXX_XXX): remove leading W, replace with SAGW_
+dat <- dat %>%
+  mutate(loc_short = paste0(Park, "_", LocationName))
   
-# CAGR
-  sort(unique(dat$LocationName[dat$Park == "CAGR"]))
-  sort(locs$MarkerName[locs$UnitCode == "CAGR"])  
-  # In locs$MarkerName (VXXX_XXX or VXXX_CMPD_X): remove leading V, replace with CAGR_
-  # In dat$LocationName (XXX_XXX): add CAGR_  
+locs <- locs %>% 
+  # Remove GICL locations
+  filter(UnitCode != "GICL") %>%
+  # Remove leading "WBC_", "V", and "W" from MarkerName where they appear
+  mutate(loc_short_np = ifelse(str_detect(MarkerName, "WBC"), 
+                               str_replace(MarkerName, fixed ("WBC_"), ""),
+                               ifelse(str_sub(MarkerName, 1, 1) %in% c("V", "W"),
+                                      str_sub(MarkerName, 2, -1),
+                                      MarkerName))) %>%
+  # Add the park code as a prefix
+  mutate(loc_short = paste0(UnitCode, "_", loc_short_np)) %>%
+  select(-loc_short_np)
   
-# CHIR
-  sort(unique(dat$LocationName[dat$Park == "CHIR"]))
-  sort(locs$MarkerName[locs$UnitCode == "CHIR"])    
-  # In locs$MarkerName (VXXX_XXX or Bonita_X or Rhyolite_X or WXXX_XXX)
-  # Note that any location starting with W doesn't appear in dat:
-  # remove leading V/W and replace with CHIR_
-  
-# ORPI
-  sort(unique(dat$LocationName[dat$Park == "ORPI"]))
-  sort(locs$MarkerName[locs$UnitCode == "ORPI"])     
-  # In locs$MarkerName (VXXX_XXX[X]): remove leading V, replace with ORPI_
-  # In dat$LocationName (XXX_XXX): add ORPI_ 
-  
-# TONT
-  sort(unique(dat$LocationName[dat$Park == "TONT"]))
-  sort(locs$MarkerName[locs$UnitCode == "TONT"])     
-  # In locs$MarkerName (VXXX_XXX): remove leading V, replace with TONT_
-  # In dat$LocationName (XXX_XXX): add TONT_   
-  
-# MOCC
-  sort(unique(dat$LocationName[dat$Park == "MOCC"]))
-  sort(locs$MarkerName[locs$UnitCode == "MOCC"])     
-  # In locs$MarkerName (VXXX_XXX or WBC_XXXX_XXX): remove leading V or WBC_, replace with MOCC_
-  # In dat$LocationName (XXX_XXX): add MOCC_   
-  
-# MOWE
-  sort(unique(dat$LocationName[dat$Park == "MOWE"]))
-  sort(locs$MarkerName[locs$UnitCode == "MOWE"])    
-  # In locs$MarkerName (WBC_XXXX_XXX): remove leading WBC_, replace with MOWE_
-  # In dat$LocationName (XXXX_XXX): add MOWE_   
-  
-#TODO: 
-# actually make the changes to LocationName, MarkerName listed above
-# attach lat/longs from locs to dat (and get rid of existing Lat/Long fields in dat)  
-# check that all locations in dat have lat/longs
-  
+# Check that each location has a unique set of lat/longs:
+# dim(unique(locs[,c("POINT_X", "POINT_Y", "loc_short")]))
+# dim(unique(locs[,c("POINT_X", "POINT_Y")]))
 
-# # Extract camera location "names" from observations dataframe
-#   datlocs <- unique(dat[,c("Park", "Location", "LocationID")])
-#   datlocs <- arrange(datlocs, Park, Location)
-#   head(datlocs)
-#   count(datlocs, Park)
-#     
-# # Create a "loc_short" variable in locs and datlocs dataframes with 
-# # simplified camera location name (so they can be matched easily)
-#   
-#   # CAGR
-#   locs_cagr <- locs[locs$UnitCode == "CAGR", c("UnitCode", "StdLocName", "MarkerName", "POINT_X", "POINT_Y")]
-#   datlocs_cagr <- datlocs[datlocs$Park == "CAGR", ]
-#   remove <- c("_SOLAR", "CAGR_", "V")
-#   locs_cagr$loc_short <- str_remove_all(locs_cagr$MarkerName, paste(remove, collapse="|"))
-#   datlocs_cagr$loc_short <- str_remove_all(datlocs_cagr$Location, paste(remove, collapse="|"))
-#   # check: all cameras in observations file in the camera locations file? (if result is character(0), then yes)
-#   datlocs_cagr$loc_short[!datlocs_cagr$loc_short %in% locs_cagr$loc_short]
-#   
-#   # CHIR
-#   locs_chir <- locs[locs$UnitCode == "CHIR",c("UnitCode", "StdLocName", "MarkerName", "POINT_X", "POINT_Y")]  
-#   datlocs_chir <- datlocs[datlocs$Park == "CHIR",]
-#   locs_chir$loc_short <- str_remove_all(locs_chir$MarkerName, "V")
-#   datlocs_chir$loc_short <- datlocs_chir$Location
-#   # check: all cameras in observations file in the camera locations file? (if result is character(0), then yes)
-#   datlocs_chir$loc_short[!datlocs_chir$loc_short %in% locs_chir$loc_short]
-#   
-#   # MOCC
-#   locs_mocc <- locs[locs$UnitCode == "MOCC",c("UnitCode", "StdLocName", "MarkerName", "POINT_X", "POINT_Y")]  
-#   datlocs_mocc <- datlocs[datlocs$Park == "MOCC",]
-#   remove <- c("WBC_", "V")
-#   locs_mocc$loc_short <- str_remove_all(locs_mocc$MarkerName, paste(remove, collapse="|"))
-#   datlocs_mocc$loc_short <- str_remove_all(datlocs_mocc$Location, paste(remove, collapse="|"))
-#   # check: all cameras in observations file in the camera locations file? (if result is character(0), then yes)
-#   datlocs_mocc$loc_short[!datlocs_mocc$loc_short %in% locs_mocc$loc_short]
-#   
-#   # MOWE
-#   locs_mowe <- locs[locs$UnitCode == "MOWE",c("UnitCode", "StdLocName", "MarkerName", "POINT_X", "POINT_Y")] 
-#   datlocs_mowe <- datlocs[datlocs$Park == "MOWE",]
-#   locs_mowe$loc_short <- str_remove_all(locs_mowe$MarkerName, "WBC_")
-#   datlocs_mowe$loc_short <- datlocs_mowe$Location
-#   # check: all cameras in observations file in the camera locations file? (if result is character(0), then yes)
-#   datlocs_mowe$loc_short[!datlocs_mowe$loc_short %in% locs_mowe$loc_short]
-#   
-#   # ORPI
-#   locs_orpi <- locs[locs$UnitCode == "ORPI",c("UnitCode", "StdLocName", "MarkerName", "POINT_X", "POINT_Y")] 
-#   datlocs_orpi <- datlocs[datlocs$Park == "ORPI",]
-#   remove <- c("ORPI_", "V")  
-#   locs_orpi$loc_short <- str_remove_all(locs_orpi$MarkerName, paste(remove, collapse="|"))
-#   datlocs_orpi$loc_short <- str_remove_all(datlocs_orpi$Location, paste(remove, collapse="|"))
-#   # check: all cameras in observations file in the camera locations file? (if result is character(0), then yes)
-#   datlocs_orpi$loc_short[!datlocs_orpi$loc_short %in% locs_orpi$loc_short]
-#   
-#   # SAGW
-#   locs_sagw <- locs[locs$UnitCode == "SAGW",c("UnitCode", "StdLocName", "MarkerName", "POINT_X", "POINT_Y")]  
-#   datlocs_sagw <- datlocs[datlocs$Park == "SAGW",]
-#   remove <- c("SAGW ", "W")   
-#   locs_sagw$loc_short <- str_remove_all(locs_sagw$MarkerName, paste(remove, collapse="|"))
-#   datlocs_sagw$loc_short <- str_remove_all(datlocs_sagw$Location, paste(remove, collapse="|"))
-#   # check: all cameras in observations file in the camera locations file? (if result is character(0), then yes)
-#   datlocs_sagw$loc_short[!datlocs_sagw$loc_short %in% locs_sagw$loc_short]
-#   
-#   # TONT
-#   locs_tont <- locs[locs$UnitCode == "TONT",c("UnitCode", "StdLocName", "MarkerName", "POINT_X", "POINT_Y")] 
-#   datlocs_tont <- datlocs[datlocs$Park == "TONT",]
-#   locs_tont$loc_short <- str_remove_all(locs_tont$MarkerName, "V")
-#   datlocs_tont$loc_short <- datlocs_tont$Location
-#   # check: all cameras in observations file in the camera locations file? (if result is character(0), then yes)
-#   datlocs_tont$loc_short[!datlocs_tont$loc_short %in% locs_tont$loc_short]
-#   
-# # Combine datlocs dataframes and merge with dat
-#   datlocs <- rbind(datlocs_cagr, datlocs_chir, datlocs_mocc, datlocs_mowe, 
-#                    datlocs_orpi, datlocs_sagw, datlocs_tont)
-#   # Are there duplicates from the list of cameras in the observation file (datlocs)?
-#   xx <- count(datlocs, Park, Location)
-#   xx[xx$n > 1, ]
-#   datlocs[datlocs$Park == "ORPI" & datlocs$Location %in% c("101_007", "102_004"), ]
-#   # Yes, ORIPI 101_007 is associated with two LocationIDs in the observations file: 117 and 118
-#   # ORPI 102_004 is associated with two LocationIDs in the observations file: 135 and 136
-#   locs_orpi[with(locs_orpi, order(loc_short, MarkerName)), ]
-#   # Both these cameras only listed once in the camera locations file, 
-#   # so we'll remove duplicates from datlocs to match
-#   datlocs <- unique(datlocs[ ,c("Park", "Location", "loc_short")])
-# dat <- left_join(dat, datlocs, by=c("Park", "Location"))
-#   
-# # Combine park-specific locs files and join spatial data to observations (dat)
-# locs2 <- rbind(locs_cagr, locs_chir, locs_mocc, locs_mowe, locs_orpi, locs_sagw, locs_tont)
-# locs2 <- rename(locs2, Park = UnitCode)
-# dat <- left_join(dat, locs2[,c("Park", "loc_short", "StdLocName", "POINT_X", "POINT_Y")], 
-#                  by = c("Park", "loc_short"))
-#   # check:
-#   sum(is.na(dat$POINT_X)) #no NAs
+# Attach correct lat/longs to photo observations dataframe
+dat <- left_join(dat, select(locs, c(loc_short, StdLocName, POINT_X, POINT_Y)),
+                 by = "loc_short")
+# Check that every photo observation has lat/longs:
+# summary(dat[, c("POINT_X", "POINT_Y")])
 
+# Remove LatitudeDD, LongitudeDD columns and rename POINT_X, POINT_Y
+dat <- dat %>%
+  select(-c(LatitudeDD, LongitudeDD)) %>%
+  rename(longitude = POINT_X,
+         latitude = POINT_Y)
+  
 #-----------------------------------------------------------------------------------#
-# Linking events file to observations
+# Linking events file to observations 
+# TODO: UPDATE THIS SECTION WHEN WE GET NEW EVENTS DATAFILE
 #-----------------------------------------------------------------------------------# 
   
 # Notes about sampling "events":
