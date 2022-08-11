@@ -21,42 +21,113 @@ rm(list = ls())
 # Observations
 dat <- read.csv("data/mammals/MAMMALS_ALL_2022-08-01.csv")
 
-#orpi_replace <- read.csv("data/mammals/ORPI_2020_102_54W_adjustedDates.csv")[,c(1:2,4:14,16:19)]
-#  colnames(orpi_replace)[c(1:13,16:17)] <- colnames(dat)[c(1:13,15:16)]
-  
 # Camera locations
 locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
 
 # Deployment schedule
-events <- read.csv("data/mammals/SODN_Wildlife_Events_Revised_20220512.csv")[,3:26]
+events <- read.csv("data/mammals/Wildlife_Events_ALL_20220809.csv")[,3:20]
 
 #------------------------------------------------------------------------------#
-# Replace data from one ORPI camera in 2020 with data that has corrected date 
+# Format events data
 #------------------------------------------------------------------------------#
 
-# ORPI date adjustment should no longer be necessary, because of new csv
+# Notes about sampling "events":
+# Occasionally (esp at smaller parks), cameras were immediately re-deployed for 
+# continuous sampling
+# Occasionally two cameras were deployed at the same location simultaneously
+# Sometimes cameras left out for >1 yr. Not sure how long they collected photos.
 
-# Remove datasheet photo
-#orpi_replace <- filter(orpi_replace, Common_name != 'Datasheet')
+# Only keep necessary columns
+events <- select(events, c(StdLocName, ProtocolVersion, DeployDate, 
+                           RetrievalDate, CameraName, MountMethod, 
+                           BatteryStatus, CameraSensitivity, 
+                           DelaySec, ImagePer, TotalPics))
 
-# Fix a few species names/codes
-#orpi_replace <- mutate(orpi_replace, 
-#                       Species = ifelse(Common_name == "Unknown fox", 
-#                                        "Caninae sp.",
-#                                        paste(Genus, Species, sep = " ")),
-#                       Species_code = ifelse(Common_name == "Unknown fox",
-#                                             "UNFO", 
-#                                             Species_code))
-#orpi_replace <- select(orpi_replace, !Genus)
+# Add column to identify Park and remove information about Parks not in photo 
+# observations dataset (GICL and National Wildlife refuges)
+events <- events %>%
+  mutate(Park = str_split_fixed(events$StdLocName, "_", 4)[,2]) %>%
+  filter(!Park %in% c("GICL", "LCNWR", "SBNWR"))
 
-# Check that number of 2020 observations at ORPI_102_54W in dat is the same as replacement file
-#nrow(filter(dat, str_detect(ImgPath, "ORPI_102_54W") & FieldSeason == 2020))
-#nrow(orpi_replace)
+# Create new deployment date-time column and remove DeployDate
+events <- events %>%
+  mutate(d_datetime = parse_date_time(events$DeployDate, 
+                                      orders = c("%m/%d/%Y %H:%M", 
+                                                 "%m/%d/%Y %H:%M:%S"))) %>%
+  select(-DeployDate)
 
-# Remove original rows in dat and replace with those from new file with correct dates
-#orpi_replace$Highlight <- as.character(orpi_replace$Highlight)
-#dat <- filter(dat, !(str_detect(ImgPath, "ORPI_102_54W") & FieldSeason == 2020))
-#dat <- bind_rows(dat, orpi_replace)
+# Create new retrieval date-time column and remove RetrievalDate
+events <- events %>%
+  mutate(r_datetime = parse_date_time(events$RetrievalDate, 
+                                      orders = c("%m/%d/%Y %H:%M", 
+                                                 "%m/%d/%Y %H:%M:%S"))) %>%
+  select(-RetrievalDate)
+
+  #-- Fix known issues in events dataset --------------------------------------#
+
+  # Change the retrieval date for CHIR camera 502-003 deployed in 2019
+  events <- events %>%
+    mutate(r_datetime = if_else(StdLocName == "Wildlife_CHIR_V502_003" & 
+                                  year(d_datetime) == 2019,
+                                parse_date_time("2021-05-12",
+                                                orders = "%Y-%m-%d"),
+                                r_datetime))  
+
+  # Change the retrieval date for all cameras deployed in 2019 at MOCC
+  events <- events %>%
+    mutate(r_datetime = if_else(Park == "MOCC" & year(d_datetime) == 2019,
+                                       parse_date_time("2021-10-14",
+                                                       orders = "%Y-%m-%d"),
+                                       r_datetime))
+
+  # Add two deployments for all cameras as MOWE
+  mowe_locs <- events$StdLocName[events$Park == "MOWE"]
+  mowe_add <- data.frame(matrix(NA, 
+                                ncol = ncol(events), 
+                                nrow = 2 * length(mowe_locs)))
+  colnames(mowe_add) <- colnames(events)
+  mowe_add <- mowe_add %>%
+    mutate(StdLocName = rep(mowe_locs, 2),
+           Park = "MOWE",
+           d_datetime = parse_date_time(rep(c("2018-08-07", "2019-05-29"), 
+                                            each = length(mowe_locs)),
+                                        orders = "%Y-%m-%d"),
+           r_datetime = parse_date_time(rep(c("2019-05-29", "2021-10-14"), 
+                                            each = length(mowe_locs)),
+                                        orders = "%Y-%m-%d"))                                                               
+  events <- rbind(events, mowe_add)
+  
+  # TODO: figure out what's going on with ORPI_V101_009, that has some photos
+  # taken before cameras listed as deployed in 2017
+  #----------------------------------------------------------------------------#
+
+# Create new date and year columns
+events <- events %>%
+  mutate(d_date = date(d_datetime),
+         d_yr = year(d_datetime),
+         r_date = date(r_datetime),
+         r_yr = year(r_datetime)) 
+
+# Reorder columns and sort events dataframe by location and date
+events <- relocate(events, c(Park, d_date, r_date), .after = StdLocName)
+events <- arrange(events, StdLocName, d_datetime)
+
+# Restrict events dataframe to 2016 forward
+events <- filter(events, d_yr > 2015)
+
+# Calculate length of deployment, in days
+events$duration <- as.double(difftime(as.POSIXct(events$r_datetime), 
+                                      as.POSIXct(events$d_datetime), 
+                                      units = 'days'))
+  # Summarize/Visualize 
+  summary(events$duration)
+  # hist(events$duration, breaks = 25)
+
+# View events with duration < 1 day
+filter(events, duration < 1)
+head(filter(events, Park == 'TONT'))
+# Remove these events (all at TONT when cameras immediately re-deployed)
+events <- filter(events, duration > 1)
 
 #------------------------------------------------------------------------------#
 # Format and organize mammal observation data
@@ -148,19 +219,16 @@ dat <- select(dat, -ImgPath)
 
 # Format date and time
   # Create new date-time column
-  dat$datetime <- parse_date_time(dat$ImageDate, c("%m/%d/%Y %I:%M:%S %p", 
-                                                   "%m/%d/%Y"))
-  # Create new date column
-  dat$obsdate <- date(dat$datetime)
-  # Create year variable (numeric)
-  dat$yr <- year(dat$datetime)
-  # Create month variable (numeric)
-  dat$mon <- month(dat$datetime)
-  # Create day-of-year variable (numeric)
-  dat$yday <- yday(dat$datetime)
-  # Convert time to a decimal value in [0,24)
-  dat$obstime <- hour(dat$datetime) + minute(dat$datetime) / 60 + 
-                 second(dat$datetime) / 3600
+  dat$datetime <- parse_date_time(dat$ImageDate, 
+                                  orders = c("%m/%d/%Y %I:%M:%S %p", "%m/%d/%Y"))
+  # Create new date-, time-related columns
+  dat <- dat %>%
+    mutate(obsdate = date(datetime),
+           yr = year(datetime),
+           mon = month(datetime),
+           yday = yday(datetime),
+           obstime = hour(datetime) + minute(datetime) / 60 + second(datetime) / 3600)
+  
   # Remove ImageDate column
   dat <- select(dat, -ImageDate)
   
@@ -209,73 +277,18 @@ dat <- dat %>%
   rename(longitude = POINT_X,
          latitude = POINT_Y)
   
-#-----------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 # Linking events file to observations 
-# TODO: UPDATE THIS SECTION WHEN WE GET NEW EVENTS DATAFILE
-#-----------------------------------------------------------------------------------# 
-  
-# Notes about sampling "events":
-# Occasionally (esp at smaller parks), cameras were immediately re-deployed for continuous sampling
-# Occasionally two cameras were deployed at the same location simultaneously
-# Sometimes cameras left out for > 1 yr. Not sure how long they actually collected photos.
-  
-# Only keep necessary columns
-events <- select(events, c(StdLocName, ProtocolVersion, DeployDate, RetrievalDate, 
-                           CameraName, MountMethod, BatteryStatus, CameraSensitivity, 
-                           DelaySec, ImagePer, TotalPics))
+#------------------------------------------------------------------------------# 
 
-# Add column to identify Park
-events$Park <- str_split_fixed(events$StdLocName, "_", 4)[,2]
-
-# Format deployment date
-  # Create new date-time column
-  events$d_datetime <- parse_date_time(events$DeployDate, "%m/%d/%Y %H:%M")
-  # Create new date column
-  events$d_date <- date(events$d_datetime)
-  # Create new year column
-  events$d_yr <- year(events$d_datetime)
-  # Remove DeployDate column
-  events <- select(events, -DeployDate)
-
-# Format retrieval date and time
-  # Create new date-time colu
-  events$r_datetime <- parse_date_time(events$RetrievalDate, "%m/%d/%Y %H:%M")
-  # Create new date column
-  events$r_date <- date(events$r_datetime)
-  # Create new year column
-  events$r_yr <- year(events$r_datetime)
-  # Remove RetrievalDate column
-  events <- select(events, -RetrievalDate)  
-  
-# Reorder columns and sort events dataframe by location and date
-  events <- relocate(events, c(Park, d_date, r_date), .after = StdLocName)
-  events <- arrange(events, StdLocName, d_datetime)
-
-# Restrict events dataframe to 2016 forward
-events <- filter(events, d_yr > 2015)
-
-# Summarize sampling events by park and year (and compare to mammal observation data)
+# Summarize sampling events by park and year (and compare to photo obs data)
 table(events$Park, events$d_yr)
 table(dat$Park, dat$yr)
   # There are sampling events in CHIR in 2016 with no corresponding observations
   # Sampling methods were different that year, so probably ok not to track 
   # these down
 
-# Calculate length of deployment, in days
-events$duration <- as.double(difftime(as.POSIXct(events$r_datetime), 
-                                      as.POSIXct(events$d_datetime), 
-                                      units = 'days'))
-  # Summarize/Visualize 
-  summary(events$duration)
-  # hist(events$duration, breaks = 25)
-
-# View events with duration < 1 day
-filter(events, duration < 1)
-head(filter(events, Park == 'TONT'))
-# Remove these events (all at TONT when cameras immediately re-deployed)
-events <- filter(events, duration > 1)
-
-# Check that cameras in our observations dataset all appear in the events dataset
+# Check that all cameras in photo obs dataset appear in the events dataset
 obslocs <- sort(unique(dat$StdLocName))
 obslocs[!obslocs %in% events$StdLocName]  # Yes, all appear in events
   
@@ -283,12 +296,14 @@ obslocs[!obslocs %in% events$StdLocName]  # Yes, all appear in events
 events$d_day <- as.numeric(events$d_date) - as.numeric(as.Date("2015-12-31"))
 events$r_day <- as.numeric(events$r_date) - as.numeric(as.Date("2015-12-31"))
 
-# Create location by date matrix (1 indicates date was during a sampling event, 0 otherwise)
+# Create location by date matrix 
+# (1 indicates date was during a sampling event, 0 otherwise)
   
   # Create matrix with all 0s
   eventlocs <- sort(unique(events$StdLocName))
   event_mat <- matrix(0, nrow = length(eventlocs), ncol = max(events$r_day)) 
   rownames(event_mat) <- eventlocs
+  colnames(event_mat) <- 1:max(events$r_day)
   
   # Replace 0s with 1s during each sampling event
   for (i in 1:nrow(event_mat)) {
@@ -298,7 +313,8 @@ events$r_day <- as.numeric(events$r_date) - as.numeric(as.Date("2015-12-31"))
       event_mat[i, temp$d_day[j]:temp$r_day[j]] <- 1
     }
   }
-  # checks at random locations (only 1s during sampling event and 0s outside of event?):
+  # checks at random locations 
+  # (only 1s during sampling event and 0s outside of event?):
   events[events$StdLocName == eventlocs[206], 
          c("StdLocName", "d_date", "r_date", "d_day","r_day")]
   sum(event_mat[206, 1:390] == 1); sum(event_mat[206, 1:390] == 0) 
@@ -319,10 +335,20 @@ for (i in 1:length(eventlocs)) {
   eventvec <- append(eventvec, paste(eventlocs[i], which(event_mat[i,] == 1), sep = "_"))
 }
   # check:
-  head(eventvec); head(events[,c(1,13:14)])
+  head(eventvec); head(events[,c(1, 13:14, 18, 17)])
   
 # Check that all photo dates were during listed sampling events
-summary(dat$locdate %in% eventvec) # Yes, all photos during events
+summary(dat$locdate %in% eventvec) # No
+
+  # TODO: get info from Alex about this camera
+  # This is the issue I know about in ORPI in 2017:
+  dat[which(!dat$locdate %in% eventvec), c("Park", "StdLocName", "yr","obsdate","o_day")]
+  events[events$StdLocName == "Wildlife_ORPI_V101_009",]
+  dat %>%
+    filter(StdLocName == "Wildlife_ORPI_V101_009" & dat$yr == 2017) %>%
+    select(c(Park, loc_short, yr, obsdate, o_day)) %>%
+    arrange(obsdate) %>%
+    distinct
 
 #-----------------------------------------------------------------------------------#
 # Remove objects that are no longer needed
