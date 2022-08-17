@@ -19,7 +19,7 @@ rm(list = ls())
 #------------------------------------------------------------------------------#
 
 # Observations
-dat <- read.csv("data/mammals/MAMMALS_ALL_2022-08-01.csv")
+dat <- read.csv("data/mammals/MAMMALS_ALL_2022-08-12.csv")
 
 # Camera locations
 locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
@@ -43,8 +43,8 @@ events <- select(events, c(StdLocName, ProtocolVersion, DeployDate,
                            BatteryStatus, CameraSensitivity, 
                            DelaySec, ImagePer, TotalPics))
 
-# Add column to identify Park and remove information about Parks not in photo 
-# observations dataset (GICL and National Wildlife refuges)
+# Add column to identify Park and remove information about parks that aren't in 
+# photo observations dataset (GICL and National Wildlife refuges)
 events <- events %>%
   mutate(Park = str_split_fixed(events$StdLocName, "_", 4)[,2]) %>%
   filter(!Park %in% c("GICL", "LCNWR", "SBNWR"))
@@ -96,9 +96,6 @@ events <- events %>%
                                             each = length(mowe_locs)),
                                         orders = "%Y-%m-%d"))                                                               
   events <- rbind(events, mowe_add)
-  
-  # TODO: figure out what's going on with ORPI_V101_009, that has some photos
-  # taken before cameras listed as deployed in 2017
   #----------------------------------------------------------------------------#
 
 # Create new date and year columns
@@ -338,17 +335,8 @@ for (i in 1:length(eventlocs)) {
   head(eventvec); head(events[,c(1, 13:14, 18, 17)])
   
 # Check that all photo dates were during listed sampling events
-summary(dat$locdate %in% eventvec) # No
-
-  # TODO: get info from Alex about this camera
-  # This is the issue I know about in ORPI in 2017:
-  dat[which(!dat$locdate %in% eventvec), c("Park", "StdLocName", "yr","obsdate","o_day")]
-  events[events$StdLocName == "Wildlife_ORPI_V101_009",]
-  dat %>%
-    filter(StdLocName == "Wildlife_ORPI_V101_009" & dat$yr == 2017) %>%
-    select(c(Park, loc_short, yr, obsdate, o_day)) %>%
-    arrange(obsdate) %>%
-    distinct
+summary(dat$locdate %in% eventvec) 
+  # Yes, all photo dates occur during known event
 
 #-----------------------------------------------------------------------------------#
 # Remove objects that are no longer needed
