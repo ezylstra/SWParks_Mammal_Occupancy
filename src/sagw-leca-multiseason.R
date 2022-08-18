@@ -35,9 +35,6 @@ occasions <- read.csv("data/occasions/occasions-all-parks.csv")
 park <- "SAGW"
 species <- "LECA"
 
-# Use day number (day 1 = 01 Jan 2016) for column names in event_mat 
-colnames(event_mat) <- 1:ncol(event_mat)
-
 #-------------------------------------------------------------------------------#
 # Create detection histories for selected park, species
 #-------------------------------------------------------------------------------#
