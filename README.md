@@ -10,6 +10,7 @@ JAGS 4.3.1 (At least at the moment, we're using JAGS to run Bayesian occupancy m
 The project also uses the following R packages:
 
 + coda (optional)
++ downloader
 + dplyr
 + ggplot2
 + gridExtra
@@ -19,6 +20,7 @@ The project also uses the following R packages:
 + MCMCvis (optional)
 + sf
 + stringr
++ terra
 + tidyr
 + tmap (mapping spatial data)
 + unmarked (optional)
