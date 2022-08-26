@@ -39,6 +39,47 @@ plot(pr2016[[365]])
 plot(parks, add = TRUE)
 plot(parks_b, lty = 3, add = TRUE)
 
+# Calculate slope (in degrees)
+slope_chir <- terrain(dem_chir, v = "slope", unit = "degrees")
+slope_orpi <- terrain(dem_orpi, v = "slope", unit = "degrees")
+slope_sagw <- terrain(dem_sagw, v = "slope", unit = "degrees")
+
+# Calculate eastness and northness (aspect)
+east_chir <- sin(terrain(dem_chir, v = "aspect", unit = "radians"))
+east_orpi <- sin(terrain(dem_orpi, v = "aspect", unit = "radians"))
+east_sagw <- sin(terrain(dem_sagw, v = "aspect", unit = "radians"))
+north_chir <- cos(terrain(dem_chir, v = "aspect", unit = "radians"))
+north_orpi <- cos(terrain(dem_orpi, v = "aspect", unit = "radians"))
+north_sagw <- cos(terrain(dem_sagw, v = "aspect", unit = "radians"))
+
+# Calculate distance to park boundary (crop raster to park to reduce run time)
+# Note: still takes quite a long time for each park
+chir_line <- as.lines(subset(parks, parks$UNIT_CODE == "CHIR"))
+dist_bound_chir <- rast(dem_chir)
+dist_bound_chir <- crop(dist_bound_chir, chir_line)
+startc <- Sys.time()
+dist_bound_chir <- distance(dist_bound_chir, chir_line)
+endc <- Sys.time()
+endc - startc
+
+orpi_line <- as.lines(subset(parks, parks$UNIT_CODE == "ORPI"))
+dist_bound_orpi <- rast(dem_orpi)
+dist_bound_orpi <- crop(dist_bound_orpi, orpi_line)
+starto <- Sys.time()
+dist_bound_orpi <- distance(dist_bound_orpi, orpi_line)
+endo <- Sys.time()
+endo - starto
+
+sagw_line <- as.lines(subset(parks, parks$UNIT_CODE == "SAGW"))
+dist_bound_sagw <- rast(dem_sagw)
+dist_bound_sagw <- crop(dist_bound_sagw, sagw_line)
+starts() <- Sys.time()
+dist_bound_sagw <- distance(dist_bound_sagw, sagw_line)
+ends <- Sys.time()
+ends - starts
+
+
+
 # TODO with precip data
   # Convert layer name to date: 
     # see https://tmieno2.github.io/R-as-GIS-for-Economists/gridMET.html
@@ -47,5 +88,4 @@ plot(parks_b, lty = 3, add = TRUE)
   # Monsoon precip (15 Jun - 30 Sep)
   # Winter precip? But note that cameras deployed early in the year.
   # For winter we'll need to combine information from 2 years
-
 
