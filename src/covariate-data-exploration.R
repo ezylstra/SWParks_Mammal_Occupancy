@@ -15,9 +15,7 @@ parks <- vect("data/covariates/SWNC_nps_boundary_22020630.shp")
 # Load park boundaries + 3-km buffer
 parks_b <- vect("data/covariates/SWNC_nps_boundary_3km_22020630.shp")
 
-# Looks like the park boundary/buffer layers have 3 polygons for Saguaro NP 
-# (SAGU, SAGW, SAGE) that are slightly offset. 
-# For now, we'll just extract the SAGW polygon, plus CHIR, ORPI
+# Extract polygons for the 3 park units of interest: CHIR, ORPI, and SAGW
 parks <- subset(parks, parks$UNIT_CODE %in% c("CHIR", "ORPI", "SAGW"))
 parks_b <- subset(parks_b, parks_b$UNIT_CODE %in% c("CHIR", "ORPI", "SAGW"))
 
@@ -49,7 +47,5 @@ plot(parks_b, lty = 3, add = TRUE)
   # Monsoon precip (15 Jun - 30 Sep)
   # Winter precip? But note that cameras deployed early in the year.
   # For winter we'll need to combine information from 2 years
-
-
 
 
