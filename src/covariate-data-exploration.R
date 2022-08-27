@@ -37,31 +37,34 @@ north_chir <- cos(terrain(dem_chir, v = "aspect", unit = "radians"))
 north_orpi <- cos(terrain(dem_orpi, v = "aspect", unit = "radians"))
 north_sagw <- cos(terrain(dem_sagw, v = "aspect", unit = "radians"))
 
-# Calculate distance to park boundary (crop raster to park to reduce run time)
-# Note: still takes quite a long time for each park
-chir_line <- as.lines(subset(parks, parks$UNIT_CODE == "CHIR"))
-dist_bound_chir <- rast(dem_chir)
-dist_bound_chir <- crop(dist_bound_chir, chir_line)
-startc <- Sys.time()
-dist_bound_chir <- distance(dist_bound_chir, chir_line)
-endc <- Sys.time()
-endc - startc
-
-orpi_line <- as.lines(subset(parks, parks$UNIT_CODE == "ORPI"))
-dist_bound_orpi <- rast(dem_orpi)
-dist_bound_orpi <- crop(dist_bound_orpi, orpi_line)
-starto <- Sys.time()
-dist_bound_orpi <- distance(dist_bound_orpi, orpi_line)
-endo <- Sys.time()
-endo - starto
-
-sagw_line <- as.lines(subset(parks, parks$UNIT_CODE == "SAGW"))
-dist_bound_sagw <- rast(dem_sagw)
-dist_bound_sagw <- crop(dist_bound_sagw, sagw_line)
-starts() <- Sys.time()
-dist_bound_sagw <- distance(dist_bound_sagw, sagw_line)
-ends <- Sys.time()
-ends - starts
+# Calculate distance to park boundary
+# Note: takes forever, even if cropping raster to park boundary
+  # chir_line <- as.lines(subset(parks, parks$UNIT_CODE == "CHIR"))
+  # dist_bound_chir <- rast(dem_chir)
+  # dist_bound_chir <- crop(dist_bound_chir, chir_line)
+  # startc <- Sys.time()
+  # dist_bound_chir <- distance(dist_bound_chir, chir_line)
+  # endc <- Sys.time()
+  # endc - startc
+  # writeRaster(dist_bound_chir, "data/covariates/dist_boundary_chir.tif")
+  
+  # orpi_line <- as.lines(subset(parks, parks$UNIT_CODE == "ORPI"))
+  # dist_bound_orpi <- rast(dem_orpi)
+  # dist_bound_orpi <- crop(dist_bound_orpi, orpi_line)
+  # starto <- Sys.time()
+  # dist_bound_orpi <- distance(dist_bound_orpi, orpi_line)
+  # endo <- Sys.time()
+  # endo - starto
+  # writeRaster(dist_bound_orpi, "data/covariates/dist_boundary_orpi.tif")
+  
+  # sagw_line <- as.lines(subset(parks, parks$UNIT_CODE == "SAGW"))
+  # dist_bound_sagw <- rast(dem_sagw)
+  # dist_bound_sagw <- crop(dist_bound_sagw, sagw_line)
+  # starts <- Sys.time()
+  # dist_bound_sagw <- distance(dist_bound_sagw, sagw_line)
+  # ends <- Sys.time()
+  # ends - starts
+  # writeRaster(dist_bound_sagw, "data/covariates/dist_boundary_sagw.tif")
 
 # Load precipitation data
 # (later I can automate this with apply/loops)
