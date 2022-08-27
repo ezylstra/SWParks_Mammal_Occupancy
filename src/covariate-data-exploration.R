@@ -24,21 +24,6 @@ dem_chir <- rast("data/covariates/CHIR_DEM_1as.tif")
 dem_orpi <- rast("data/covariates/ORPI_DEM_1as.tif")
 dem_sagw <- rast("data/covariates/SAGW_DEM_1as.tif")
 
-# Load precipitation data
-# (later I can automate this with apply/loops)
-pr2016 <- rast("data/covariates/pr2016.nc")
-pr2017 <- rast("data/covariates/pr2017.nc")
-pr2018 <- rast("data/covariates/pr2018.nc")
-pr2019 <- rast("data/covariates/pr2019.nc")
-pr2020 <- rast("data/covariates/pr2020.nc")
-pr2021 <- rast("data/covariates/pr2021.nc")
-pr2022 <- rast("data/covariates/pr2022.nc")
-
-# check:
-plot(pr2016[[365]])
-plot(parks, add = TRUE)
-plot(parks_b, lty = 3, add = TRUE)
-
 # Calculate slope (in degrees)
 slope_chir <- terrain(dem_chir, v = "slope", unit = "degrees")
 slope_orpi <- terrain(dem_orpi, v = "slope", unit = "degrees")
@@ -78,14 +63,37 @@ dist_bound_sagw <- distance(dist_bound_sagw, sagw_line)
 ends <- Sys.time()
 ends - starts
 
+# Load precipitation data
+# (later I can automate this with apply/loops)
+pr2016 <- rast("data/covariates/pr2016.nc")
+pr2017 <- rast("data/covariates/pr2017.nc")
+pr2018 <- rast("data/covariates/pr2018.nc")
+pr2019 <- rast("data/covariates/pr2019.nc")
+pr2020 <- rast("data/covariates/pr2020.nc")
+pr2021 <- rast("data/covariates/pr2021.nc")
+pr2022 <- rast("data/covariates/pr2022.nc")
 
+# check:
+# plot(pr2016[[365]]) # Precipitation on 31 Dec 2016
+# plot(parks, add = TRUE)
+# plot(parks_b, lty = 3, add = TRUE)
 
-# TODO with precip data
-  # Convert layer name to date: 
-    # see https://tmieno2.github.io/R-as-GIS-for-Economists/gridMET.html
-  # Sum values across days of interest
+# Create annual rasters with cumulative precipitation during monsoon season
+for (yr in 2016:2021) {
+  monsoon_ppt <- get(paste0("pr",yr))
+  startd  <- lubridate::yday(paste0(yr, "-06-15"))
+  endd <- lubridate::yday(paste0(yr, "-09-30"))
+  monsoon_ppt <- monsoon_ppt[[startd:endd]]
+  monsoon_ppt <- app(monsoon_ppt, fun = sum)
+  # New rasters name: monsoon_ppt_YEAR
+  assign(paste0("monsoon_ppt_",yr), monsoon_ppt)
+} 
+
+# TODO: save all these new covariate layers to file?
+
+# TODO: Determine what precipitation metrics we want
   # Cold and warm seasons that NPS has used for other projects?
-  # Monsoon precip (15 Jun - 30 Sep)
   # Winter precip? But note that cameras deployed early in the year.
-  # For winter we'll need to combine information from 2 years
+  # 30-year norms for annual precipitation and/or seasonal precipitation?
+  # (if so, need to download more annual files)
 
