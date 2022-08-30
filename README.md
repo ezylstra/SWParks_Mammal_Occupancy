@@ -22,6 +22,7 @@ The project also uses the following R packages:
 + stringr
 + terra
 + tidyr
++ tigris (for downloading TIGER road files)
 + tmap (mapping spatial data)
 + unmarked (optional)
 
