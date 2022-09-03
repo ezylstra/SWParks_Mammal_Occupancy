@@ -8,7 +8,6 @@
 
 library(dplyr)
 library(terra)
-library(tigris)
 
 # Load park boundaries
 parks <- vect("data/covariates/SWNC_nps_boundary_22020630.shp")
@@ -100,44 +99,3 @@ for (yr in 2016:2021) {
   # Winter precip? But note that cameras deployed early in the year.
   # 30-year norms for annual precipitation and/or seasonal precipitation?
   # (if so, need to download more annual files)
-
-
-# Load 2021 layers using tigris package
-roads_co <- roads(state = "Arizona", county = "Cochise", year = 2021) # 3 MB
-roads_pi <- roads(state = "Arizona", county = "Pima", year = 2021) #9 MB
-
-# Convert to SpatVectors
-roads_co <- vect(roads_co)
-roads_pi <- vect(roads_pi)
-
-# Crop roads to buffered park boundaries
-roads_chir <- crop(roads_co, subset(parks_b, parks$UNIT_CODE == "CHIR"))
-roads_orpi <- crop(roads_pi, subset(parks_b, parks$UNIT_CODE == "ORPI"))
-roads_sagw <- crop(roads_pi, subset(parks_b, parks$UNIT_CODE == "SAGW"))
-
-# Look at road layers
-plot(subset(parks_b, parks$UNIT_CODE == "CHIR"), lty = 2)
-plot(subset(parks, parks$UNIT_CODE == "CHIR"), add = TRUE)
-plot(roads_chir, col = "gray", add = TRUE)
-
-plot(subset(parks_b, parks$UNIT_CODE == "ORPI"), lty = 2)
-plot(subset(parks, parks$UNIT_CODE == "ORPI"), add = TRUE)
-plot(roads_orpi, col = "gray", add = TRUE)
-
-plot(subset(parks_b, parks$UNIT_CODE == "SAGW"), lty = 2)
-plot(subset(parks, parks$UNIT_CODE == "SAGW"), add = TRUE)
-plot(roads_sagw, col = "gray", add = TRUE)
-
-# Feature class codes (MTFCC)
-  # S1100 (n = 4): Primary road, limited access highways 
-  # S1200 (92): Secondary road, main arteries that are not limited access
-  # S1400 (14350): Local neighborhood road, rural road, city street (paved)
-  # S1500 (291): 4WD, unpaved dirt trail where 4WD vehicle is required
-  # S1630 (106): Ramp 
-  # S1640 (5): Service drive usually along a limited access highway
-  # S1710 (20): Walkway/Pedestrian trail [EXCLUDE?]
-  # S1740 (673): Private road for service vehicles
-  # S1750 (38): Internal Census Bureau use [EXCLUDE?]
-  # S1780 (36): Parking Lot Road
-
-# TODO: Calculate distance to road
