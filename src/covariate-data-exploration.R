@@ -97,6 +97,50 @@ trails <- vect("data/covariates/trails.shp")
   # endo - starto
   # writeRaster(dist_trail_orpi, "data/covariates/dist_trail_orpi.tif")  
 
+# Load buildings and parking lots files
+buildings <- vect("data/covariates/buildings.shp")
+lots <- vect("data/covariates/parking_lots.shp")
+
+# Calculate distance to these features
+  # chir_buildings <- subset(buildings, buildings$UNITCODE == "CHIR")
+  # chir_lots <- subset(lots, lots$UNITCODE == "CHIR")
+  # chir_bl <- union(chir_buildings, chir_lots)
+  # chir_bl_lines <- as.lines(chir_bl)
+  # dist_buildinglots_chir <- rast(dem_chir)
+  # dist_buildinglots_chir <- crop(dist_buildinglots_chir,
+  #                                subset(parks, parks$UNIT_CODE == "CHIR"))
+  # starts <- Sys.time()
+  # dist_buildinglots_chir <- distance(dist_buildinglots_chir, chir_bl_lines)
+  # ends <- Sys.time()
+  # ends - starts
+  # writeRaster(dist_buildinglots_chir, "data/covariates/dist_buildinglots_chir.tif")
+  
+  sagw_buildings <- subset(buildings, buildings$UNITCODE == "SAGW")
+  sagw_lots <- subset(lots, lots$UNITCODE == "SAGW")
+  sagw_bl <- union(sagw_buildings, sagw_lots)
+  sagw_bl_lines <- as.lines(sagw_bl)
+  dist_buildinglots_sagw <- rast(dem_sagw)
+  dist_buildinglots_sagw <- crop(dist_buildinglots_sagw,
+                                 subset(parks, parks$UNIT_CODE == "SAGW"))
+  starts <- Sys.time()
+  dist_buildinglots_sagw <- distance(dist_buildinglots_sagw, sagw_bl_lines)
+  ends <- Sys.time()
+  ends - starts
+  writeRaster(dist_buildinglots_sagw, "data/covariates/dist_buildinglots_sagw.tif")
+    
+  orpi_buildings <- subset(buildings, buildings$UNITCODE == "ORPI")
+  orpi_lots <- subset(lots, lots$UNITCODE == "ORPI")
+  orpi_bl <- union(orpi_buildings, orpi_lots)
+  orpi_bl_lines <- as.lines(orpi_bl)
+  dist_buildinglots_orpi <- rast(dem_orpi)
+  dist_buildinglots_orpi <- crop(dist_buildinglots_orpi,
+                                 subset(parks, parks$UNIT_CODE == "ORPI"))
+  starts <- Sys.time()
+  dist_buildinglots_orpi <- distance(dist_buildinglots_orpi, orpi_bl_lines)
+  ends <- Sys.time()
+  ends - starts
+  writeRaster(dist_buildinglots_orpi, "data/covariates/dist_buildinglots_orpi.tif")
+
 # Load precipitation data
 # (later I can automate this with apply/loops)
 pr2016 <- rast("data/covariates/pr2016.nc")
