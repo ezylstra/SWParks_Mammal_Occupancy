@@ -124,6 +124,7 @@ lots <- vect("data/covariates/parking_lots.shp")
   ends.bl <- Sys.time()
   ends.bl - starts.bl
   writeRaster(dist_buildinglots_sagw, "data/covariates/dist_buildinglots_sagw.tif")
+  rm(dist_buildinglots_sagw)
     
   orpi_buildings <- subset(buildings, buildings$UNITCODE == "ORPI")
   orpi_lots <- subset(lots, lots$UNITCODE == "ORPI")
@@ -137,7 +138,8 @@ lots <- vect("data/covariates/parking_lots.shp")
   endo.bl <- Sys.time()
   endo.bl - starto.bl
   writeRaster(dist_buildinglots_orpi, "data/covariates/dist_buildinglots_orpi.tif")
-
+  rm(dist_buildinglots_orpi)
+  
 # Load roads files
 roads_chir <- vect("data/covariates/roads_chir.shp")
 roads_orpi <- vect("data/covariates/roads_orpi.shp")
@@ -156,6 +158,7 @@ roads_sagw <- vect("data/covariates/roads_sagw.shp")
   ends.r <- Sys.time()
   ends.r - starts.r
   writeRaster(dist_roads_sagw, "data/covariates/dist_roads_sagw.tif")
+  rm(dist_roads_sagw)
   
   dist_roads_orpi <- rast(dem_orpi)
   dist_roads_orpi <- crop(dist_roads_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
@@ -164,7 +167,8 @@ roads_sagw <- vect("data/covariates/roads_sagw.shp")
   endo.r <- Sys.time()
   endo.r - starto.r
   writeRaster(dist_roads_orpi, "data/covariates/dist_roads_orpi.tif")
-
+  rm(dist_roads_orpi)
+  
 # Load POI files
 pois <- vect("data/covariates/POIs.shp")
 
@@ -181,6 +185,7 @@ pois <- vect("data/covariates/POIs.shp")
   ends.p <- Sys.time()
   ends.p - starts.p
   writeRaster(dist_poi_sagw, "data/covariates/dist_poi_sagw.tif")
+  rm(dist_poi_sagw)
   
   dist_poi_orpi <- rast(dem_orpi)
   dist_poi_orpi <- crop(dist_poi_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
