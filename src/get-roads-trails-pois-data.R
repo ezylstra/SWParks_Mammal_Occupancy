@@ -99,6 +99,30 @@ pois <- terra::vect(pois_sf)
 # Convert layer to NAD83
 crs(pois) <- crs(parks)
 
+# What are POIs?
+count(as.data.frame(pois), POITYPE)
+  # Amphitheater (1) # Might overlap with buildings layer
+  # Bench (14)
+  # Building (1) # Should overlap with buildings layer
+  # Campground (9)
+  # Campsite (25)
+  # Headquarters (1) # Should overlap with buildings layer
+  # Interpretive Exhibit (40)
+  # Mile Marker (139) GET RID OF THESE?
+  # Parking lot (68) # Should overlap with parking lots layer
+  # Picnic Area (14)
+  # Picnic Table (16)
+  # Restroom (6)
+  # Trailhead (40)
+  # Viewpoint (2)
+  # Visitor Center (4) # Should overlap with buildings layer
+  
+  # I think it's okay if there are locations that are duplicated in the POIs, 
+  # buildings, parking lot layers since we'll probably combine them all into 
+  # a distance-to-feature layer. However, the Mile Markers seem irrelevant.
+  # Will delete them from the POIs layer
+  pois <- subset(pois, pois$POITYPE != "Mile Marker")
+
 # Write to file
 # writeVector(pois, filename = "data/covariates/POIs.shp")
 
