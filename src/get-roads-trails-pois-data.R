@@ -45,14 +45,14 @@ roads_sagw <- crop(roads_pi, subset(parks_b, parks$UNIT_CODE == "SAGW"))
   # S1200 (92): Secondary road, main arteries that are not limited access
   # S1400 (14350): Local neighborhood road, rural road, city street (paved)
   # S1500 (291): 4WD, unpaved dirt trail where 4WD vehicle is required
-  # S1630 (106): Ramp 
-  # S1640 (5): Service drive usually along a limited access highway
-  # S1710 (20): Walkway/Pedestrian trail [EXCLUDE?]
-  # S1740 (673): Private road for service vehicles
-  # S1750 (38): Internal Census Bureau use [EXCLUDE?]
-  # S1780 (36): Parking Lot Road
-
-# TODO: Calculate distance to road
+  
+  # There are a limited number of features in the S16XX - S18XX classes, 
+  # but they're either well outside of park boundaries or irrelevant for 
+  # describing distributions of mammal species.  Will remove these features
+  road_features <- c("S1100", "S1200", "S1400", "S1500")
+  roads_chir <- subset(roads_chir, roads_chir$MTFCC %in% road_features)
+  roads_orpi <- subset(roads_orpi, roads_orpi$MTFCC %in% road_features)
+  roads_sagw <- subset(roads_sagw, roads_sagw$MTFCC %in% road_features)
 
 # Write to file
 # writeVector(roads_chir, filename = "data/covariates/roads_chir.shp")
