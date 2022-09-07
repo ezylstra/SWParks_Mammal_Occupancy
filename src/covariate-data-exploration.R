@@ -66,6 +66,37 @@ north_sagw <- cos(terrain(dem_sagw, v = "aspect", unit = "radians"))
   # ends - starts
   # writeRaster(dist_bound_sagw, "data/covariates/dist_boundary_sagw.tif")
 
+# Load trails
+trails <- vect("data/covariates/trails.shp")
+
+# Calculate distance to trails:
+  # dist_trail_chir <- rast(dem_chir)
+  # dist_trail_chir <- crop(dist_trail_chir, 
+  #                         subset(parks, parks$UNIT_CODE == "CHIR"))
+  # startc <- Sys.time()
+  # dist_trail_chir <- distance(dist_trail_chir, trails)
+  # endc <- Sys.time()
+  # endc - startc
+  # writeRaster(dist_trail_chir, "data/covariates/dist_trail_chir.tif")
+
+  # dist_trail_sagw <- rast(dem_sagw)
+  # dist_trail_sagw <- crop(dist_trail_sagw, 
+  #                         subset(parks, parks$UNIT_CODE == "SAGW"))
+  # starts <- Sys.time()
+  # dist_trail_sagw <- distance(dist_trail_sagw, trails)
+  # ends <- Sys.time()
+  # ends - starts
+  # writeRaster(dist_trail_sagw, "data/covariates/dist_trail_sagw.tif")
+
+  # dist_trail_orpi <- rast(dem_orpi)
+  # dist_trail_orpi <- crop(dist_trail_orpi, 
+  #                         subset(parks, parks$UNIT_CODE == "ORPI"))
+  # starto <- Sys.time()
+  # dist_trail_orpi <- distance(dist_trail_orpi, trails)
+  # endo <- Sys.time()
+  # endo - starto
+  # writeRaster(dist_trail_orpi, "data/covariates/dist_trail_orpi.tif")  
+
 # Load precipitation data
 # (later I can automate this with apply/loops)
 pr2016 <- rast("data/covariates/pr2016.nc")
