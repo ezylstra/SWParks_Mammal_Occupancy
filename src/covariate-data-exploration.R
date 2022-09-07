@@ -141,6 +141,34 @@ lots <- vect("data/covariates/parking_lots.shp")
   ends - starts
   writeRaster(dist_buildinglots_orpi, "data/covariates/dist_buildinglots_orpi.tif")
 
+# Load roads files
+roads_chir <- vect("data/covariates/roads_chir.shp")
+roads_orpi <- vect("data/covariates/roads_orpi.shp")
+roads_sagw <- vect("data/covariates/roads_sagw.shp")
+
+# Calculate distance to roads
+  # dist_roads_chir <- rast(dem_chir)
+  # dist_roads_chir <- crop(dist_roads_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
+  # dist_roads_chir <- distance(dist_roads_chir, roads_chir)
+  # writeRaster(dist_roads_chir, "data/covariates/dist_roads_chir.tif")
+
+  dist_roads_sagw <- rast(dem_sagw)
+  dist_roads_sagw <- crop(dist_roads_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
+  startc <- Sys.time()
+  dist_roads_sagw <- distance(dist_roads_sagw, roads_sagw)
+  endc <- Sys.time()
+  endc - startc
+  writeRaster(dist_roads_sagw, "data/covariates/dist_roads_sagw.tif")
+  
+  dist_roads_orpi <- rast(dem_orpi)
+  dist_roads_orpi <- crop(dist_roads_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
+  startc <- Sys.time()
+  dist_roads_orpi <- distance(dist_roads_orpi, roads_orpi)
+  endc <- Sys.time()
+  endc - startc
+  writeRaster(dist_roads_orpi, "data/covariates/dist_roads_orpi.tif")
+  
+    
 # Load precipitation data
 # (later I can automate this with apply/loops)
 pr2016 <- rast("data/covariates/pr2016.nc")
