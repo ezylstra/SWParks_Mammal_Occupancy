@@ -229,22 +229,24 @@ for (yr in 2016:2021) {
 # There were no incidents in ORPI and SAGW (in this layer)
 fires <- vect("data/covariates/fire_perimeters_chir.shp")
 
-# Extract fire data as dataframe
-fires_df <- as.data.frame(fires)
-dim(fires_df) #202 polygons
-
 # There are a lot of duplicated columns, removing things that seem unnecessary
-fires_df <- fires_df[,1:43]
+fires <- fires[,1:43]
 
 count(fires_df, UNQE_FIRE_, INCIDENT, FIRE_YEAR)
-  # Looks like 27 fires/incidents
+  # Looks like 27 fires/incidents since 1980
 # Look at a couple fires in particular:
 horseshoe2 <- subset(fires, fires$INCIDENT == "Horseshoe 2")
 madrone <- subset(fires, fires$INCIDENT == "Madrone")
 
-plot(chir_b, lty = 2)
-plot(subset(parks, parks$UNIT_CODE == "CHIR"), add = TRUE)
-plot(madrone, col = rgb(170, 210, 240, alpha = 0.4*255, max = 255), 
-     border = NA, add = TRUE)
-plot(horseshoe2, col = rgb(140, 240, 140, alpha = 0.2*255, max = 255), 
-     border = NA, add = TRUE)
+plot(horseshoe2, border = NA, col = "gray")
+plot(parks, add = TRUE)
+# Horseshoe 2 was the most recent fire, and it burned everything in the park.  
+
+# To calculate the number of fires that occurred in each cell from year X
+  # Subset fires layer to have FIRE_YEAR >= X
+  # rasterize(fires, dem_chir, sum = TRUE)
+
+last_survey_yr <- 2022
+min_year <- last_survey_yr - 15
+fire_freq <- subset(fires, fires$FIRE_YEAR > min_year)
+fire_freq_raster <- rasterize(fire_freq, dem_chir, sum = TRUE)
