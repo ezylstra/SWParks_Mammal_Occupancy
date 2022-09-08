@@ -151,24 +151,16 @@ roads_sagw <- vect("data/covariates/roads_sagw.shp")
   # dist_roads_chir <- distance(dist_roads_chir, roads_chir)
   # writeRaster(dist_roads_chir, "data/covariates/dist_roads_chir.tif")
 
-  dist_roads_sagw <- rast(dem_sagw)
-  dist_roads_sagw <- crop(dist_roads_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
-  starts.r <- Sys.time()
-  dist_roads_sagw <- distance(dist_roads_sagw, roads_sagw)
-  ends.r <- Sys.time()
-  ends.r - starts.r
-  writeRaster(dist_roads_sagw, "data/covariates/dist_roads_sagw.tif")
-  rm(dist_roads_sagw)
-  
-  dist_roads_orpi <- rast(dem_orpi)
-  dist_roads_orpi <- crop(dist_roads_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
-  starto.r <- Sys.time()
-  dist_roads_orpi <- distance(dist_roads_orpi, roads_orpi)
-  endo.r <- Sys.time()
-  endo.r - starto.r
-  writeRaster(dist_roads_orpi, "data/covariates/dist_roads_orpi.tif")
-  rm(dist_roads_orpi)
-  
+  # dist_roads_sagw <- rast(dem_sagw)
+  # dist_roads_sagw <- crop(dist_roads_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
+  # dist_roads_sagw <- distance(dist_roads_sagw, roads_sagw)
+  # writeRaster(dist_roads_sagw, "data/covariates/dist_roads_sagw.tif")
+
+  # dist_roads_orpi <- rast(dem_orpi)
+  # dist_roads_orpi <- crop(dist_roads_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
+  # dist_roads_orpi <- distance(dist_roads_orpi, roads_orpi)
+  # writeRaster(dist_roads_orpi, "data/covariates/dist_roads_orpi.tif")
+
 # Load POI files
 pois <- vect("data/covariates/POIs.shp")
 
