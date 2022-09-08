@@ -194,3 +194,14 @@ last_survey_yr <- 2022
 min_year <- last_survey_yr - 15
 fire_freq <- subset(fires, fires$FIRE_YEAR > min_year)
 fire_freq_raster <- rasterize(fire_freq, dem_chir, sum = TRUE)
+
+# Drainages
+# There are 14,000+ features in the full dataset and eg, 700+ in CHIR, 1900+ in ORPI
+# It's not obvious to me that I can select just the bigger drainages based on
+# some kind of feature code.  
+# For now, it's just not feasible to calculate/use "distance" to drainage 
+# based on this shapefile (look at the density of drainages in ORPI for example)
+water <- vect(file.choose()) 
+chir_water <- subset(water, water$UNIT_CODE == "CHIR")
+orpi_water <- subset(water, water$UNIT_CODE == "ORPI")
+
