@@ -42,104 +42,21 @@ north_sagw <- cos(terrain(dem_sagw, v = "aspect", unit = "radians"))
   # chir_line <- as.lines(subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_bound_chir <- rast(dem_chir)
   # dist_bound_chir <- crop(dist_bound_chir, chir_line)
-  # startc <- Sys.time()
   # dist_bound_chir <- distance(dist_bound_chir, chir_line)
-  # endc <- Sys.time()
-  # endc - startc
   # writeRaster(dist_bound_chir, "data/covariates/dist_boundary_chir.tif")
   
   # orpi_line <- as.lines(subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_bound_orpi <- rast(dem_orpi)
   # dist_bound_orpi <- crop(dist_bound_orpi, orpi_line)
-  # starto <- Sys.time()
   # dist_bound_orpi <- distance(dist_bound_orpi, orpi_line)
-  # endo <- Sys.time()
-  # endo - starto
   # writeRaster(dist_bound_orpi, "data/covariates/dist_boundary_orpi.tif")
   
   # sagw_line <- as.lines(subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_bound_sagw <- rast(dem_sagw)
   # dist_bound_sagw <- crop(dist_bound_sagw, sagw_line)
-  # starts <- Sys.time()
   # dist_bound_sagw <- distance(dist_bound_sagw, sagw_line)
-  # ends <- Sys.time()
-  # ends - starts
   # writeRaster(dist_bound_sagw, "data/covariates/dist_boundary_sagw.tif")
 
-# Load trails
-trails <- vect("data/covariates/trails.shp")
-
-# Calculate distance to trails:
-  # dist_trail_chir <- rast(dem_chir)
-  # dist_trail_chir <- crop(dist_trail_chir, 
-  #                         subset(parks, parks$UNIT_CODE == "CHIR"))
-  # startc <- Sys.time()
-  # dist_trail_chir <- distance(dist_trail_chir, trails)
-  # endc <- Sys.time()
-  # endc - startc
-  # writeRaster(dist_trail_chir, "data/covariates/dist_trail_chir.tif")
-
-  # dist_trail_sagw <- rast(dem_sagw)
-  # dist_trail_sagw <- crop(dist_trail_sagw, 
-  #                         subset(parks, parks$UNIT_CODE == "SAGW"))
-  # starts <- Sys.time()
-  # dist_trail_sagw <- distance(dist_trail_sagw, trails)
-  # ends <- Sys.time()
-  # ends - starts
-  # writeRaster(dist_trail_sagw, "data/covariates/dist_trail_sagw.tif")
-
-  # dist_trail_orpi <- rast(dem_orpi)
-  # dist_trail_orpi <- crop(dist_trail_orpi, 
-  #                         subset(parks, parks$UNIT_CODE == "ORPI"))
-  # starto <- Sys.time()
-  # dist_trail_orpi <- distance(dist_trail_orpi, trails)
-  # endo <- Sys.time()
-  # endo - starto
-  # writeRaster(dist_trail_orpi, "data/covariates/dist_trail_orpi.tif")  
-
-# Load buildings and parking lots files
-buildings <- vect("data/covariates/buildings.shp")
-lots <- vect("data/covariates/parking_lots.shp")
-
-# Calculate distance to these features
-  # chir_buildings <- subset(buildings, buildings$UNITCODE == "CHIR")
-  # chir_lots <- subset(lots, lots$UNITCODE == "CHIR")
-  # chir_bl <- union(chir_buildings, chir_lots)
-  # chir_bl_lines <- as.lines(chir_bl)
-  # dist_buildinglots_chir <- rast(dem_chir)
-  # dist_buildinglots_chir <- crop(dist_buildinglots_chir,
-  #                                subset(parks, parks$UNIT_CODE == "CHIR"))
-  # dist_buildinglots_chir <- distance(dist_buildinglots_chir, chir_bl_lines)
-  # writeRaster(dist_buildinglots_chir, "data/covariates/dist_buildinglots_chir.tif")
-  
-  sagw_buildings <- subset(buildings, buildings$UNITCODE == "SAGW")
-  sagw_lots <- subset(lots, lots$UNITCODE == "SAGW")
-  sagw_bl <- union(sagw_buildings, sagw_lots)
-  sagw_bl_lines <- as.lines(sagw_bl)
-  dist_buildinglots_sagw <- rast(dem_sagw)
-  dist_buildinglots_sagw <- crop(dist_buildinglots_sagw,
-                                 subset(parks, parks$UNIT_CODE == "SAGW"))
-  starts.bl <- Sys.time()
-  dist_buildinglots_sagw <- distance(dist_buildinglots_sagw, sagw_bl_lines)
-  ends.bl <- Sys.time()
-  ends.bl - starts.bl
-  writeRaster(dist_buildinglots_sagw, "data/covariates/dist_buildinglots_sagw.tif")
-  rm(dist_buildinglots_sagw)
-    
-  orpi_buildings <- subset(buildings, buildings$UNITCODE == "ORPI")
-  orpi_lots <- subset(lots, lots$UNITCODE == "ORPI")
-  orpi_bl <- union(orpi_buildings, orpi_lots)
-  orpi_bl_lines <- as.lines(orpi_bl)
-  dist_buildinglots_orpi <- rast(dem_orpi)
-  dist_buildinglots_orpi <- crop(dist_buildinglots_orpi,
-                                 subset(parks, parks$UNIT_CODE == "ORPI"))
-  starto.bl <- Sys.time()
-  dist_buildinglots_orpi <- distance(dist_buildinglots_orpi, orpi_bl_lines)
-  endo.bl <- Sys.time()
-  endo.bl - starto.bl
-  writeRaster(dist_buildinglots_orpi, "data/covariates/dist_buildinglots_orpi.tif")
-  rm(dist_buildinglots_orpi)
-  
 # Load roads files
 roads_chir <- vect("data/covariates/roads_chir.shp")
 roads_orpi <- vect("data/covariates/roads_orpi.shp")
@@ -150,42 +67,76 @@ roads_sagw <- vect("data/covariates/roads_sagw.shp")
   # dist_roads_chir <- crop(dist_roads_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_roads_chir <- distance(dist_roads_chir, roads_chir)
   # writeRaster(dist_roads_chir, "data/covariates/dist_roads_chir.tif")
-
+  
   # dist_roads_sagw <- rast(dem_sagw)
   # dist_roads_sagw <- crop(dist_roads_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_roads_sagw <- distance(dist_roads_sagw, roads_sagw)
   # writeRaster(dist_roads_sagw, "data/covariates/dist_roads_sagw.tif")
-
+  
   # dist_roads_orpi <- rast(dem_orpi)
   # dist_roads_orpi <- crop(dist_roads_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_roads_orpi <- distance(dist_roads_orpi, roads_orpi)
   # writeRaster(dist_roads_orpi, "data/covariates/dist_roads_orpi.tif")
 
-# Load POI files
+# Load trails
+trails <- vect("data/covariates/trails.shp")
+
+# Calculate distance to trails:
+  # dist_trail_chir <- rast(dem_chir)
+  # dist_trail_chir <- crop(dist_trail_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
+  # dist_trail_chir <- distance(dist_trail_chir, trails)
+  # writeRaster(dist_trail_chir, "data/covariates/dist_trail_chir.tif")
+
+  # dist_trail_sagw <- rast(dem_sagw)
+  # dist_trail_sagw <- crop(dist_trail_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
+  # dist_trail_sagw <- distance(dist_trail_sagw, trails)
+  # writeRaster(dist_trail_sagw, "data/covariates/dist_trail_sagw.tif")
+
+  # dist_trail_orpi <- rast(dem_orpi)
+  # dist_trail_orpi <- crop(dist_trail_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
+  # dist_trail_orpi <- distance(dist_trail_orpi, trails)
+  # writeRaster(dist_trail_orpi, "data/covariates/dist_trail_orpi.tif")  
+
+# Load all point-of-interest files
+# Buildings and lots are polygons, POIs are points
+buildings <- vect("data/covariates/buildings.shp")
+lots <- vect("data/covariates/parking_lots.shp")
 pois <- vect("data/covariates/POIs.shp")
 
-# Calculate distance to feature
-  # dist_poi_chir <- rast(dem_chir)
-  # dist_poi_chir <- crop(dist_poi_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
-  # dist_poi_chir <- distance(dist_poi_chir, pois)
-  # writeRaster(dist_poi_chir, "data/covariates/dist_poi_chir.tif")
+# Convert buildings and lots layers to points
+buildings_pt <- as.points(buildings)
+lots_pt <- as.points(lots)
+
+# Combine all of them
+bl <- union(buildings_pt, lots_pt)
+allpois <- union(bl, pois)
+
+# Subset by park
+allpois_chir <- subset(allpois, allpois$UNITCODE == "CHIR")
+allpois_orpi <- subset(allpois, allpois$UNITCODE == "ORPI")
+allpois_sagw <- subset(allpois, allpois$UNITCODE == "SAGU")
+
+# Calculate distance to these features
+  dist_bl_chir <- rast(dem_chir)
+  dist_bl_chir <- crop(dist_bl_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
+  start <- Sys.time()
+  dist_bl_chir <- distance(dist_bl_chir, allpois_chir)
+  Sys.time() - start
+  writeRaster(dist_bl_chir, "data/covariates/dist_pois_chir.tif")
   
-  dist_poi_sagw <- rast(dem_sagw)
-  dist_poi_sagw <- crop(dist_poi_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
-  starts.p <- Sys.time()
-  dist_poi_sagw <- distance(dist_poi_sagw, pois)
-  ends.p <- Sys.time()
-  ends.p - starts.p
-  writeRaster(dist_poi_sagw, "data/covariates/dist_poi_sagw.tif")
-  rm(dist_poi_sagw)
-  
-  dist_poi_orpi <- rast(dem_orpi)
-  dist_poi_orpi <- crop(dist_poi_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
-  starto.p <- Sys.time()
-  dist_poi_orpi <- distance(dist_poi_orpi, pois)
-  endo.p <- Sys.time()
-  endo.p - starto.p
-  writeRaster(dist_poi_orpi, "data/covariates/dist_poi_orpi.tif")
+  dist_bl_sagw <- rast(dem_sagw)
+  dist_bl_sagw <- crop(dist_bl_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
+  start <- Sys.time()
+  dist_bl_sagw <- distance(dist_bl_sagw, allpois_sagw)
+  Sys.time() - start
+  writeRaster(dist_bl_sagw, "data/covariates/dist_pois_sagw.tif")
+
+  dist_bl_orpi <- rast(dem_orpi)
+  dist_bl_orpi <- crop(dist_bl_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
+  start <- Sys.time()
+  dist_bl_orpi <- distance(dist_bl_orpi, allpois_orpi)
+  Sys.time() - start
+  writeRaster(dist_bl_orpi, "data/covariates/dist_pois_orpi.tif")  
 
 # Load precipitation data
 # (later I can automate this with apply/loops)
