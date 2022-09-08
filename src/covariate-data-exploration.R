@@ -117,26 +117,22 @@ allpois_orpi <- subset(allpois, allpois$UNITCODE == "ORPI")
 allpois_sagw <- subset(allpois, allpois$UNITCODE == "SAGU")
 
 # Calculate distance to these features
-  dist_bl_chir <- rast(dem_chir)
-  dist_bl_chir <- crop(dist_bl_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
-  start <- Sys.time()
-  dist_bl_chir <- distance(dist_bl_chir, allpois_chir)
-  Sys.time() - start
-  writeRaster(dist_bl_chir, "data/covariates/dist_pois_chir.tif")
+  # dist_pois_chir <- rast(dem_chir)
+  # dist_pois_chir <- crop(dist_pois_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
+  # dist_pois_chir <- distance(dist_pois_chir, allpois_chir)
+  # writeRaster(dist_pois_chir, "data/covariates/dist_pois_chir.tif")
   
-  dist_bl_sagw <- rast(dem_sagw)
-  dist_bl_sagw <- crop(dist_bl_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
-  start <- Sys.time()
-  dist_bl_sagw <- distance(dist_bl_sagw, allpois_sagw)
-  Sys.time() - start
-  writeRaster(dist_bl_sagw, "data/covariates/dist_pois_sagw.tif")
+  # dist_pois_sagw <- rast(dem_sagw)
+  # dist_pois_sagw <- crop(dist_pois_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
+  # dist_pois_sagw <- distance(dist_pois_sagw, allpois_sagw)
+  # writeRaster(dist_pois_sagw, "data/covariates/dist_pois_sagw.tif")
 
-  dist_bl_orpi <- rast(dem_orpi)
-  dist_bl_orpi <- crop(dist_bl_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
+  dist_pois_orpi <- rast(dem_orpi)
+  dist_pois_orpi <- crop(dist_pois_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
   start <- Sys.time()
-  dist_bl_orpi <- distance(dist_bl_orpi, allpois_orpi)
+  dist_pois_orpi <- distance(dist_pois_orpi, allpois_orpi)
   Sys.time() - start
-  writeRaster(dist_bl_orpi, "data/covariates/dist_pois_orpi.tif")  
+  writeRaster(dist_pois_orpi, "data/covariates/dist_pois_orpi.tif")  
 
 # Load precipitation data
 # (later I can automate this with apply/loops)
