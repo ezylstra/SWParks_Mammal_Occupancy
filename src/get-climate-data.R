@@ -9,7 +9,7 @@
 library(downloader)
 library(terra)
 
-# Load one of the 30-m DEMs to use for CRS
+# Load one of the 30-m DEMs to use for CRS (coordinate reference system)
 dem_chir <- rast("data/covariates/CHIR_DEM_1as.tif")
 
 # Download gridMET climate data (daily values, at ~4 km resolution across US)
@@ -29,18 +29,30 @@ data_types <- c("pr")
 # gridMET website with data
 url_base <- "http://www.northwestknowledge.net/metdata/data/"
 
+# Logical indicating whether we want to replace files if they already exist
+replace <- TRUE
+
+# First extract existing files from zip folder, if one exists:
+weather_folder <- "data/covariates/weather-orig-rasters/"
+zipfile <- "data/covariates/weather-orig.zip"
+if (file.exists(zipfile)) {
+  unzip(zipfile = zipfile)
+}
+
+# Download and crop each file
 for (yr in yrs) {
   for (data_type in data_types) {
     
     url <- paste0(url_base, data_type, "_", yr, ".nc")
-    destfile <- paste0("data/covariates/", data_type, "_", yr, ".nc")
+    destfile <- paste0(weather_folder, data_type, "_", yr, ".nc")
+    
+    if(replace == FALSE & file.exists(destfile)) {next}
     
     # Download data
     downloader::download(url = url, destfile = destfile, mode = "wb")
     
     # Load raster (eg, object name = pr2016)
-    assign(paste0(data_type, yr), 
-           rast(paste0("data/covariates/", data_type, "_", yr, ".nc")))
+    assign(paste0(data_type, yr), rast(destfile))
     
     # Crop SpatRaster
     assign(paste0(data_type, yr), 
@@ -52,14 +64,23 @@ for (yr in yrs) {
            terra::project(get(paste0(data_type, yr)), crs(dem_chir)))
     
     # Remove original netCDF file 
-    file.remove(destfile)
+    invisible(file.remove(destfile))
     
     # Save cropped raster to file
     writeCDF(get(paste0(data_type, yr)), 
-             filename = paste0("data/covariates/", data_type, yr, ".nc"))
+             filename = paste0(weather_folder, data_type, yr, ".nc"),
+             overwrite = TRUE)
     
   }
 }
 
+weather_files <- list.files(path = "data/covariates/weather-orig-rasters",
+                            pattern = "*.nc",
+                            full.names = TRUE)
 
-
+# Create a zip archive of all the .nc files (first removing previous archive)
+if (file.exists(zipfile)) {
+  invisible(file.remove(zipfile))
+}
+zip(zipfile = zipfile,
+    files = weather_files)
