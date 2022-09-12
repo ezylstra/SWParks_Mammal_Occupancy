@@ -10,3 +10,13 @@ data/mammals/*
 # Spatial data associated with camera locations
 data/locations/*
 !data/locations/.gitkeep
+
+# Covariate data
+data/covariates/distance-rasters/*
+!data/covariates/distance-rasters/.gitkeep
+data/covariates/topography-rasters/*
+!data/covariates/topography-rasters/.gitkeep
+data/covariates/weather-orig-rasters/*
+!data/covariates/weather-orig-rasters/.gitkeep
+data/covariates/weather-derived-rasters/*
+!data/covariates/weather-derived-rasters/.gitkeep
