@@ -10,19 +10,19 @@ library(dplyr)
 library(terra)
 
 # Load park boundaries
-parks <- vect("data/covariates/SWNC_nps_boundary_22020630.shp")
+parks <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
 
 # Load park boundaries + 3-km buffer
-parks_b <- vect("data/covariates/SWNC_nps_boundary_3km_22020630.shp")
-
-# Extract polygons for the 3 park units of interest: CHIR, ORPI, and SAGW
-parks <- subset(parks, parks$UNIT_CODE %in% c("CHIR", "ORPI", "SAGW"))
-parks_b <- subset(parks_b, parks_b$UNIT_CODE %in% c("CHIR", "ORPI", "SAGW"))
+parks_b <- vect("data/covariates/shapefiles/Boundaries_wBuffer_3parks.shp")
 
 # Load 30-m DEMs for each park
 dem_chir <- rast("data/covariates/CHIR_DEM_1as.tif")
 dem_orpi <- rast("data/covariates/ORPI_DEM_1as.tif")
 dem_sagw <- rast("data/covariates/SAGW_DEM_1as.tif")
+
+#------------------------------------------------------------------------------#
+# Derived topographic variables
+#------------------------------------------------------------------------------#
 
 # Calculate slope (in degrees)
 slope_chir <- terrain(dem_chir, v = "slope", unit = "degrees")
@@ -37,71 +37,112 @@ north_chir <- cos(terrain(dem_chir, v = "aspect", unit = "radians"))
 north_orpi <- cos(terrain(dem_orpi, v = "aspect", unit = "radians"))
 north_sagw <- cos(terrain(dem_sagw, v = "aspect", unit = "radians"))
 
-# Calculate distance to park boundary
-# Note: takes forever, even if cropping raster to park boundary
+# Save rasters to topography folder
+topo_folder <- "data/covariates/topography-rasters/"
+slope_chir <- writeRaster(slope_chir, paste0(topo_folder, "slope_chir.tif"))
+slope_orpi <- writeRaster(slope_orpi, paste0(topo_folder, "slope_orpi.tif"))
+slope_sagw <- writeRaster(slope_sagw, paste0(topo_folder, "slope_sagw.tif"))
+east_chir <- writeRaster(east_chir, paste0(topo_folder, "east_chir.tif"))
+east_orpi <- writeRaster(east_orpi, paste0(topo_folder, "east_orpi.tif"))
+east_sagw <- writeRaster(east_sagw, paste0(topo_folder, "east_sagw.tif"))
+north_chir <- writeRaster(north_chir, paste0(topo_folder, "north_chir.tif"))
+north_orpi <- writeRaster(north_orpi, paste0(topo_folder, "north_orpi.tif"))
+north_sagw <- writeRaster(north_sagw, paste0(topo_folder, "north_sagw.tif"))
+
+topo_files <- list.files(path = "data/covariates/topography-rasters",
+                         pattern = ".tif",
+                         full.names = TRUE)
+
+# Create a zip archive of slope & aspect files (first removing previous archive)
+topo_zipfile <- "data/covariates/topography.zip"
+if (file.exists(topo_zipfile)) {
+  invisible(file.remove(topo_zipfile))
+}
+zip(zipfile = topo_zipfile,
+    files = topo_files)
+# Remove topo files from local repo
+invisible(file.remove(topo_files))
+
+#------------------------------------------------------------------------------#
+# Distance to park boundary
+#------------------------------------------------------------------------------#
+
+# Note: this takes forever (hours), even if cropping raster to park boundary
   # chir_line <- as.lines(subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_bound_chir <- rast(dem_chir)
   # dist_bound_chir <- crop(dist_bound_chir, chir_line)
   # dist_bound_chir <- distance(dist_bound_chir, chir_line)
-  # writeRaster(dist_bound_chir, "data/covariates/dist_boundary_chir.tif")
+  # writeRaster(dist_bound_chir, "data/covariates/distance-rasters/dist_boundary_chir.tif")
   
   # orpi_line <- as.lines(subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_bound_orpi <- rast(dem_orpi)
   # dist_bound_orpi <- crop(dist_bound_orpi, orpi_line)
   # dist_bound_orpi <- distance(dist_bound_orpi, orpi_line)
-  # writeRaster(dist_bound_orpi, "data/covariates/dist_boundary_orpi.tif")
+  # writeRaster(dist_bound_orpi, "data/covariates/distance-rasters/dist_boundary_orpi.tif")
   
   # sagw_line <- as.lines(subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_bound_sagw <- rast(dem_sagw)
   # dist_bound_sagw <- crop(dist_bound_sagw, sagw_line)
   # dist_bound_sagw <- distance(dist_bound_sagw, sagw_line)
-  # writeRaster(dist_bound_sagw, "data/covariates/dist_boundary_sagw.tif")
+  # writeRaster(dist_bound_sagw, "data/covariates/distance-rasters/dist_boundary_sagw.tif")
+
+#------------------------------------------------------------------------------#
+# Distance to road
+#------------------------------------------------------------------------------#
 
 # Load roads files
-roads_chir <- vect("data/covariates/roads_chir.shp")
-roads_orpi <- vect("data/covariates/roads_orpi.shp")
-roads_sagw <- vect("data/covariates/roads_sagw.shp")
+roads_chir <- vect("data/covariates/shapefiles/roads_chir.shp")
+roads_orpi <- vect("data/covariates/shapefiles/roads_orpi.shp")
+roads_sagw <- vect("data/covariates/shapefiles/roads_sagw.shp")
 
 # Calculate distance to roads
   # dist_roads_chir <- rast(dem_chir)
   # dist_roads_chir <- crop(dist_roads_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_roads_chir <- distance(dist_roads_chir, roads_chir)
-  # writeRaster(dist_roads_chir, "data/covariates/dist_roads_chir.tif")
+  # writeRaster(dist_roads_chir, "data/covariates/distance-rasters/dist_roads_chir.tif")
   
   # dist_roads_sagw <- rast(dem_sagw)
   # dist_roads_sagw <- crop(dist_roads_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_roads_sagw <- distance(dist_roads_sagw, roads_sagw)
-  # writeRaster(dist_roads_sagw, "data/covariates/dist_roads_sagw.tif")
+  # writeRaster(dist_roads_sagw, "data/covariates/distance-rasters/dist_roads_sagw.tif")
   
   # dist_roads_orpi <- rast(dem_orpi)
   # dist_roads_orpi <- crop(dist_roads_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_roads_orpi <- distance(dist_roads_orpi, roads_orpi)
-  # writeRaster(dist_roads_orpi, "data/covariates/dist_roads_orpi.tif")
+  # writeRaster(dist_roads_orpi, "data/covariates/distance-rasters/dist_roads_orpi.tif")
+
+#------------------------------------------------------------------------------#
+# Distance to trail
+#------------------------------------------------------------------------------#
 
 # Load trails
-trails <- vect("data/covariates/trails.shp")
+trails <- vect("data/covariates/shapefiles/trails.shp")
 
 # Calculate distance to trails:
   # dist_trail_chir <- rast(dem_chir)
   # dist_trail_chir <- crop(dist_trail_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_trail_chir <- distance(dist_trail_chir, trails)
-  # writeRaster(dist_trail_chir, "data/covariates/dist_trail_chir.tif")
+  # writeRaster(dist_trail_chir, "data/covariates/distance-rasters/dist_trail_chir.tif")
 
   # dist_trail_sagw <- rast(dem_sagw)
   # dist_trail_sagw <- crop(dist_trail_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_trail_sagw <- distance(dist_trail_sagw, trails)
-  # writeRaster(dist_trail_sagw, "data/covariates/dist_trail_sagw.tif")
+  # writeRaster(dist_trail_sagw, "data/covariates/distance-rasters/dist_trail_sagw.tif")
 
   # dist_trail_orpi <- rast(dem_orpi)
   # dist_trail_orpi <- crop(dist_trail_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_trail_orpi <- distance(dist_trail_orpi, trails)
-  # writeRaster(dist_trail_orpi, "data/covariates/dist_trail_orpi.tif")  
+  # writeRaster(dist_trail_orpi, "data/covariates/distance-rasters/dist_trail_orpi.tif")  
+
+#------------------------------------------------------------------------------#
+# Distance to point-of-interest (POIs, buildings, parking lots combined)
+#------------------------------------------------------------------------------#
 
 # Load all point-of-interest files
 # Buildings and lots are polygons, POIs are points
-buildings <- vect("data/covariates/buildings.shp")
-lots <- vect("data/covariates/parking_lots.shp")
-pois <- vect("data/covariates/POIs.shp")
+buildings <- vect("data/covariates/shapefiles/buildings.shp")
+lots <- vect("data/covariates/shapefiles/parking_lots.shp")
+pois <- vect("data/covariates/shapefiles/POIs.shp")
 
 # Convert buildings and lots layers to points
 buildings_pt <- as.points(buildings)
@@ -120,17 +161,39 @@ allpois_sagw <- subset(allpois, allpois$UNITCODE == "SAGU")
   # dist_pois_chir <- rast(dem_chir)
   # dist_pois_chir <- crop(dist_pois_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_pois_chir <- distance(dist_pois_chir, allpois_chir)
-  # writeRaster(dist_pois_chir, "data/covariates/dist_pois_chir.tif")
+  # writeRaster(dist_pois_chir, "data/covariates/distance-rasters/dist_pois_chir.tif")
   
   # dist_pois_sagw <- rast(dem_sagw)
   # dist_pois_sagw <- crop(dist_pois_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_pois_sagw <- distance(dist_pois_sagw, allpois_sagw)
-  # writeRaster(dist_pois_sagw, "data/covariates/dist_pois_sagw.tif")
+  # writeRaster(dist_pois_sagw, "data/covariates/distance-rasters/dist_pois_sagw.tif")
 
   # dist_pois_orpi <- rast(dem_orpi)
   # dist_pois_orpi <- crop(dist_pois_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_pois_orpi <- distance(dist_pois_orpi, allpois_orpi)
-  # writeRaster(dist_pois_orpi, "data/covariates/dist_pois_orpi.tif")  
+  # writeRaster(dist_pois_orpi, "data/covariates/distance-rasters/dist_pois_orpi.tif")  
+
+#------------------------------------------------------------------------------#
+# Put all distance-to rasters in zip file
+#------------------------------------------------------------------------------#
+
+distance_files <- list.files(path = "data/covariates/distance-rasters",
+                             pattern = ".tif",
+                             full.names = TRUE)
+
+# Create a zip archive of distance files (first removing previous archive)
+distance_zipfile <- "data/covariates/distance.zip"
+if (file.exists(distance_zipfile)) {
+  invisible(file.remove(distance_zipfile))
+}
+zip(zipfile = distance_zipfile,
+    files = distance_files)
+# Remove distance rasters from local repo
+invisible(file.remove(distance_files))
+
+#------------------------------------------------------------------------------#
+# Weather data
+#------------------------------------------------------------------------------#
 
 # Load precipitation data
 # (later I can automate this with apply/loops)
