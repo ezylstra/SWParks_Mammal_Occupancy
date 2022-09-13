@@ -14,14 +14,10 @@ library(geojsonsf)
 library(sf)
 
 # Load park boundaries
-parks <- vect("data/covariates/SWNC_nps_boundary_22020630.shp")
+parks <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
 
 # Load park boundaries + 3-km buffer
-parks_b <- vect("data/covariates/SWNC_nps_boundary_3km_22020630.shp")
-
-# Extract polygons for the 3 park units of interest: CHIR, ORPI, and SAGW
-parks <- subset(parks, parks$UNIT_CODE %in% c("CHIR", "ORPI", "SAGW"))
-parks_b <- subset(parks_b, parks_b$UNIT_CODE %in% c("CHIR", "ORPI", "SAGW"))
+parks_b <- vect("data/covariates/shapefiles/Boundaries_wBuffer_3parks.shp")
 
 #------------------------------------------------------------------------------#
 # Roads
@@ -55,13 +51,14 @@ roads_sagw <- crop(roads_pi, subset(parks_b, parks$UNIT_CODE == "SAGW"))
   roads_sagw <- subset(roads_sagw, roads_sagw$MTFCC %in% road_features)
 
 # Write to file
-# writeVector(roads_chir, filename = "data/covariates/roads_chir.shp")
-# writeVector(roads_orpi, filename = "data/covariates/roads_orpi.shp")
-# writeVector(roads_sagw, filename = "data/covariates/roads_sagw.shp")
+# writeVector(roads_chir, filename = "data/covariates/shapefiles/roads_chir.shp")
+# writeVector(roads_orpi, filename = "data/covariates/shapefiles/roads_orpi.shp")
+# writeVector(roads_sagw, filename = "data/covariates/shapefiles/roads_sagw.shp")
 
 #------------------------------------------------------------------------------#
 # Trails
 #------------------------------------------------------------------------------#
+
 # Extracting layer from NPS website
 base_url <- httr::parse_url("https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Trails/FeatureServer/0")
 base_url$path <- paste(base_url$path, "query", sep = "/")
@@ -73,17 +70,18 @@ tmp <- tempfile()
 download.file(request, tmp)
 trails_sf <- sf::st_read(tmp, drivers = "GeoJSON")
 trails <- terra::vect(trails_sf)
-# Note: this file includes trails in SAGE, but that's probably fine
+# Note: this file includes trails in SAGE, but that's probably fine for now
 
 # Convert layer to NAD83
 crs(trails) <- crs(parks)
 
 # Write to file
-# writeVector(trails, filename = "data/covariates/trails.shp")
+# writeVector(trails, filename = "data/covariates/shapefiles/trails.shp")
 
 #------------------------------------------------------------------------------#
 # Points of interest
 #------------------------------------------------------------------------------#
+
 # Extracting layer from NPS website
 base_url <- httr::parse_url("https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_POIs/FeatureServer/0")
 base_url$path <- paste(base_url$path, "query", sep = "/")
@@ -108,7 +106,7 @@ count(as.data.frame(pois), POITYPE)
   # Campsite (25)
   # Headquarters (1) # Should overlap with buildings layer
   # Interpretive Exhibit (40)
-  # Mile Marker (139) GET RID OF THESE?
+  # Mile Marker (139)
   # Parking lot (68) # Should overlap with parking lots layer
   # Picnic Area (14)
   # Picnic Table (16)
@@ -118,17 +116,18 @@ count(as.data.frame(pois), POITYPE)
   # Visitor Center (4) # Should overlap with buildings layer
   
   # I think it's okay if there are locations that are duplicated in the POIs, 
-  # buildings, parking lot layers since we'll probably combine them all into 
+  # buildings, parking lot layers since we'll combine them all into 
   # a distance-to-feature layer. However, the Mile Markers seem irrelevant.
   # Will delete them from the POIs layer
   pois <- subset(pois, pois$POITYPE != "Mile Marker")
 
 # Write to file
-# writeVector(pois, filename = "data/covariates/POIs.shp")
+# writeVector(pois, filename = "data/covariates/shapefiles/POIs.shp")
 
 #------------------------------------------------------------------------------#
 # Buildings (polygons)
 #------------------------------------------------------------------------------#
+
 # Extracting layer from NPS website
 base_url <- httr::parse_url("https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_Buildings/FeatureServer/2")
 base_url$path <- paste(base_url$path, "query", sep = "/")
@@ -145,11 +144,12 @@ builds <- terra::vect(builds_sf)
 crs(builds) <- crs(parks)
 
 # Write to file
-# writeVector(builds, filename = "data/covariates/buildings.shp")
+# writeVector(builds, filename = "data/covariates/shapefiles/buildings.shp")
 
 #------------------------------------------------------------------------------#
 #Parking lots (polygons)
 #------------------------------------------------------------------------------#
+
 # Extracting layer from NPS website
 base_url <- httr::parse_url("https://mapservices.nps.gov/arcgis/rest/services/NationalDatasets/NPS_Public_ParkingLots/FeatureServer/2")
 base_url$path <- paste(base_url$path, "query", sep = "/")
@@ -166,5 +166,5 @@ lots <- terra::vect(lots_sf)
 crs(lots) <- crs(parks)
 
 # Write to file
-# writeVector(lots, filename = "data/covariates/parking_lots.shp")
+# writeVector(lots, filename = "data/covariates/shapefiles/parking_lots.shp")
 
