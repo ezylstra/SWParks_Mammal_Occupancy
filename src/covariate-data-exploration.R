@@ -195,15 +195,20 @@ invisible(file.remove(distance_files))
 # Weather data
 #------------------------------------------------------------------------------#
 
+# Extract precip rasters from zip file
+weather_zipfile <- "data/covariates/weather-orig.zip"
+zipfiles <- unzip(zipfile = weather_zipfile, list = TRUE)
+precip_files <- zipfiles$Name[grepl("pr", zipfiles$Name)]
+unzip(zipfile = weather_zipfile,
+      files = precip_files)
+
 # Load precipitation data
-# (later I can automate this with apply/loops)
-pr2016 <- rast("data/covariates/pr2016.nc")
-pr2017 <- rast("data/covariates/pr2017.nc")
-pr2018 <- rast("data/covariates/pr2018.nc")
-pr2019 <- rast("data/covariates/pr2019.nc")
-pr2020 <- rast("data/covariates/pr2020.nc")
-pr2021 <- rast("data/covariates/pr2021.nc")
-pr2022 <- rast("data/covariates/pr2022.nc")
+yrs <- 2016:2021
+for (yr in yrs) {
+  # Create SpatRasters titled "prYYYY"
+  assign(paste0("pr", yr), 
+         rast(paste0("data/covariates/weather-orig-rasters/pr", yr, ".nc")))
+}
 
 # check:
 # plot(pr2016[[365]]) # Precipitation on 31 Dec 2016
@@ -211,7 +216,7 @@ pr2022 <- rast("data/covariates/pr2022.nc")
 # plot(parks_b, lty = 3, add = TRUE)
 
 # Create annual rasters with cumulative precipitation during monsoon season
-for (yr in 2016:2021) {
+for (yr in yrs) {
   monsoon_ppt <- get(paste0("pr",yr))
   startd  <- lubridate::yday(paste0(yr, "-06-15"))
   endd <- lubridate::yday(paste0(yr, "-09-30"))
@@ -221,18 +226,42 @@ for (yr in 2016:2021) {
   assign(paste0("monsoon_ppt_",yr), monsoon_ppt)
 } 
 
-# TODO: save all these new covariate layers to file?
+# Save rasters to weather-derived folder
+weather_folder <- "data/covariates/weather-derived-rasters/"
+monsoon_rasters <- ls()[grep("monsoon_ppt_", ls())]
+for (object in monsoon_rasters) {
+  writeRaster(get(object), paste0(weather_folder, object, ".tif"))
+}
 
-# TODO: Determine what precipitation metrics we want
+weather_files <- list.files(path = "data/covariates/weather-derived-rasters",
+                            pattern = ".tif",
+                            full.names = TRUE)
+
+# Create a zip archive of weather rasters 
+# Note: we're first removing previous archive!
+weather_derived_zipfile <- "data/covariates/weather-derived.zip"
+if (file.exists(weather_derived_zipfile)) {
+  invisible(file.remove(weather_derived_zipfile))
+}
+zip(zipfile = weather_derived_zipfile,
+    files = weather_files)
+# Remove weather rasters from local repo
+invisible(file.remove(weather_files))
+
+# TODO: Determine what other precipitation metrics we want
   # Cold and warm seasons that NPS has used for other projects?
   # Winter precip? But note that cameras deployed early in the year.
   # 30-year norms for annual precipitation and/or seasonal precipitation?
   # (if so, need to download more annual files)
 
+#------------------------------------------------------------------------------#
+# Fire data
+#------------------------------------------------------------------------------#
+
 # Load fire perimeter data
 # Note: I already cropped fire data to the 3 parks (because the file was large)
 # There were no incidents in ORPI and SAGW (in this layer)
-fires <- vect("data/covariates/fire_perimeters_chir.shp")
+fires <- vect("data/covariates/shapefiles/fire_perimeters_chir.shp")
 
 # There are a lot of duplicated columns, removing things that seem unnecessary
 fires <- fires[,1:43]
