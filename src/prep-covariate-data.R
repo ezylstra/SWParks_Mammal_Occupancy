@@ -1,6 +1,6 @@
 ################################################################################
 # SODN -- Camera trap data, 2016-2022
-# Initial exploration of covariate data
+# Prepping covariate data (and saving rasters to zip archives)
 
 # ER Zylstra
 # 2022-08-25
