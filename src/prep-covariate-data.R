@@ -9,6 +9,10 @@
 library(dplyr)
 library(terra)
 
+# Note: Many parts of this script are commented out to avoid accidentally 
+# starting functions that take a long time to run and/or to avoid 
+# unnecessarily overwriting files 
+
 # Load park boundaries
 parks <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
 
@@ -39,15 +43,15 @@ north_sagw <- cos(terrain(dem_sagw, v = "aspect", unit = "radians"))
 
 # Save rasters to topography folder
 topo_folder <- "data/covariates/topography-rasters/"
-slope_chir <- writeRaster(slope_chir, paste0(topo_folder, "slope_chir.tif"))
-slope_orpi <- writeRaster(slope_orpi, paste0(topo_folder, "slope_orpi.tif"))
-slope_sagw <- writeRaster(slope_sagw, paste0(topo_folder, "slope_sagw.tif"))
-east_chir <- writeRaster(east_chir, paste0(topo_folder, "east_chir.tif"))
-east_orpi <- writeRaster(east_orpi, paste0(topo_folder, "east_orpi.tif"))
-east_sagw <- writeRaster(east_sagw, paste0(topo_folder, "east_sagw.tif"))
-north_chir <- writeRaster(north_chir, paste0(topo_folder, "north_chir.tif"))
-north_orpi <- writeRaster(north_orpi, paste0(topo_folder, "north_orpi.tif"))
-north_sagw <- writeRaster(north_sagw, paste0(topo_folder, "north_sagw.tif"))
+# writeRaster(slope_chir, paste0(topo_folder, "slope_chir.tif"))
+# writeRaster(slope_orpi, paste0(topo_folder, "slope_orpi.tif"))
+# writeRaster(slope_sagw, paste0(topo_folder, "slope_sagw.tif"))
+# writeRaster(east_chir, paste0(topo_folder, "east_chir.tif"))
+# writeRaster(east_orpi, paste0(topo_folder, "east_orpi.tif"))
+# writeRaster(east_sagw, paste0(topo_folder, "east_sagw.tif"))
+# writeRaster(north_chir, paste0(topo_folder, "north_chir.tif"))
+# writeRaster(north_orpi, paste0(topo_folder, "north_orpi.tif"))
+# writeRaster(north_sagw, paste0(topo_folder, "north_sagw.tif"))
 
 topo_files <- list.files(path = "data/covariates/topography-rasters",
                          pattern = ".tif",
@@ -255,37 +259,65 @@ invisible(file.remove(weather_files))
   # (if so, need to download more annual files)
 
 #------------------------------------------------------------------------------#
-# Fire data
+# Fire perimeter data
 #------------------------------------------------------------------------------#
 
-# Load fire perimeter data
-# Note: I already cropped fire data to the 3 parks (because the file was large)
-# There were no incidents in ORPI and SAGW (in this layer)
-fires <- vect("data/covariates/shapefiles/fire_perimeters_chir.shp")
+# We have a shapefile available that delineates fire perimeters in southwestern 
+# parks (SWNC_FirePerimiters_3km.shp). There were no fires in ORPI or SAGW, so I 
+# created a shapefile with fire perimeters in CHIR (fire_perimeters_chir.shp).
 
-# There are a lot of duplicated columns, removing things that seem unnecessary
-fires <- fires[,1:43]
+# The code used to explore that is below, but I removed the shapefile from 
+# the repo because Horseshoe 2 was the only fire that occurred in the last 15
+# years and it burned everything in the park. 
 
-count(as.data.frame(fires), UNQE_FIRE_, INCIDENT, FIRE_YEAR)
-  # Looks like 27 fires/incidents since 1980
-# Look at a couple fires in particular:
-horseshoe2 <- subset(fires, fires$INCIDENT == "Horseshoe 2")
-madrone <- subset(fires, fires$INCIDENT == "Madrone")
+# fires <- vect("data/covariates/shapefiles/fire_perimeters_chir.shp")
+# 
+# # There are a lot of duplicated columns, removing things that seem unnecessary
+# fires <- fires[,1:43]
+# 
+# count(as.data.frame(fires), UNQE_FIRE_, INCIDENT, FIRE_YEAR)
+#   # Looks like 27 fires/incidents since 1980
+# # Look at a couple fires in particular:
+# horseshoe2 <- subset(fires, fires$INCIDENT == "Horseshoe 2")
+# madrone <- subset(fires, fires$INCIDENT == "Madrone")
+# plot(horseshoe2, border = NA, col = "gray")
+# plot(parks, add = TRUE)
+# 
+# # To calculate the number of fires that occurred in each cell from year X
+#   # Subset fires layer to have FIRE_YEAR >= X
+#   # rasterize(fires, dem_chir, sum = TRUE)
+# 
+# last_survey_yr <- 2022
+# min_year <- last_survey_yr - 15
+# fire_freq <- subset(fires, fires$FIRE_YEAR > min_year)
+# fire_freq_raster <- rasterize(fire_freq, dem_chir, sum = TRUE)
+# 
+# Nothing to save here, as there's no spatial variation in fire characteristics
 
-plot(horseshoe2, border = NA, col = "gray")
-plot(parks, add = TRUE)
-# Horseshoe 2 was the most recent fire, and it burned everything in the park.  
+#------------------------------------------------------------------------------#
+# Burn severity data (Horseshoe 2 fire in CHIR only)
+#------------------------------------------------------------------------------#
 
-# To calculate the number of fires that occurred in each cell from year X
-  # Subset fires layer to have FIRE_YEAR >= X
-  # rasterize(fires, dem_chir, sum = TRUE)
+# Read in original raster (.adf file) that's located outside of repo
+# adf_file_path <- ".../chir2011mtbs/w001001.adf"
+adf_file_path <- "C:/Users/erin/Documents/SODN/Mammals/covariates/chirburn/chir2011mtbs/w001001.adf"
+burn <- rast(adf_file_path)
 
-last_survey_yr <- 2022
-min_year <- last_survey_yr - 15
-fire_freq <- subset(fires, fires$FIRE_YEAR > min_year)
-fire_freq_raster <- rasterize(fire_freq, dem_chir, sum = TRUE)
+# Look at cell values
+freq(burn, digits = 3) # Integer values (0:5)
 
-# Nothing to save here, as there's no spatial variation in fire characterstics
+# Convert to factor
+burn <- as.factor(burn)
+
+# Reproject and crop raster
+burn <- project(burn, crs(dem_chir))
+burn <- crop(burn, dem_chir)
+
+# Resample, so geometry aligns with DEM raster
+burn <- resample(burn, dem_chir, method = "near")
+
+# Write to file
+# writeRaster(burn, "data/covariates/CHIR2011_burn_severity.tif")
 
 #------------------------------------------------------------------------------#
 # Drainages
