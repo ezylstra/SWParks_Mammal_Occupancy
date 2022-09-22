@@ -320,6 +320,57 @@ burn <- resample(burn, dem_chir, method = "near")
 # writeRaster(burn, "data/covariates/CHIR2011_burn_severity.tif")
 
 #------------------------------------------------------------------------------#
+# Vegetation classes (SAGW only)
+#------------------------------------------------------------------------------#
+
+veg <- vect("C:/Users/erin/Documents/SODN/Mammals/covariates/SAGW_veg_polys.shp")
+
+# Reproject 
+veg <- project(veg, crs(dem_chir))
+
+# Aggregate polygons into the 4- or 5-class vegetation layers (+ developed)
+veg4 <- aggregate(veg, by = "Group4Des")
+plot(veg4, "Group4Des", border = NULL, main = NULL)
+veg5 <- aggregate(veg, by = "Group5Des")
+plot(veg5, "Group5Des", border = NULL, main = NULL)
+
+locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
+locs <- locs %>%
+  filter(UnitCode == "SAGW") %>%
+  select(c(MarkerName, POINT_X, POINT_Y)) %>%
+  rename(x = POINT_X, 
+         y = POINT_Y) 
+
+locs_sp <- locs %>%
+  select(-MarkerName) %>%
+  as.matrix %>%
+  vect(., crs = crs(dem_chir))
+
+plot(veg4, "Group4Des", border = NULL, main = NULL)
+plot(parks, add = T)
+plot(locs_sp, add = T)
+
+vegclasses <- cbind(locs, extract(veg4, locs_sp)[, c("Group4Des", "Group4")])
+  # Cameras pretty well distributed among veg classes:
+  # 29 in (Low gradient desert with high-cover mixed cactus...)
+  # 13 in (Low hillslope and mountain foothills, rocky, ....)
+  # 16 in (Medium to high gradient....)
+
+  # 1 camera in Desert washes (#34)
+  plot(locs_sp[34], cex = 2, col = "yellow", add = TRUE)
+  # Near VC 
+  
+  # 1 camera NA (#7)
+  plot(locs_sp[7], cex = 2, col = "yellow", add = TRUE)
+  # At boundary south of Picture Rocks road
+  plot(veg4, "Group4Des", border = NULL, main = NULL, 
+       xlim = c(-111.13, -111.11), ylim = c(32.31, 32.32))
+  plot(locs_sp[7], pch = 1, add = TRUE)
+  plot(parks, add = T)
+  # Veg file doesn't line up perfectly with park boundary.  On eastern
+  # side there are some missing areas, including where this camera is.
+
+#------------------------------------------------------------------------------#
 # Drainages
 #------------------------------------------------------------------------------#
 
