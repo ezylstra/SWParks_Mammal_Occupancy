@@ -8,6 +8,7 @@
 
 library(dplyr)
 library(terra)
+library(raster)
 
 # Note: Many parts of this script are commented out to avoid accidentally 
 # starting functions that take a long time to run and/or to avoid 
@@ -29,17 +30,17 @@ dem_sagw <- rast("data/covariates/SAGW_DEM_1as.tif")
 #------------------------------------------------------------------------------#
 
 # Calculate slope (in degrees)
-slope_chir <- terrain(dem_chir, v = "slope", unit = "degrees")
-slope_orpi <- terrain(dem_orpi, v = "slope", unit = "degrees")
-slope_sagw <- terrain(dem_sagw, v = "slope", unit = "degrees")
+slope_chir <- terra::terrain(dem_chir, v = "slope", unit = "degrees")
+slope_orpi <- terra::terrain(dem_orpi, v = "slope", unit = "degrees")
+slope_sagw <- terra::terrain(dem_sagw, v = "slope", unit = "degrees")
 
 # Calculate eastness and northness (aspect)
-east_chir <- sin(terrain(dem_chir, v = "aspect", unit = "radians"))
-east_orpi <- sin(terrain(dem_orpi, v = "aspect", unit = "radians"))
-east_sagw <- sin(terrain(dem_sagw, v = "aspect", unit = "radians"))
-north_chir <- cos(terrain(dem_chir, v = "aspect", unit = "radians"))
-north_orpi <- cos(terrain(dem_orpi, v = "aspect", unit = "radians"))
-north_sagw <- cos(terrain(dem_sagw, v = "aspect", unit = "radians"))
+east_chir <- sin(terra::terrain(dem_chir, v = "aspect", unit = "radians"))
+east_orpi <- sin(terra::terrain(dem_orpi, v = "aspect", unit = "radians"))
+east_sagw <- sin(terra::terrain(dem_sagw, v = "aspect", unit = "radians"))
+north_chir <- cos(terra::terrain(dem_chir, v = "aspect", unit = "radians"))
+north_orpi <- cos(terra::terrain(dem_orpi, v = "aspect", unit = "radians"))
+north_sagw <- cos(terra::terrain(dem_sagw, v = "aspect", unit = "radians"))
 
 # Save rasters to topography folder
 topo_folder <- "data/covariates/topography-rasters/"
@@ -74,20 +75,20 @@ invisible(file.remove(topo_files))
 # Note: this takes forever (hours), even if cropping raster to park boundary
   # chir_line <- as.lines(subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_bound_chir <- rast(dem_chir)
-  # dist_bound_chir <- crop(dist_bound_chir, chir_line)
-  # dist_bound_chir <- distance(dist_bound_chir, chir_line)
+  # dist_bound_chir <- terra::crop(dist_bound_chir, chir_line)
+  # dist_bound_chir <- terra::distance(dist_bound_chir, chir_line)
   # writeRaster(dist_bound_chir, "data/covariates/distance-rasters/dist_boundary_chir.tif")
   
   # orpi_line <- as.lines(subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_bound_orpi <- rast(dem_orpi)
-  # dist_bound_orpi <- crop(dist_bound_orpi, orpi_line)
-  # dist_bound_orpi <- distance(dist_bound_orpi, orpi_line)
+  # dist_bound_orpi <- terra::crop(dist_bound_orpi, orpi_line)
+  # dist_bound_orpi <- terra::distance(dist_bound_orpi, orpi_line)
   # writeRaster(dist_bound_orpi, "data/covariates/distance-rasters/dist_boundary_orpi.tif")
   
   # sagw_line <- as.lines(subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_bound_sagw <- rast(dem_sagw)
-  # dist_bound_sagw <- crop(dist_bound_sagw, sagw_line)
-  # dist_bound_sagw <- distance(dist_bound_sagw, sagw_line)
+  # dist_bound_sagw <- terra::crop(dist_bound_sagw, sagw_line)
+  # dist_bound_sagw <- terra::distance(dist_bound_sagw, sagw_line)
   # writeRaster(dist_bound_sagw, "data/covariates/distance-rasters/dist_boundary_sagw.tif")
 
 #------------------------------------------------------------------------------#
@@ -101,18 +102,18 @@ roads_sagw <- vect("data/covariates/shapefiles/roads_sagw.shp")
 
 # Calculate distance to roads
   # dist_roads_chir <- rast(dem_chir)
-  # dist_roads_chir <- crop(dist_roads_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
-  # dist_roads_chir <- distance(dist_roads_chir, roads_chir)
+  # dist_roads_chir <- terra::crop(dist_roads_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
+  # dist_roads_chir <- terra::distance(dist_roads_chir, roads_chir)
   # writeRaster(dist_roads_chir, "data/covariates/distance-rasters/dist_roads_chir.tif")
   
   # dist_roads_sagw <- rast(dem_sagw)
-  # dist_roads_sagw <- crop(dist_roads_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
-  # dist_roads_sagw <- distance(dist_roads_sagw, roads_sagw)
+  # dist_roads_sagw <- terra::crop(dist_roads_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
+  # dist_roads_sagw <- terra::distance(dist_roads_sagw, roads_sagw)
   # writeRaster(dist_roads_sagw, "data/covariates/distance-rasters/dist_roads_sagw.tif")
   
   # dist_roads_orpi <- rast(dem_orpi)
-  # dist_roads_orpi <- crop(dist_roads_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
-  # dist_roads_orpi <- distance(dist_roads_orpi, roads_orpi)
+  # dist_roads_orpi <- terra::crop(dist_roads_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
+  # dist_roads_orpi <- terra::distance(dist_roads_orpi, roads_orpi)
   # writeRaster(dist_roads_orpi, "data/covariates/distance-rasters/dist_roads_orpi.tif")
 
 #------------------------------------------------------------------------------#
@@ -124,18 +125,18 @@ trails <- vect("data/covariates/shapefiles/trails.shp")
 
 # Calculate distance to trails:
   # dist_trail_chir <- rast(dem_chir)
-  # dist_trail_chir <- crop(dist_trail_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
-  # dist_trail_chir <- distance(dist_trail_chir, trails)
+  # dist_trail_chir <- terra::crop(dist_trail_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
+  # dist_trail_chir <- terra::distance(dist_trail_chir, trails)
   # writeRaster(dist_trail_chir, "data/covariates/distance-rasters/dist_trail_chir.tif")
 
   # dist_trail_sagw <- rast(dem_sagw)
-  # dist_trail_sagw <- crop(dist_trail_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
-  # dist_trail_sagw <- distance(dist_trail_sagw, trails)
+  # dist_trail_sagw <- terra::crop(dist_trail_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
+  # dist_trail_sagw <- terra::distance(dist_trail_sagw, trails)
   # writeRaster(dist_trail_sagw, "data/covariates/distance-rasters/dist_trail_sagw.tif")
 
   # dist_trail_orpi <- rast(dem_orpi)
-  # dist_trail_orpi <- crop(dist_trail_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
-  # dist_trail_orpi <- distance(dist_trail_orpi, trails)
+  # dist_trail_orpi <- terra::crop(dist_trail_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
+  # dist_trail_orpi <- terra::distance(dist_trail_orpi, trails)
   # writeRaster(dist_trail_orpi, "data/covariates/distance-rasters/dist_trail_orpi.tif")  
 
 #------------------------------------------------------------------------------#
@@ -153,8 +154,8 @@ buildings_pt <- as.points(buildings)
 lots_pt <- as.points(lots)
 
 # Combine all of them
-bl <- union(buildings_pt, lots_pt)
-allpois <- union(bl, pois)
+bl <- terra::union(buildings_pt, lots_pt)
+allpois <- terra::union(bl, pois)
 
 # Subset by park
 allpois_chir <- subset(allpois, allpois$UNITCODE == "CHIR")
@@ -163,18 +164,18 @@ allpois_sagw <- subset(allpois, allpois$UNITCODE == "SAGU")
 
 # Calculate distance to these features
   # dist_pois_chir <- rast(dem_chir)
-  # dist_pois_chir <- crop(dist_pois_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
-  # dist_pois_chir <- distance(dist_pois_chir, allpois_chir)
+  # dist_pois_chir <- terra::crop(dist_pois_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
+  # dist_pois_chir <- terra::distance(dist_pois_chir, allpois_chir)
   # writeRaster(dist_pois_chir, "data/covariates/distance-rasters/dist_pois_chir.tif")
   
   # dist_pois_sagw <- rast(dem_sagw)
-  # dist_pois_sagw <- crop(dist_pois_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
-  # dist_pois_sagw <- distance(dist_pois_sagw, allpois_sagw)
+  # dist_pois_sagw <- terra::crop(dist_pois_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
+  # dist_pois_sagw <- terra::distance(dist_pois_sagw, allpois_sagw)
   # writeRaster(dist_pois_sagw, "data/covariates/distance-rasters/dist_pois_sagw.tif")
 
   # dist_pois_orpi <- rast(dem_orpi)
-  # dist_pois_orpi <- crop(dist_pois_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
-  # dist_pois_orpi <- distance(dist_pois_orpi, allpois_orpi)
+  # dist_pois_orpi <- terra::crop(dist_pois_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
+  # dist_pois_orpi <- terra::distance(dist_pois_orpi, allpois_orpi)
   # writeRaster(dist_pois_orpi, "data/covariates/distance-rasters/dist_pois_orpi.tif")  
 
 #------------------------------------------------------------------------------#
@@ -285,12 +286,12 @@ invisible(file.remove(weather_files))
 # 
 # # To calculate the number of fires that occurred in each cell from year X
 #   # Subset fires layer to have FIRE_YEAR >= X
-#   # rasterize(fires, dem_chir, sum = TRUE)
+#   # terra::rasterize(fires, dem_chir, sum = TRUE)
 # 
 # last_survey_yr <- 2022
 # min_year <- last_survey_yr - 15
 # fire_freq <- subset(fires, fires$FIRE_YEAR > min_year)
-# fire_freq_raster <- rasterize(fire_freq, dem_chir, sum = TRUE)
+# fire_freq_raster <- terra::rasterize(fire_freq, dem_chir, sum = TRUE)
 # 
 # Nothing to save here, as there's no spatial variation in fire characteristics
 
@@ -310,11 +311,11 @@ freq(burn, digits = 3) # Integer values (0:5)
 burn <- as.factor(burn)
 
 # Reproject and crop raster
-burn <- project(burn, crs(dem_chir))
-burn <- crop(burn, dem_chir)
+burn <- terra::project(burn, crs(dem_chir))
+burn <- terra::crop(burn, dem_chir)
 
 # Resample, so geometry aligns with DEM raster
-burn <- resample(burn, dem_chir, method = "near")
+burn <- terra::resample(burn, dem_chir, method = "near")
 
 # Write to file
 # writeRaster(burn, "data/covariates/CHIR2011_burn_severity.tif")
@@ -326,50 +327,129 @@ burn <- resample(burn, dem_chir, method = "near")
 veg <- vect("C:/Users/erin/Documents/SODN/Mammals/covariates/SAGW_veg_polys.shp")
 
 # Reproject 
-veg <- project(veg, crs(dem_chir))
+veg <- terra::project(veg, crs(dem_chir))
 
-# Aggregate polygons into the 4- or 5-class vegetation layers (+ developed)
-veg4 <- aggregate(veg, by = "Group4Des")
+# Aggregate polygons into 4-class vegetation layer (+ developed)
+veg4 <- terra::aggregate(veg, by = "Group4Des")
 plot(veg4, "Group4Des", border = NULL, main = NULL)
-veg5 <- aggregate(veg, by = "Group5Des")
-plot(veg5, "Group5Des", border = NULL, main = NULL)
 
-locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
-locs <- locs %>%
-  filter(UnitCode == "SAGW") %>%
-  select(c(MarkerName, POINT_X, POINT_Y)) %>%
-  rename(x = POINT_X, 
-         y = POINT_Y) 
+# Get rid of variables we don't need
+veg4$MapClass_C <- NULL
+veg4$MapClass <- NULL
+veg4$Group5 <- NULL
+veg4$Group5Des <- NULL
+veg4$agg_n <- NULL
 
-locs_sp <- locs %>%
-  select(-MarkerName) %>%
-  as.matrix %>%
-  vect(., crs = crs(dem_chir))
+# Create short name for veg classes:
+vegclasses <- unique(as.data.frame(veg4[, c("Group4", "Group4Des")]))
+vegclasses$VegClass <- c("Desert washes",
+                         "Developed",
+                         "Low gradient desert",
+                         "Rocky foothills",
+                         "Medium-high gradient")
+vegclasses$VegClassNo <- c(5, 4, 1, 2, 3)
+veg4$VegClass <- vegclasses$VegClass[match(veg4$Group4, vegclasses$Group4)]
+veg4$VegClassNo <- vegclasses$VegClassNo[match(veg4$Group4, vegclasses$Group4)]
+veg4$Group4Des <- NULL
+# as.data.frame(veg4)
 
-plot(veg4, "Group4Des", border = NULL, main = NULL)
-plot(parks, add = T)
-plot(locs_sp, add = T)
+# Rasterize
+veg4_raster <- terra::rasterize(veg4, dem_sagw, field = "VegClassNo")
+veg4_raster <- terra::crop(veg4_raster, subset(parks, parks$UNIT_CODE == "SAGW"))
+# vegclasses[,c(1,3,4)]
 
-vegclasses <- cbind(locs, extract(veg4, locs_sp)[, c("Group4Des", "Group4")])
-  # Cameras pretty well distributed among veg classes:
-  # 29 in (Low gradient desert with high-cover mixed cactus...)
-  # 13 in (Low hillslope and mountain foothills, rocky, ....)
-  # 16 in (Medium to high gradient....)
+# We want to convert cells with value = 5 (washes) to the value of the majority 
+# of its neighbors
 
-  # 1 camera in Desert washes (#34)
-  plot(locs_sp[34], cex = 2, col = "yellow", add = TRUE)
-  # Near VC 
+# Convert cell values of 5 to NA
+veg4_raster[veg4_raster == 5] <- NA
+# Convert to a RasterLayer (package raster) to use focal function
+veg4_rasterl <- raster(veg4_raster)
+
+# Create a function to find the modal value of non-NA neighboring cells (if
+# multiple nodes, it'll pick the first)
+mode_noNA <- function(x) {
+  ux <- unique(x[!is.na(x)])
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+# Function to replace the focal value with the mode of a 3x3 window if NA
+# i = 5 will look at the middle cell in a 3x3 window (i = 13 if 5x5)
+# Note that this does extend veg classes slightly outside of the park 
+# boundaries, but that shouldn't be a problem.
+fill_na <- function(x, i = 5) { 
+  if (is.na(x)[i]) {
+    return(mode_noNA(x))
+  } else {
+    return(round(x[i], 0))
+  }
+}
+
+veg3_rasterl <- raster::focal(veg4_rasterl, w = matrix(1, nrow = 3, ncol = 3), 
+                              fun = fill_na, na.rm = FALSE)
+# Need to a couple more times because a few of the washes were wide (moving 
+# window only contained cells with NAs)
+veg3_rasterl <- raster::focal(veg3_rasterl, w = matrix(1, nrow = 3, ncol = 3), 
+                              fun = fill_na, na.rm = FALSE)
+veg3_rasterl <- raster::focal(veg3_rasterl, w = matrix(1, nrow = 3, ncol = 3), 
+                              fun = fill_na, na.rm = FALSE)
   
-  # 1 camera NA (#7)
-  plot(locs_sp[7], cex = 2, col = "yellow", add = TRUE)
-  # At boundary south of Picture Rocks road
-  plot(veg4, "Group4Des", border = NULL, main = NULL, 
-       xlim = c(-111.13, -111.11), ylim = c(32.31, 32.32))
-  plot(locs_sp[7], pch = 1, add = TRUE)
-  plot(parks, add = T)
-  # Veg file doesn't line up perfectly with park boundary.  On eastern
-  # side there are some missing areas, including where this camera is.
+# Convert to SpatRaster
+veg3 <- rast(veg3_rasterl)
+veg3 <- terra::project(veg3, crs(dem_chir))
+# Convert to factor
+veg3 <- as.factor(veg3)
 
+  # See how the camera locations relate to the veg classes:  
+  locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
+  locs <- locs %>%
+    dplyr::filter(UnitCode == "SAGW") %>%
+    dplyr::select(c(MarkerName, POINT_X, POINT_Y)) %>%
+    dplyr::rename(x = POINT_X, 
+                  y = POINT_Y) 
+  
+  locs_sp <- locs %>%
+    dplyr::select(-MarkerName) %>%
+    as.matrix %>%
+    vect(., crs = crs(dem_chir))
+  
+  plot(veg3)
+  plot(parks, add = T)
+  plot(locs_sp, add = T)
+  
+  # Veg classes at each camera location (using original classes)
+  camera_veg4 <- cbind(locs, 
+                       VegClass = terra::extract(veg4, locs_sp)[, c("VegClass")])
+  count(camera_veg4, VegClass)
+    # 29 in (Low gradient desert with high-cover mixed cactus...)
+    # 13 in (Low hillslope and mountain foothills, rocky, ....)
+    # 16 in (Medium to high gradient....)
+    # 1 camera in a desert wash (#34)
+      plot(locs_sp[34], cex = 2, col = "yellow", add = TRUE)
+      # Near VC 
+    # 1 camera NA (#7)
+      plot(locs_sp[7], cex = 2, col = "yellow", add = TRUE)
+      # At boundary south of Picture Rocks road
+      # Original veg file doesn't line up perfectly with park boundary.  On 
+      # eastern side there are some missing areas, including where this camera is.
+  
+  # Veg classes at each camera location (after removing desert washes)
+  camera_veg3 <- cbind(locs, terra::extract(veg3, locs_sp, ID = FALSE))
+  count(camera_veg3, label)
+  vegclasses[,c(1,3,4)]
+    # 31 in class 1 (Low gradient desert)
+    # 13 in class 2 (Rocky foothills)
+    # 16 in class 3 (Medium-high gradient)
+    # 0 in class 4 (Developed)
+
+# Write to file
+# writeRaster(veg3, "data/covariates/SAGW_VegClasses3.tif")
+# This is a 4-class categorical raster with:
+  # 1 = Low gradient desert with high-cover mixed cactus and 2-15% tree cover
+  # 2 = Low hillslope and mountain foothills, rocky, often north facing, cooler, wetter
+  # 3 = Medium-high gradient, contrasting topography (hilly), often Jojoba dominant
+  # 4 = Developed
+    
 #------------------------------------------------------------------------------#
 # Drainages
 #------------------------------------------------------------------------------#
