@@ -179,24 +179,6 @@ allpois_sagw <- subset(allpois, allpois$UNITCODE == "SAGU")
   # writeRaster(dist_pois_orpi, "data/covariates/distance-rasters/dist_pois_orpi.tif")  
 
 #------------------------------------------------------------------------------#
-# Put all distance-to rasters in zip file
-#------------------------------------------------------------------------------#
-
-distance_files <- list.files(path = "data/covariates/distance-rasters",
-                             pattern = ".tif",
-                             full.names = TRUE)
-
-# Create a zip archive of distance files (first removing previous archive)
-distance_zipfile <- "data/covariates/distance.zip"
-if (file.exists(distance_zipfile)) {
-  invisible(file.remove(distance_zipfile))
-}
-zip(zipfile = distance_zipfile,
-    files = distance_files)
-# Remove distance rasters from local repo
-invisible(file.remove(distance_files))
-
-#------------------------------------------------------------------------------#
 # Weather data
 #------------------------------------------------------------------------------#
 
@@ -449,7 +431,49 @@ veg3 <- as.factor(veg3)
   # 2 = Low hillslope and mountain foothills, rocky, often north facing, cooler, wetter
   # 3 = Medium-high gradient, contrasting topography (hilly), often Jojoba dominant
   # 4 = Developed
-    
+
+#------------------------------------------------------------------------------#
+# Distance to desert wash (based on veg classes, in SAGW only)
+#------------------------------------------------------------------------------#  
+  
+#Extract desert washes as polygon layer
+washes <- subset(veg4, veg4$VegClass == "Desert washes")
+  
+# Calculate distance to washes:
+dist_wash_sagw <- rast(dem_sagw)
+
+# Rasterize and crop washes raster
+wash_raster <- terra::rasterize(washes, dem_sagw, field = "VegClassNo")
+# Cells in wash have value = 5, otherwise NA
+wash_raster <- terra::crop(wash_raster, subset(parks, parks$UNIT_CODE == "SAGW"))
+
+# Calculate distance to wash
+# If x is a SpatRaster and y is missing, terra::distance() computes the 
+# distance, for all cells that are NA in SpatRaster x to the nearest cell that 
+# is not NA.
+dist_wash_sagw <- terra::distance(wash_raster) 
+
+# Write to file
+# writeRaster(dist_wash_sagw, "data/covariates/distance-rasters/dist_wash_sagw.tif")  
+
+#------------------------------------------------------------------------------#
+# Put all distance-to rasters in zip file
+#------------------------------------------------------------------------------#
+
+distance_files <- list.files(path = "data/covariates/distance-rasters",
+                             pattern = ".tif",
+                             full.names = TRUE)
+
+# Create a zip archive of distance files (first removing previous archive)
+distance_zipfile <- "data/covariates/distance.zip"
+if (file.exists(distance_zipfile)) {
+  invisible(file.remove(distance_zipfile))
+}
+zip(zipfile = distance_zipfile,
+    files = distance_files)
+# Remove distance rasters from local repo
+invisible(file.remove(distance_files))
+
 #------------------------------------------------------------------------------#
 # Drainages
 #------------------------------------------------------------------------------#
