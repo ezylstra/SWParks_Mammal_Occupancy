@@ -46,10 +46,6 @@ unzip(zipfile = sagw_zip)
 dem_sagw_file <- paste0(sagw_folder, "SAGW_DEM_1as.tif")
 dem_sagw <- rast(dem_sagw_file)
 
-# dem_chir <- rast("data/covariates/CHIR_DEM_1as.tif")
-# dem_orpi <- rast("data/covariates/ORPI_DEM_1as.tif")
-# dem_sagw <- rast("data/covariates/SAGW_DEM_1as.tif")
-
 #------------------------------------------------------------------------------#
 # Derived topographic variables
 #------------------------------------------------------------------------------#
@@ -77,20 +73,6 @@ north_sagw <- cos(terra::terrain(dem_sagw, v = "aspect", unit = "radians"))
 # writeRaster(north_chir, paste0(chir_folder, "north_chir.tif"))
 # writeRaster(north_orpi, paste0(orpi_folder, "north_orpi.tif"))
 # writeRaster(north_sagw, paste0(sagw_folder, "north_sagw.tif"))
-
-# topo_files <- list.files(path = "data/covariates/topography-rasters",
-#                          pattern = ".tif",
-#                          full.names = TRUE)
-# 
-# # Create a zip archive of slope & aspect files (first removing previous archive)
-# topo_zipfile <- "data/covariates/topography.zip"
-# if (file.exists(topo_zipfile)) {
-#   invisible(file.remove(topo_zipfile))
-# }
-# zip(zipfile = topo_zipfile,
-#     files = topo_files)
-# # Remove topo files from local repo
-# invisible(file.remove(topo_files))
 
 #------------------------------------------------------------------------------#
 # Distance to park boundary
