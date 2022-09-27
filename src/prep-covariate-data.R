@@ -26,8 +26,10 @@ orpi_folder <- "data/covariates/rasters-ORPI/"
 sagw_folder <- "data/covariates/rasters-SAGW/"
 
 # Zip folders where we'll store park-specific rasters
+# Note: ORPI is big, so we need to create 2 zip folders
 chir_zip <- "data/covariates/rasters-CHIR.zip"
-orpi_zip <- "data/covariates/rasters-ORPI.zip"
+orpi_zip_topo <- "data/covariates/rasters-ORPI-topo.zip"
+orpi_zip_dist <- "data/covariates/rasters-ORPI-dist.zip"
 sagw_zip <- "data/covariates/rasters-SAGW.zip"
 
 # Unzip park-specifc folders and load 30-m DEMs for each park
@@ -35,7 +37,8 @@ unzip(zipfile = chir_zip)
 dem_chir_file <- paste0(chir_folder, "CHIR_DEM_1as.tif")
 dem_chir <- rast(dem_chir_file)
 
-unzip(zipfile = orpi_zip)
+unzip(zipfile = orpi_zip_topo)
+unzip(zipfile = orpi_zip_dist)
 dem_orpi_file <- paste0(orpi_folder, "ORPI_DEM_1as.tif")
 dem_orpi <- rast(dem_orpi_file)
 
@@ -483,6 +486,8 @@ invisible(file.remove(weather_files))
 
 chir_files <- list.files(path = chir_folder, full.names = TRUE)
 orpi_files <- list.files(path = orpi_folder, full.names = TRUE)
+orpi_files_dist <- orpi_files[grep("dist", orpi_files)]
+orpi_files_topo <- orpi_files[-grep("dist", orpi_files)]
 sagw_files <- list.files(path = sagw_folder, full.names = TRUE)
 
 # Create zip archives of files 
@@ -494,11 +499,17 @@ if (file.exists(chir_zip)) {
 zip(zipfile = chir_zip,
     files = chir_files)
 
-if (file.exists(orpi_zip)) {
-  invisible(file.remove(orpi_zip))
+if (file.exists(orpi_zip_dist)) {
+  invisible(file.remove(orpi_zip_dist))
 }
-zip(zipfile = orpi_zip,
-    files = orpi_files)
+zip(zipfile = orpi_zip_dist,
+    files = orpi_files_dist)
+
+if (file.exists(orpi_zip_topo)) {
+  invisible(file.remove(orpi_zip_topo))
+}
+zip(zipfile = orpi_zip_topo,
+    files = orpi_files_topo)
 
 if (file.exists(sagw_zip)) {
   invisible(file.remove(sagw_zip))
