@@ -20,10 +20,32 @@ parks <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
 # Load park boundaries + 3-km buffer
 parks_b <- vect("data/covariates/shapefiles/Boundaries_wBuffer_3parks.shp")
 
-# Load 30-m DEMs for each park
-dem_chir <- rast("data/covariates/CHIR_DEM_1as.tif")
-dem_orpi <- rast("data/covariates/ORPI_DEM_1as.tif")
-dem_sagw <- rast("data/covariates/SAGW_DEM_1as.tif")
+# Folders where we'll temporarily store park-specific rasters
+chir_folder <- "data/covariates/rasters-CHIR/"
+orpi_folder <- "data/covariates/rasters-ORPI/"
+sagw_folder <- "data/covariates/rasters-SAGW/"
+
+# Zip folders where we'll store park-specific rasters
+chir_zip <- "data/covariates/rasters-CHIR.zip"
+orpi_zip <- "data/covariates/rasters-ORPI.zip"
+sagw_zip <- "data/covariates/rasters-SAGW.zip"
+
+# Unzip park-specifc folders and load 30-m DEMs for each park
+unzip(zipfile = chir_zip)
+dem_chir_file <- paste0(chir_folder, "CHIR_DEM_1as.tif")
+dem_chir <- rast(dem_chir_file)
+
+unzip(zipfile = orpi_zip)
+dem_orpi_file <- paste0(orpi_folder, "ORPI_DEM_1as.tif")
+dem_orpi <- rast(dem_orpi_file)
+
+unzip(zipfile = sagw_zip)
+dem_sagw_file <- paste0(sagw_folder, "SAGW_DEM_1as.tif")
+dem_sagw <- rast(dem_sagw_file)
+
+# dem_chir <- rast("data/covariates/CHIR_DEM_1as.tif")
+# dem_orpi <- rast("data/covariates/ORPI_DEM_1as.tif")
+# dem_sagw <- rast("data/covariates/SAGW_DEM_1as.tif")
 
 #------------------------------------------------------------------------------#
 # Derived topographic variables
@@ -42,31 +64,30 @@ north_chir <- cos(terra::terrain(dem_chir, v = "aspect", unit = "radians"))
 north_orpi <- cos(terra::terrain(dem_orpi, v = "aspect", unit = "radians"))
 north_sagw <- cos(terra::terrain(dem_sagw, v = "aspect", unit = "radians"))
 
-# Save rasters to topography folder
-topo_folder <- "data/covariates/topography-rasters/"
-# writeRaster(slope_chir, paste0(topo_folder, "slope_chir.tif"))
-# writeRaster(slope_orpi, paste0(topo_folder, "slope_orpi.tif"))
-# writeRaster(slope_sagw, paste0(topo_folder, "slope_sagw.tif"))
-# writeRaster(east_chir, paste0(topo_folder, "east_chir.tif"))
-# writeRaster(east_orpi, paste0(topo_folder, "east_orpi.tif"))
-# writeRaster(east_sagw, paste0(topo_folder, "east_sagw.tif"))
-# writeRaster(north_chir, paste0(topo_folder, "north_chir.tif"))
-# writeRaster(north_orpi, paste0(topo_folder, "north_orpi.tif"))
-# writeRaster(north_sagw, paste0(topo_folder, "north_sagw.tif"))
+# Save rasters to park-specific folders
+# writeRaster(slope_chir, paste0(chir_folder, "slope_chir.tif"))
+# writeRaster(slope_orpi, paste0(orpi_folder, "slope_orpi.tif"))
+# writeRaster(slope_sagw, paste0(sagw_folder, "slope_sagw.tif"))
+# writeRaster(east_chir, paste0(chir_folder, "east_chir.tif"))
+# writeRaster(east_orpi, paste0(orpi_folder, "east_orpi.tif"))
+# writeRaster(east_sagw, paste0(sagw_folder, "east_sagw.tif"))
+# writeRaster(north_chir, paste0(chir_folder, "north_chir.tif"))
+# writeRaster(north_orpi, paste0(orpi_folder, "north_orpi.tif"))
+# writeRaster(north_sagw, paste0(sagw_folder, "north_sagw.tif"))
 
-topo_files <- list.files(path = "data/covariates/topography-rasters",
-                         pattern = ".tif",
-                         full.names = TRUE)
-
-# Create a zip archive of slope & aspect files (first removing previous archive)
-topo_zipfile <- "data/covariates/topography.zip"
-if (file.exists(topo_zipfile)) {
-  invisible(file.remove(topo_zipfile))
-}
-zip(zipfile = topo_zipfile,
-    files = topo_files)
-# Remove topo files from local repo
-invisible(file.remove(topo_files))
+# topo_files <- list.files(path = "data/covariates/topography-rasters",
+#                          pattern = ".tif",
+#                          full.names = TRUE)
+# 
+# # Create a zip archive of slope & aspect files (first removing previous archive)
+# topo_zipfile <- "data/covariates/topography.zip"
+# if (file.exists(topo_zipfile)) {
+#   invisible(file.remove(topo_zipfile))
+# }
+# zip(zipfile = topo_zipfile,
+#     files = topo_files)
+# # Remove topo files from local repo
+# invisible(file.remove(topo_files))
 
 #------------------------------------------------------------------------------#
 # Distance to park boundary
@@ -77,19 +98,19 @@ invisible(file.remove(topo_files))
   # dist_bound_chir <- rast(dem_chir)
   # dist_bound_chir <- terra::crop(dist_bound_chir, chir_line)
   # dist_bound_chir <- terra::distance(dist_bound_chir, chir_line)
-  # writeRaster(dist_bound_chir, "data/covariates/distance-rasters/dist_boundary_chir.tif")
-  
+  # writeRaster(dist_bound_chir, paste0(chir_folder, "dist_boundary_chir.tif")) 
+
   # orpi_line <- as.lines(subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_bound_orpi <- rast(dem_orpi)
   # dist_bound_orpi <- terra::crop(dist_bound_orpi, orpi_line)
   # dist_bound_orpi <- terra::distance(dist_bound_orpi, orpi_line)
-  # writeRaster(dist_bound_orpi, "data/covariates/distance-rasters/dist_boundary_orpi.tif")
-  
+  # writeRaster(dist_bound_orpi, paste0(orpi_folder, "dist_boundary_orpi.tif"))
+
   # sagw_line <- as.lines(subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_bound_sagw <- rast(dem_sagw)
   # dist_bound_sagw <- terra::crop(dist_bound_sagw, sagw_line)
   # dist_bound_sagw <- terra::distance(dist_bound_sagw, sagw_line)
-  # writeRaster(dist_bound_sagw, "data/covariates/distance-rasters/dist_boundary_sagw.tif")
+  # writeRaster(dist_bound_sagw, paste0(sagw_folder, "dist_boundary_sagw.tif"))
 
 #------------------------------------------------------------------------------#
 # Distance to road
@@ -104,17 +125,17 @@ roads_sagw <- vect("data/covariates/shapefiles/roads_sagw.shp")
   # dist_roads_chir <- rast(dem_chir)
   # dist_roads_chir <- terra::crop(dist_roads_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_roads_chir <- terra::distance(dist_roads_chir, roads_chir)
-  # writeRaster(dist_roads_chir, "data/covariates/distance-rasters/dist_roads_chir.tif")
+  # writeRaster(dist_roads_chir, paste0(chir_folder, "dist_roads_chir.tif"))
   
   # dist_roads_sagw <- rast(dem_sagw)
   # dist_roads_sagw <- terra::crop(dist_roads_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_roads_sagw <- terra::distance(dist_roads_sagw, roads_sagw)
-  # writeRaster(dist_roads_sagw, "data/covariates/distance-rasters/dist_roads_sagw.tif")
+  # writeRaster(dist_roads_sagw, paste0(sagw_folder, "dist_roads_sagw.tif"))
   
   # dist_roads_orpi <- rast(dem_orpi)
   # dist_roads_orpi <- terra::crop(dist_roads_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_roads_orpi <- terra::distance(dist_roads_orpi, roads_orpi)
-  # writeRaster(dist_roads_orpi, "data/covariates/distance-rasters/dist_roads_orpi.tif")
+  # writeRaster(dist_roads_orpi, paste0(orpi_folder, "dist_roads_orpi.tif"))
 
 #------------------------------------------------------------------------------#
 # Distance to trail
@@ -127,17 +148,17 @@ trails <- vect("data/covariates/shapefiles/trails.shp")
   # dist_trail_chir <- rast(dem_chir)
   # dist_trail_chir <- terra::crop(dist_trail_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_trail_chir <- terra::distance(dist_trail_chir, trails)
-  # writeRaster(dist_trail_chir, "data/covariates/distance-rasters/dist_trail_chir.tif")
+  # writeRaster(dist_trail_chir, paste0(chir_folder, "dist_trail_chir.tif"))
 
   # dist_trail_sagw <- rast(dem_sagw)
   # dist_trail_sagw <- terra::crop(dist_trail_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_trail_sagw <- terra::distance(dist_trail_sagw, trails)
-  # writeRaster(dist_trail_sagw, "data/covariates/distance-rasters/dist_trail_sagw.tif")
+  # writeRaster(dist_trail_sagw, paste0(sagw_folder, "dist_trail_sagw.tif"))
 
   # dist_trail_orpi <- rast(dem_orpi)
   # dist_trail_orpi <- terra::crop(dist_trail_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_trail_orpi <- terra::distance(dist_trail_orpi, trails)
-  # writeRaster(dist_trail_orpi, "data/covariates/distance-rasters/dist_trail_orpi.tif")  
+  # writeRaster(dist_trail_orpi, paste0(orpi_folder, "dist_trail_orpi.tif"))
 
 #------------------------------------------------------------------------------#
 # Distance to point-of-interest (POIs, buildings, parking lots combined)
@@ -166,80 +187,17 @@ allpois_sagw <- subset(allpois, allpois$UNITCODE == "SAGU")
   # dist_pois_chir <- rast(dem_chir)
   # dist_pois_chir <- terra::crop(dist_pois_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_pois_chir <- terra::distance(dist_pois_chir, allpois_chir)
-  # writeRaster(dist_pois_chir, "data/covariates/distance-rasters/dist_pois_chir.tif")
+  # writeRaster(dist_pois_chir, paste0(chir_folder, "dist_pois_chir.tif"))
   
   # dist_pois_sagw <- rast(dem_sagw)
   # dist_pois_sagw <- terra::crop(dist_pois_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_pois_sagw <- terra::distance(dist_pois_sagw, allpois_sagw)
-  # writeRaster(dist_pois_sagw, "data/covariates/distance-rasters/dist_pois_sagw.tif")
+  # writeRaster(dist_pois_sagw, paste0(sagw_folder, "dist_pois_sagw.tif"))
 
   # dist_pois_orpi <- rast(dem_orpi)
   # dist_pois_orpi <- terra::crop(dist_pois_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_pois_orpi <- terra::distance(dist_pois_orpi, allpois_orpi)
-  # writeRaster(dist_pois_orpi, "data/covariates/distance-rasters/dist_pois_orpi.tif")  
-
-#------------------------------------------------------------------------------#
-# Weather data
-#------------------------------------------------------------------------------#
-
-# Extract precip rasters from zip file
-weather_zipfile <- "data/covariates/weather-orig.zip"
-zipfiles <- unzip(zipfile = weather_zipfile, list = TRUE)
-precip_files <- zipfiles$Name[grepl("pr", zipfiles$Name)]
-unzip(zipfile = weather_zipfile,
-      files = precip_files)
-
-# Load precipitation data
-yrs <- 2016:2021
-for (yr in yrs) {
-  # Create SpatRasters titled "prYYYY"
-  assign(paste0("pr", yr), 
-         rast(paste0("data/covariates/weather-orig-rasters/pr", yr, ".nc")))
-}
-
-# check:
-# plot(pr2016[[365]]) # Precipitation on 31 Dec 2016
-# plot(parks, add = TRUE)
-# plot(parks_b, lty = 3, add = TRUE)
-
-# Create annual rasters with cumulative precipitation during monsoon season
-for (yr in yrs) {
-  monsoon_ppt <- get(paste0("pr",yr))
-  startd  <- lubridate::yday(paste0(yr, "-06-15"))
-  endd <- lubridate::yday(paste0(yr, "-09-30"))
-  monsoon_ppt <- monsoon_ppt[[startd:endd]]
-  monsoon_ppt <- app(monsoon_ppt, fun = sum)
-  # New rasters name: monsoon_ppt_YEAR
-  assign(paste0("monsoon_ppt_",yr), monsoon_ppt)
-} 
-
-# Save rasters to weather-derived folder
-weather_folder <- "data/covariates/weather-derived-rasters/"
-monsoon_rasters <- ls()[grep("monsoon_ppt_", ls())]
-for (object in monsoon_rasters) {
-  writeRaster(get(object), paste0(weather_folder, object, ".tif"))
-}
-
-weather_files <- list.files(path = "data/covariates/weather-derived-rasters",
-                            pattern = ".tif",
-                            full.names = TRUE)
-
-# Create a zip archive of weather rasters 
-# Note: we're first removing previous archive!
-weather_derived_zipfile <- "data/covariates/weather-derived.zip"
-if (file.exists(weather_derived_zipfile)) {
-  invisible(file.remove(weather_derived_zipfile))
-}
-zip(zipfile = weather_derived_zipfile,
-    files = weather_files)
-# Remove weather rasters from local repo
-invisible(file.remove(weather_files))
-
-# TODO: Determine what other precipitation metrics we want
-  # Cold and warm seasons that NPS has used for other projects?
-  # Winter precip? But note that cameras deployed early in the year.
-  # 30-year norms for annual precipitation and/or seasonal precipitation?
-  # (if so, need to download more annual files)
+  # writeRaster(dist_pois_orpi, paste0(orpi_folder, "dist_pois_orpi.tif"))
 
 #------------------------------------------------------------------------------#
 # Fire perimeter data
@@ -300,7 +258,7 @@ burn <- terra::crop(burn, dem_chir)
 burn <- terra::resample(burn, dem_chir, method = "near")
 
 # Write to file
-# writeRaster(burn, "data/covariates/CHIR2011_burn_severity.tif")
+# writeRaster(burn, paste0(chir_folder, "burn_severity_chir2011.tif")) 
 
 #------------------------------------------------------------------------------#
 # Vegetation classes (SAGW only)
@@ -375,58 +333,58 @@ veg3_rasterl <- raster::focal(veg3_rasterl, w = matrix(1, nrow = 3, ncol = 3),
                               fun = fill_na, na.rm = FALSE)
 veg3_rasterl <- raster::focal(veg3_rasterl, w = matrix(1, nrow = 3, ncol = 3), 
                               fun = fill_na, na.rm = FALSE)
-  
+
 # Convert to SpatRaster
 veg3 <- rast(veg3_rasterl)
 veg3 <- terra::project(veg3, crs(dem_chir))
 # Convert to factor
 veg3 <- as.factor(veg3)
 
-  # See how the camera locations relate to the veg classes:  
-  locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
-  locs <- locs %>%
-    dplyr::filter(UnitCode == "SAGW") %>%
-    dplyr::select(c(MarkerName, POINT_X, POINT_Y)) %>%
-    dplyr::rename(x = POINT_X, 
-                  y = POINT_Y) 
-  
-  locs_sp <- locs %>%
-    dplyr::select(-MarkerName) %>%
-    as.matrix %>%
-    vect(., crs = crs(dem_chir))
-  
-  plot(veg3)
-  plot(parks, add = T)
-  plot(locs_sp, add = T)
-  
-  # Veg classes at each camera location (using original classes)
-  camera_veg4 <- cbind(locs, 
-                       VegClass = terra::extract(veg4, locs_sp)[, c("VegClass")])
-  count(camera_veg4, VegClass)
-    # 29 in (Low gradient desert with high-cover mixed cactus...)
-    # 13 in (Low hillslope and mountain foothills, rocky, ....)
-    # 16 in (Medium to high gradient....)
-    # 1 camera in a desert wash (#34)
-      plot(locs_sp[34], cex = 2, col = "yellow", add = TRUE)
-      # Near VC 
-    # 1 camera NA (#7)
-      plot(locs_sp[7], cex = 2, col = "yellow", add = TRUE)
-      # At boundary south of Picture Rocks road
-      # Original veg file doesn't line up perfectly with park boundary.  On 
-      # eastern side there are some missing areas, including where this camera is.
-  
-  # Veg classes at each camera location (after removing desert washes)
-  camera_veg3 <- cbind(locs, terra::extract(veg3, locs_sp, ID = FALSE))
-  count(camera_veg3, label)
-  vegclasses[,c(1,3,4)]
-    # 31 in class 1 (Low gradient desert)
-    # 13 in class 2 (Rocky foothills)
-    # 16 in class 3 (Medium-high gradient)
-    # 0 in class 4 (Developed)
+# See how the camera locations relate to the veg classes:  
+locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
+locs <- locs %>%
+  dplyr::filter(UnitCode == "SAGW") %>%
+  dplyr::select(c(MarkerName, POINT_X, POINT_Y)) %>%
+  dplyr::rename(x = POINT_X, 
+                y = POINT_Y) 
+
+locs_sp <- locs %>%
+  dplyr::select(-MarkerName) %>%
+  as.matrix %>%
+  vect(., crs = crs(dem_chir))
+
+plot(veg3)
+plot(parks, add = T)
+plot(locs_sp, add = T)
+
+# Veg classes at each camera location (using original classes)
+camera_veg4 <- cbind(locs, 
+                     VegClass = terra::extract(veg4, locs_sp)[, c("VegClass")])
+count(camera_veg4, VegClass)
+# 29 in (Low gradient desert with high-cover mixed cactus...)
+# 13 in (Low hillslope and mountain foothills, rocky, ....)
+# 16 in (Medium to high gradient....)
+# 1 camera in a desert wash (#34)
+plot(locs_sp[34], cex = 2, col = "yellow", add = TRUE)
+# Near VC 
+# 1 camera NA (#7)
+plot(locs_sp[7], cex = 2, col = "yellow", add = TRUE)
+# At boundary south of Picture Rocks road
+# Original veg file doesn't line up perfectly with park boundary.  On 
+# eastern side there are some missing areas, including where this camera is.
+
+# Veg classes at each camera location (after removing desert washes)
+camera_veg3 <- cbind(locs, terra::extract(veg3, locs_sp, ID = FALSE))
+count(camera_veg3, label)
+vegclasses[,c(1,3,4)]
+# 31 in class 1 (Low gradient desert)
+# 13 in class 2 (Rocky foothills)
+# 16 in class 3 (Medium-high gradient)
+# 0 in class 4 (Developed)
 
 # Write to file
-# writeRaster(veg3, "data/covariates/SAGW_VegClasses3.tif")
-# This is a 4-class categorical raster with:
+# writeRaster(veg3, paste0(sagw_folder, "vegclasses_sagw.tif"))
+  # This is a 4-class categorical raster with:
   # 1 = Low gradient desert with high-cover mixed cactus and 2-15% tree cover
   # 2 = Low hillslope and mountain foothills, rocky, often north facing, cooler, wetter
   # 3 = Medium-high gradient, contrasting topography (hilly), often Jojoba dominant
@@ -435,10 +393,10 @@ veg3 <- as.factor(veg3)
 #------------------------------------------------------------------------------#
 # Distance to desert wash (based on veg classes, in SAGW only)
 #------------------------------------------------------------------------------#  
-  
+
 #Extract desert washes as polygon layer
 washes <- subset(veg4, veg4$VegClass == "Desert washes")
-  
+
 # Calculate distance to washes:
 dist_wash_sagw <- rast(dem_sagw)
 
@@ -454,25 +412,104 @@ wash_raster <- terra::crop(wash_raster, subset(parks, parks$UNIT_CODE == "SAGW")
 dist_wash_sagw <- terra::distance(wash_raster) 
 
 # Write to file
-# writeRaster(dist_wash_sagw, "data/covariates/distance-rasters/dist_wash_sagw.tif")  
+# writeRaster(dist_wash_sagw, paste0(sagw_folder, "dist_wash_sagw.tif"))
 
 #------------------------------------------------------------------------------#
-# Put all distance-to rasters in zip file
+# Weather data
 #------------------------------------------------------------------------------#
 
-distance_files <- list.files(path = "data/covariates/distance-rasters",
-                             pattern = ".tif",
-                             full.names = TRUE)
+# Extract precip rasters from zip file
+weather_zipfile <- "data/covariates/weather-orig.zip"
+zipfiles <- unzip(zipfile = weather_zipfile, list = TRUE)
+precip_files <- zipfiles$Name[grepl("pr", zipfiles$Name)]
+unzip(zipfile = weather_zipfile,
+      files = precip_files)
 
-# Create a zip archive of distance files (first removing previous archive)
-distance_zipfile <- "data/covariates/distance.zip"
-if (file.exists(distance_zipfile)) {
+# Load precipitation data
+yrs <- 2016:2021
+for (yr in yrs) {
+  # Create SpatRasters titled "prYYYY"
+  assign(paste0("pr", yr), 
+         rast(paste0("data/covariates/weather-orig-rasters/pr", yr, ".nc")))
+}
+
+# check:
+# plot(pr2016[[365]]) # Precipitation on 31 Dec 2016
+# plot(parks, add = TRUE)
+# plot(parks_b, lty = 3, add = TRUE)
+
+# Create annual rasters with cumulative precipitation during monsoon season
+for (yr in yrs) {
+  monsoon_ppt <- get(paste0("pr",yr))
+  startd  <- lubridate::yday(paste0(yr, "-06-15"))
+  endd <- lubridate::yday(paste0(yr, "-09-30"))
+  monsoon_ppt <- monsoon_ppt[[startd:endd]]
+  monsoon_ppt <- app(monsoon_ppt, fun = sum)
+  # New rasters name: monsoon_ppt_YEAR
+  assign(paste0("monsoon_ppt_",yr), monsoon_ppt)
+} 
+
+# Save rasters to weather-derived folder
+weather_folder <- "data/covariates/weather-derived-rasters/"
+monsoon_rasters <- ls()[grep("monsoon_ppt_", ls())]
+for (object in monsoon_rasters) {
+  writeRaster(get(object), paste0(weather_folder, object, ".tif"))
+}
+
+weather_files <- list.files(path = "data/covariates/weather-derived-rasters",
+                            pattern = ".tif",
+                            full.names = TRUE)
+
+# Create a zip archive of weather rasters 
+# Note: we're first removing previous archive!
+weather_derived_zipfile <- "data/covariates/weather-derived.zip"
+if (file.exists(weather_derived_zipfile)) {
+  invisible(file.remove(weather_derived_zipfile))
+}
+zip(zipfile = weather_derived_zipfile,
+    files = weather_files)
+# Remove weather rasters from local repo
+invisible(file.remove(weather_files))
+
+# TODO: Determine what other precipitation metrics we want
+  # Cold and warm seasons that NPS has used for other projects?
+  # Winter precip? But note that cameras deployed early in the year.
+  # 30-year norms for annual precipitation and/or seasonal precipitation?
+  # (if so, need to download more annual files)
+
+#------------------------------------------------------------------------------#
+# Put all park-specific rasters in zip files
+#------------------------------------------------------------------------------#
+
+chir_files <- list.files(path = chir_folder, full.names = TRUE)
+orpi_files <- list.files(path = orpi_folder, full.names = TRUE)
+sagw_files <- list.files(path = sagw_folder, full.names = TRUE)
+
+# Create zip archives of files 
+# Can first remove previous archives since we unzipped at the top of script
+
+if (file.exists(chir_zip)) {
   invisible(file.remove(distance_zipfile))
 }
-zip(zipfile = distance_zipfile,
-    files = distance_files)
-# Remove distance rasters from local repo
-invisible(file.remove(distance_files))
+zip(zipfile = chir_zip,
+    files = chir_files)
+
+if (file.exists(orpi_zip)) {
+  invisible(file.remove(distance_zipfile))
+}
+zip(zipfile = orpi_zip,
+    files = orpi_files)
+
+if (file.exists(sagw_zip)) {
+  invisible(file.remove(distance_zipfile))
+}
+zip(zipfile = sagw_zip,
+    files = sagw_files)
+
+# Remove rasters from local repo
+invisible(file.remove(chir_files))
+invisible(file.remove(orpi_files))
+invisible(file.remove(sagw_files))
 
 #------------------------------------------------------------------------------#
 # Drainages

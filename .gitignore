@@ -20,3 +20,6 @@ data/covariates/weather-orig-rasters/*
 !data/covariates/weather-orig-rasters/.gitkeep
 data/covariates/weather-derived-rasters/*
 !data/covariates/weather-derived-rasters/.gitkeep
+
+data/covariates/rasters-CHIR/*
+!data/covariates/rasters-CHIR/.gitkeep
