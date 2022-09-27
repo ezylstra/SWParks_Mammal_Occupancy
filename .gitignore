@@ -23,3 +23,7 @@ data/covariates/weather-derived-rasters/*
 
 data/covariates/rasters-CHIR/*
 !data/covariates/rasters-CHIR/.gitkeep
+data/covariates/rasters-ORPI/*
+!data/covariates/rasters-ORPI/.gitkeep
+data/covariates/rasters-SAGW/*
+!data/covariates/rasters-SAGW/.gitkeep

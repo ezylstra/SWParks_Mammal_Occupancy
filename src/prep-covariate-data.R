@@ -489,19 +489,19 @@ sagw_files <- list.files(path = sagw_folder, full.names = TRUE)
 # Can first remove previous archives since we unzipped at the top of script
 
 if (file.exists(chir_zip)) {
-  invisible(file.remove(distance_zipfile))
+  invisible(file.remove(chir_zip))
 }
 zip(zipfile = chir_zip,
     files = chir_files)
 
 if (file.exists(orpi_zip)) {
-  invisible(file.remove(distance_zipfile))
+  invisible(file.remove(orpi_zip))
 }
 zip(zipfile = orpi_zip,
     files = orpi_files)
 
 if (file.exists(sagw_zip)) {
-  invisible(file.remove(distance_zipfile))
+  invisible(file.remove(sagw_zip))
 }
 zip(zipfile = sagw_zip,
     files = sagw_files)
