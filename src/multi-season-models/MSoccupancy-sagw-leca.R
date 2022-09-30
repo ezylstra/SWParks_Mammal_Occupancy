@@ -13,6 +13,7 @@ library(dplyr)
 library(lubridate)
 library(stringr)
 library(tidyr)
+library(terra)
 library(jagsUI)
 library(MCMCvis)
 
@@ -35,9 +36,9 @@ occasions <- read.csv("data/occasions/occasions-all-parks.csv")
 park <- "SAGW"
 species <- "LECA"
 
-#-------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 # Create detection histories for selected park, species
-#-------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
 # Extract sampling occasion info for selected park
 occasions <- occasions %>%
@@ -177,18 +178,86 @@ for (i in 1:nrow(surveys)) {
   surveys$site_index[i] <- which(rownames(dh) == surveys$loc[i])
 }
 
-#-------------------------------------------------------------------------------#
-# Spatial covariates
-#-------------------------------------------------------------------------------#
-# Will expand this section as more covariates become available
+#------------------------------------------------------------------------------#
+# Add occasion-specific covariates
+#------------------------------------------------------------------------------#
 
-spatial_covs <- locs_park 
+# Day of the year (use midpoint of each occasion)
+occasions <- occasions %>%
+  mutate(start_yday = yday(start),
+         end_yday = yday(end),
+         mid_yday = round((start_yday + end_yday)/2),
+         mid_yday_z = (mid_yday - mean(mid_yday))/sd(mid_yday))
+
+surveys$day_z <- occasions$mid_yday_z[match(surveys$occ, occasions$yr_occ)]
+surveys$day_z2 <- surveys$day_z * surveys$day_z
+
+# Type of camera (new cameras deployed in 2022, all the same before that)
+# TODO: check that this is correct and there were no other equipment changes
+surveys$camera_type <- ifelse(surveys$yr < 2022, 1, 2)
+
+#------------------------------------------------------------------------------#
+# Seasonal (annual) covariates
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
+# Spatial covariates
+#------------------------------------------------------------------------------#
+
+# Load rasters with spatial data (unzip SAGW folder first, if necessary)
+  
+  # Create needed lists of folder and file names 
+  park_folder <- "data/covariates/rasters-SAGW/"
+  park_zip <- "data/covariates/rasters-SAGW.zip"
+  raster_filenames <- c("dist_boundary", "dist_pois", "dist_roads", "dist_trail", 
+                        "east", "north", "slope", "vegclasses", "dist_wash")
+  park_rasters <- c("SAGW_DEM_1as.tif", 
+                    paste0(raster_filenames, "_sagw.tif"))
+  park_rasters <- paste0(park_folder, park_rasters)
+
+  # Unzip SAGW folder first, if necessary
+  if (!all(unlist(lapply(X = park_rasters, FUN = file.exists)))) {
+    unzip(park_zip, overwrite = TRUE)
+  }
+
+  raster_objects <- ifelse(str_detect(raster_filenames, "dist"), 
+                           str_remove(raster_filenames, "dist_"),
+                           raster_filenames)
+  raster_objects <- c("elev", raster_objects)
+
+  # Load each raster and compile into a list
+  raster_list <- list()
+  for (i in 1:length(raster_objects)) {
+    raster_list[[i]] <- rast(park_rasters[i])
+    names(raster_list[[i]]) <- raster_objects[i]
+  }
+
+spatial_covs <- locs_park
 
 # Ensure the order is the same as what's in the detection history matrix
 spatial_covs <- spatial_covs[match(rownames(dh), spatial_covs$loc),]
 
+# Extract covariate values for each camera location
+for (i in 1:length(raster_list)) {
+  spatial_covs <- cbind(spatial_covs, 
+                        terra::extract(x = raster_list[[i]], 
+                                       y = spatial_covs[,c("long", "lat")],
+                                       ID = FALSE))
+}
+
 # Identify continuous covariates
-covs_cont <- c("long", "lat")
+covs_cont <- c("long", "lat", raster_objects[raster_objects != "vegclasses"])
+
+# Check out pairwise correlations
+correl <- round(cor(spatial_covs[,covs_cont]),2)
+cor_df <- as.data.frame(as.table(correl))
+# Look more carefully at |r| > 0.5
+cor_df %>% 
+  arrange(desc(abs(Freq))) %>% 
+  filter(Freq != 1 & abs(Freq) > 0.5)
+  # should probably only use one of: elev, slope, roads
+  # should probably only use one of: pois, trail
 
 # Scale continuous covariates by mean, SD
 for (i in covs_cont) {
@@ -197,13 +266,28 @@ for (i in covs_cont) {
   spatial_covs[,paste0(i, "_z")] <- (spatial_covs[,i] - meani) / sdi
 }
 
+# For vegetation classes, make 1 = low gradient desert the reference level
+# and create indicators for 2 (low hillslope, foothills) and 3 (med-high 
+# gradient, hilly)
+spatial_covs <- spatial_covs %>%
+  mutate(vegclass2 = ifelse(vegclasses == 2, 1, 0),
+         vegclass3 = ifelse(vegclasses == 3, 1, 0))
+
 # Attach spatial covariates to surveys dataframe so we can use them as 
 # covariates for detection
-surveys <- left_join(surveys, spatial_covs[,c("loc", "long_z", "lat_z")])
+surveys <- left_join(surveys, 
+                     spatial_covs[,c("loc", paste0(covs_cont, "_z"), "vegclass2", "vegclass3")])
 
-#-------------------------------------------------------------------------------#
+# TODO: Probably need to attach spatial covariates to dataframe that will be used
+# for colonization/extinction
+
+# Remove raster_list from workspace, and remove rasters from local repo
+rm(raster_list)
+invisible(file.remove(list.files(park_folder, full.names = TRUE)))
+
+#------------------------------------------------------------------------------#
 # Package things up for JAGS
-#-------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
 # z (latent occupancy for each site & season) is what we're interested in
 # In JAGS, z will be stored in a matrix (n_sites[i] * n_seasons[t])
@@ -309,9 +393,9 @@ inits <- function(){list(mean_psi = runif(1, 0, 1),
                          beta_gam1 = runif(1, -2, 2),
                          z = inits_state_occ(y_array))}
 
-#-------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 # Run model in JAGS
-#-------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
 nc <- 3      # Number of chains
 na <- 3000   # Number of iterations to run in the adaptive phase
@@ -343,9 +427,9 @@ model_file <- paste0("output/models/",
 saveRDS(object = out,
         file = model_file)
 
-#-------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 # For comparison, running the same model in unmarked
-#-------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
 library(unmarked)
 dh_full <- cbind(dh[,1:5], rep(NA, n_sites),
@@ -375,9 +459,9 @@ summary(umf)
 summary(m <- colext(~ lat + lat2, ~ long, ~ lat, ~ lat + effort, data = umf))
 # Estimates are pretty similar
 
-#-------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 # Interpreting/plotting effects of covariates (examples)
-#-------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------#
 
 # Load JAGS model if we ran it previously:
 # model_file <- paste0("output/models/",
