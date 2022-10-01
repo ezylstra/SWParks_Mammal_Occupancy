@@ -200,12 +200,62 @@ surveys$camera_type <- ifelse(surveys$yr < 2022, 1, 2)
 # Seasonal (annual) covariates
 #------------------------------------------------------------------------------#
 
+# We want to think about variables that will explain transitions between 
+# occupancy status from one season to the next (ext/col), so the number of 
+# transitions is equal to the number of seasons - 1.
+
+# Create a dataframe that will contain seasonal covariates
+sites <- surveys %>%
+  select(loc, site_index) %>%
+  distinct %>%
+  left_join(., locs_park)
+
+transition_starts <- min(occasions$yr):(max(occasions$yr)-1)
+
+# Load rasters with seasonal (and spatial) data
+  # Create needed lists of folder and file names 
+  weather_folder <- "data/covariates/weather-derived-rasters/"
+  weather_zip <- "data/covariates/weather-derived.zip"
+  weather_objects <- paste0("monsoon_ppt_", transition_starts)
+  weather_rasters <- paste0(weather_folder, weather_objects, ".tif")
+  
+  # Unzip weather folder first, if necessary
+  if (!all(unlist(lapply(X = weather_rasters, FUN = file.exists)))) {
+    unzip(weather_zip, overwrite = TRUE)
+  }
+
+  # Load each raster and compile into a list
+  weather_list <- list()
+  for (i in 1:length(weather_objects)) {
+    weather_list[[i]] <- rast(weather_rasters[i])
+    names(weather_list[[i]]) <- "monsoon_ppt"
+  }
+
+# Create a list that will store covariate values for each location in each 
+# transition season
+sitetrans <- list()
+for (i in 1:length(weather_list)) {
+  sitetrans[[i]] <- sites
+  sitetrans[[i]]$start_yr <- transition_starts[i] 
+  sitetrans[[i]]$end_yr <- transition_starts[i] + 1
+  sitetrans[[i]]$trans_index <- i
+  sitetrans[[i]] <- cbind(sitetrans[[i]],
+                          terra::extract(x = weather_list[[i]],
+                                         y = sitetrans[[i]][,c("long", "lat")],
+                                         ID = FALSE))
+}
+# Combine annual dataframes in list to a single dataframe
+sitetrans <- bind_rows(sitetrans)
+  
+# Remove weather_list from workspace, and remove rasters from local repo
+rm(weather_list)
+invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
 
 #------------------------------------------------------------------------------#
 # Spatial covariates
 #------------------------------------------------------------------------------#
 
-# Load rasters with spatial data (unzip SAGW folder first, if necessary)
+# Load rasters with spatial data
   
   # Create needed lists of folder and file names 
   park_folder <- "data/covariates/rasters-SAGW/"
@@ -273,17 +323,20 @@ spatial_covs <- spatial_covs %>%
   mutate(vegclass2 = ifelse(vegclasses == 2, 1, 0),
          vegclass3 = ifelse(vegclasses == 3, 1, 0))
 
+# Remove raster_list from workspace, and remove rasters from local repo
+rm(raster_list)
+invisible(file.remove(list.files(park_folder, full.names = TRUE)))
+
 # Attach spatial covariates to surveys dataframe so we can use them as 
 # covariates for detection
 surveys <- left_join(surveys, 
                      spatial_covs[,c("loc", paste0(covs_cont, "_z"), "vegclass2", "vegclass3")])
 
-# TODO: Probably need to attach spatial covariates to dataframe that will be used
-# for colonization/extinction
-
-# Remove raster_list from workspace, and remove rasters from local repo
-rm(raster_list)
-invisible(file.remove(list.files(park_folder, full.names = TRUE)))
+# Attach subset of spatial covariates to sitetrans dataframe so we can use them 
+# as covariates for extinction/colonization
+covs_extcol <- c("elev")
+sitetrans <- left_join(sitetrans, 
+                       spatial_covs[,c("loc", paste0(covs_extcol, "_z"))])
 
 #------------------------------------------------------------------------------#
 # Package things up for JAGS
