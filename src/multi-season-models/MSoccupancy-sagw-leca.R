@@ -35,6 +35,7 @@ occasions <- read.csv("data/occasions/occasions-all-parks.csv")
 # Identify park, species, and year of interest
 park <- "SAGW"
 species <- "LECA"
+years <- 2017:2022
 
 #------------------------------------------------------------------------------#
 # Create detection histories for selected park, species
@@ -195,7 +196,7 @@ surveys$day_z2 <- surveys$day_z * surveys$day_z
 
 # Type of camera (new cameras deployed in 2022, all the same before that)
 # TODO: check that this is correct and there were no other equipment changes
-surveys$camera_type <- ifelse(surveys$yr < 2022, 1, 2)
+surveys$camera_new <- ifelse(surveys$yr < 2022, 0, 1)
 
 #------------------------------------------------------------------------------#
 # Seasonal (annual) covariates
@@ -228,12 +229,13 @@ transition_starts <- min(occasions$yr):(max(occasions$yr)-1)
   
 # List files in weather folder
 weather_files <- list.files(weather_folder, full.names = TRUE)
+weather_files <- weather_files[str_detect(weather_files, "2016", negate = TRUE)]
   
 # Compile monsoon precipitation data (could do the same for other types of 
 # weather data if available)
 weather_var <- "monsoon_ppt"
 weather_subset <- weather_files[str_detect(weather_files, weather_var)]
-  
+
 # Load each raster and compile into a list
 weather_subset_list <- list()
 for (i in 1:length(weather_subset)) {
@@ -257,6 +259,13 @@ for (i in 1:length(weather_subset_list)) {
     
 # Combine annual dataframes in list to a single dataframe
 sitetrans <- bind_rows(sitetrans)
+
+# Scale continuous covariates by mean, SD
+for (i in weather_var) {
+  meani <- mean(sitetrans[,i])
+  sdi <- sd(sitetrans[,i])
+  sitetrans[,paste0(i, "_z")] <- (sitetrans[,i] - meani) / sdi
+}
     
 # Remove weather_subset_list from workspace, and remove rasters from local repo
 rm(weather_subset_list)
@@ -332,7 +341,8 @@ for (i in covs_cont) {
 # gradient, hilly)
 spatial_covs <- spatial_covs %>%
   mutate(vegclass2 = ifelse(vegclasses == 2, 1, 0),
-         vegclass3 = ifelse(vegclasses == 3, 1, 0))
+         vegclass3 = ifelse(vegclasses == 3, 1, 0)) %>%
+  select(-vegclasses)
 
 # Remove raster_list from workspace, and remove rasters from local repo
 rm(raster_list)
@@ -409,41 +419,71 @@ inits_state_occ <- function(y_array){
 # check:
 # inits_state_occ(y_array)
 
-# Create object with covariates for occupancy in first season
-# Here, using latitude and latitude^2
+# Identify covariates for each model parameter
+  # Initial occupancy (psi)
+  covariates_psi <- c("elev", "pois", "vegclass")
+  covariates_psi <- ifelse(covariates_psi %in% covs_cont,
+                           paste0(covariates_psi, "_z"), covariates_psi)
+  # Detection probability (p)
+  covariates_p <- c("effort", "day", "camera_new")
+  covariates_p <- ifelse(covariates_p %in% c(covs_cont, "effort", "day"),
+                         paste0(covariates_p, "_z"), covariates_p)
+  # Extinction probability (eps)
+  covariates_eps <- c("monsoon_ppt", "elev")
+  covariates_eps <- ifelse(covariates_eps %in% c(covs_cont, "monsoon_ppt"),
+                           paste0(covariates_eps, "_z"), covariates_eps)
+  # Colonization probability (gam)
+  covariates_gam <- c("elev")
+  covariates_gam <- ifelse(covariates_gam %in% c(covs_cont, "monsoon_ppt"),
+                           paste0(covariates_gam, "_z"), covariates_gam)
+
+# Extract matrices of covariate values
+# Can create quadratics or interactions here, if necessary
 cov_psi <- spatial_covs %>%
-  select(lat_z) %>%
-  mutate(lat_z2 = lat_z * lat_z) %>%
+  select(contains(covariates_psi)) %>%
   as.matrix
 n_cov_psi <- ncol(cov_psi)
 
-# Create object with covariates for detection
-# Here, using latitude and effort
 cov_p <- surveys %>%
-  select(lat_z, effort_z) %>%
+  select(contains(covariates_p)) %>%
   as.matrix
 n_cov_p <- ncol(cov_p)
+
+cov_eps <- sitetrans %>%
+  select(contains(covariates_eps)) %>%
+  as.matrix
+n_cov_eps <- ncol(cov_eps)
+
+cov_gam <- sitetrans %>%
+  select(contains(covariates_gam)) %>%
+  as.matrix
+n_cov_gam <- ncol(cov_gam)
 
 # Bundle data for JAGS
 jags_data <- list(y = surveys$det,
                   n_sites = n_sites,
                   n_seasons = n_seasons,
                   n_obs = nrow(surveys),
+                  n_sitetrans = nrow(sitetrans),
                   cov_psi = cov_psi,
                   n_cov_psi = ncol(cov_psi),
                   cov_p = cov_p,
                   n_cov_p = ncol(cov_p),
-                  lat = spatial_covs$lat_z,
-                  long = spatial_covs$long_z,
+                  cov_eps = cov_eps,
+                  n_cov_eps = ncol(cov_eps),
+                  cov_gam = cov_gam,
+                  n_cov_gam = ncol(cov_gam),
                   site = surveys$site_index,
                   season = surveys$season_index,
+                  site_ec = sitetrans$site_index,
+                  trans_ec = sitetrans$trans_index,
                   z = known_state_occ(y_array))
 
 # List of parameters to monitor
 params <- c("mean_psi", "beta_psi0", "beta_psi",
             "mean_p", "beta_p0", "beta_p",
-            "beta_eps0", "beta_eps1",
-            "beta_gam0", "beta_gam1",
+            "mean_eps", "beta_eps0", "beta_eps",
+            "mean_gam", "beta_gam0", "beta_gam",
             "PAO")
 
 # Initial values
@@ -451,10 +491,10 @@ inits <- function(){list(mean_psi = runif(1, 0, 1),
                          beta_psi = runif(n_cov_psi, -2, -2),
                          mean_p = runif(1, 0, 1),
                          beta_p = runif(n_cov_p, -2, 2),
-                         beta_eps0 = runif(1, -1, 1),
-                         beta_eps1 = runif(1, -2 ,2),
-                         beta_gam0 = runif(1, -1, 1),
-                         beta_gam1 = runif(1, -2, 2),
+                         mean_eps = runif(1, 0, 1),
+                         beta_eps = runif(n_cov_eps, -2, 2),
+                         mean_gam = runif(1, 0, 1),
+                         beta_gam = runif(n_cov_gam, -2, 2),
                          z = inits_state_occ(y_array))}
 
 #------------------------------------------------------------------------------#
@@ -487,41 +527,9 @@ print(out)
 model_file <- paste0("output/models/",
                      tolower(park), "-",
                      tolower(species), "-",
-                     "MS-test.rds")
+                     "MS-test2.rds")
 saveRDS(object = out,
         file = model_file)
-
-#------------------------------------------------------------------------------#
-# For comparison, running the same model in unmarked
-#------------------------------------------------------------------------------#
-
-library(unmarked)
-dh_full <- cbind(dh[,1:5], rep(NA, n_sites),
-                 dh[,6:9], rep(NA, n_sites), rep(NA, n_sites),
-                 matrix(NA, ncol = 6, nrow = n_sites),
-                 dh[,10:15],
-                 dh[,16:20], rep(NA, n_sites),
-                 dh[,21:25], rep(NA, n_sites))
-
-eff_mean <- mean(c(effort[effort!=0]))
-eff_sd <- sd(c(effort[effort!=0]))
-effort_z <- (effort - eff_mean)/eff_sd
-eff_full <- cbind(effort_z[,1:5], rep(NA, n_sites),
-                  effort_z[,6:9], rep(NA, n_sites), rep(NA, n_sites),
-                  matrix(NA, ncol = 6, nrow = n_sites),
-                  effort_z[,10:15],
-                  effort_z[,16:20], rep(NA, n_sites),
-                  effort_z[,21:25], rep(NA, n_sites))
-
-umf <- unmarkedMultFrame(y = dh_full,
-                         siteCovs = data.frame(lat = spatial_covs$lat_z,
-                                               lat2 = spatial_covs$lat_z^2,
-                                               long = spatial_covs$long_z),
-                         obsCovs = list(effort = eff_full),
-                         numPrimary = max(surveys$season_index))
-summary(umf)
-summary(m <- colext(~ lat + lat2, ~ long, ~ lat, ~ lat + effort, data = umf))
-# Estimates are pretty similar
 
 #------------------------------------------------------------------------------#
 # Interpreting/plotting effects of covariates (examples)
@@ -614,4 +622,131 @@ samples <- do.call(rbind, samples)
        xlab = "Latitude", ylab = "Predicted occupancy")
   polygon(c(latit, rev(latit)), c(cri_psi[1,], rev(cri_psi[2,])), 
           col = rgb(0, 0, 0, 0.2), border = NA)
+  
+#------------------------------------------------------------------------------#
+# For comparison, running a simple model in JAGS and unmarked
+#------------------------------------------------------------------------------#
+  
+  # Identify covariates for each model parameter
+  # Initial occupancy (psi)
+  covariates_psi <- c("elev")
+  covariates_psi <- ifelse(covariates_psi %in% covs_cont,
+                           paste0(covariates_psi, "_z"), covariates_psi)
+  # Detection probability (p)
+  covariates_p <- c("effort")
+  covariates_p <- ifelse(covariates_p %in% c(covs_cont, "effort", "day"),
+                         paste0(covariates_p, "_z"), covariates_p)
+  # Extinction probability (eps)
+  covariates_eps <- c("elev")
+  covariates_eps <- ifelse(covariates_eps %in% c(covs_cont, "monsoon_ppt"),
+                           paste0(covariates_eps, "_z"), covariates_eps)
+  # Colonization probability (gam)
+  covariates_gam <- c("elev")
+  covariates_gam <- ifelse(covariates_gam %in% c(covs_cont, "monsoon_ppt"),
+                           paste0(covariates_gam, "_z"), covariates_gam)
+  
+  # Extract matrices of covariate values
+  # Can create quadratics or interactions here, if necessary
+  cov_psi <- spatial_covs %>%
+    select(contains(covariates_psi)) %>%
+    as.matrix
+  n_cov_psi <- ncol(cov_psi)
+  
+  cov_p <- surveys %>%
+    select(contains(covariates_p)) %>%
+    as.matrix
+  n_cov_p <- ncol(cov_p)
+  
+  cov_eps <- sitetrans %>%
+    select(contains(covariates_eps)) %>%
+    as.matrix
+  n_cov_eps <- ncol(cov_eps)
+  
+  cov_gam <- sitetrans %>%
+    select(contains(covariates_gam)) %>%
+    as.matrix
+  n_cov_gam <- ncol(cov_gam)
+  
+  # Bundle data for JAGS
+  jags_data <- list(y = surveys$det,
+                    n_sites = n_sites,
+                    n_seasons = n_seasons,
+                    n_obs = nrow(surveys),
+                    n_sitetrans = nrow(sitetrans),
+                    cov_psi = cov_psi,
+                    n_cov_psi = ncol(cov_psi),
+                    cov_p = cov_p,
+                    n_cov_p = ncol(cov_p),
+                    cov_eps = cov_eps,
+                    n_cov_eps = ncol(cov_eps),
+                    cov_gam = cov_gam,
+                    n_cov_gam = ncol(cov_gam),
+                    site = surveys$site_index,
+                    season = surveys$season_index,
+                    site_ec = sitetrans$site_index,
+                    trans_ec = sitetrans$trans_index,
+                    z = known_state_occ(y_array))
+  
+  # List of parameters to monitor
+  params <- c("mean_psi", "beta_psi0", "beta_psi",
+              "mean_p", "beta_p0", "beta_p",
+              "mean_eps", "beta_eps0", "beta_eps",
+              "mean_gam", "beta_gam0", "beta_gam",
+              "PAO")
+  
+  # Initial values
+  inits <- function(){list(mean_psi = runif(1, 0, 1),
+                           beta_psi = runif(n_cov_psi, -2, -2),
+                           mean_p = runif(1, 0, 1),
+                           beta_p = runif(n_cov_p, -2, 2),
+                           mean_eps = runif(1, 0, 1),
+                           beta_eps = runif(n_cov_eps, -2, 2),
+                           mean_gam = runif(1, 0, 1),
+                           beta_gam = runif(n_cov_gam, -2, 2),
+                           z = inits_state_occ(y_array))}
+  
+  nc <- 3      # Number of chains
+  na <- 3000   # Number of iterations to run in the adaptive phase
+  nb <- 10000  # Number of iterations to discard (burn-in)
+  ni <- 20000  # Number of iterations per chain (including burn-in)
+  nt <- 10     # Thinning rate
+  
+  out.simple <- jags(data = jags_data,
+                     inits = inits,
+                     parameters.to.save = params,
+                     model.file = "JAGS/JAGS_MultiSeasonWithCovs.txt",
+                     n.chains = nc,
+                     n.adapt = na,
+                     n.burnin = nb,
+                     n.iter = ni,
+                     n.thin = nt,
+                     parallel = TRUE)
+  
+  print(out.simple)
+  
+  library(unmarked)
+  dh_full <- cbind(dh[,1:5], rep(NA, n_sites),
+                   dh[,6:9], rep(NA, n_sites), rep(NA, n_sites),
+                   matrix(NA, ncol = 6, nrow = n_sites),
+                   dh[,10:15],
+                   dh[,16:20], rep(NA, n_sites),
+                   dh[,21:25], rep(NA, n_sites))
+  
+  eff_mean <- mean(c(effort[effort!=0]))
+  eff_sd <- sd(c(effort[effort!=0]))
+  effort_z <- (effort - eff_mean)/eff_sd
+  eff_full <- cbind(effort_z[,1:5], rep(NA, n_sites),
+                    effort_z[,6:9], rep(NA, n_sites), rep(NA, n_sites),
+                    matrix(NA, ncol = 6, nrow = n_sites),
+                    effort_z[,10:15],
+                    effort_z[,16:20], rep(NA, n_sites),
+                    effort_z[,21:25], rep(NA, n_sites))
+  
+  umf <- unmarkedMultFrame(y = dh_full,
+                           siteCovs = data.frame(elev = spatial_covs$elev_z),
+                           obsCovs = list(effort = eff_full),
+                           numPrimary = max(surveys$season_index))
+  summary(umf)
+  summary(m <- colext(~ elev, ~ elev, ~ elev, ~ effort, data = umf))
+  # Estimates are pretty similar
   
