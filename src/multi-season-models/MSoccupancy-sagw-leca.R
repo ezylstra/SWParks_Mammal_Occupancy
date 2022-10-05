@@ -539,7 +539,7 @@ saveRDS(object = out,
 # model_file <- paste0("output/models/",
 #                      tolower(park), "-",
 #                      tolower(species), "-",
-#                      "MS-test.rds")
+#                      "MS-test2.rds")
 # out <- readRDS(file = model_file)
 
 # Extract posterior samples from jagsUI object and combine into one dataframe
@@ -547,7 +547,7 @@ samples <- out$samples
 samples <- do.call(rbind, samples)
 
 # Estimate detection probability for a particular level of effort
-# (assuming constant latitude)
+# (assuming average day number and cameras used prior to 2022)
 
   # Camera operating for all 7 days
   eff7 <- 1
@@ -577,37 +577,38 @@ samples <- do.call(rbind, samples)
   mean(pred_prob_p)
   quantile(pred_prob_p, probs = c(0.025, 0.975))
 
-# Estimate how colonization probability would change with a 1-unit(SD) 
-# increase in longitude
+# Estimate how colonization probability would change with a 1-unit (SD) 
+# increase in elev
   
   # Here it's important to remember that logit is the log of the odds
   # Odds are the probability event happens / probability event doesn't happen
   # So logit(gamma[i]) = log(gamma[i] / (1-gamma[i])) = log(odds)
-  # Odds a site gets colonized at mean longitude = exp(beta_gam0)
-  # Odds a site gets colonized with 1-SD increase in longitude = 
+  # Odds a site gets colonized at mean elevation = exp(beta_gam0)
+  # Odds a site gets colonized with 1-SD increase in elevation = 
     # exp(beta_gam0 + beta_gam1 * 1) = exp(beta_gam0)*exp(beta_gam1)
   # So the odds will change by a FACTOR of exp(beta_gam1):
-  # Odds[long+1SD] = Odds[mean long] * exp(beta_gam1)
+  # Odds[elev+1SD] = Odds[mean elev] * exp(beta_gam1)
   
-  beta_gam1 <- samples[,c("beta_gam1")]
-  change <- exp(beta_gam1)
-  mean(change) # 0.42
-  quantile(change, probs = c(0.025, 0.975)) #0.22, 0.72
-  # The odds a site is colonized are estimated to be 58% lower for each 
-  # 1-SD increase in longitude (95% CI = 28-78%)
+  beta_gam <- samples[,c("beta_gam")]
+  change <- exp(beta_gam)
+  mean(change) # 0.48
+  quantile(change, probs = c(0.025, 0.975)) #0.27, 0.76
+  # The odds a site is colonized are estimated to be 52% lower for each 
+  # 1-SD increase in elevation (95% CI = 24-73%)
   
-# Plot effect of latitude on initial occupancy
+# Plot effect of distance-to-POI on initial occupancy (assuming vegclass = 1
+# and mean elevation)
 
-  # logit(psi[i]) <- beta_psi0 + beta_psi[1] * lat[i] + beta_psi[2] * lat^2[i]
+  # logit(psi[i]) <- beta_psi0 + beta_psi[2] * distance[i]
   
-  # Generate a vector of latitudes that span the range at surveyed locations
-  latit <- seq(min(spatial_covs$lat), max(spatial_covs$lat), length = 100)
+  # Generate a vector of distances that span the range at surveyed locations
+  dists <- seq(min(spatial_covs$pois), max(spatial_covs$pois), length = 100)
   # Standardize these values
-  latit_z <- (latit - mean(spatial_covs$lat)) / sd(spatial_covs$lat)
+  dists_z <- (dists - mean(spatial_covs$pois)) / sd(spatial_covs$pois)
   # Create a matrix of covariate values (including the intercept [1])
-  X_psi <- cbind(int = 1, lat = latit_z, lat2 = latit_z^2)
+  X_psi <- cbind(int = 1, dist = dists_z)
   # Create a matrix with posterior samples for the parameters we need
-  betas_psi <- samples[,grep("beta_psi", colnames(samples))]
+  betas_psi <- samples[,c("beta_psi0", "beta_psi[2]")]
   # A little matrix math gives you a matrix of predicted values on logit scale
   # Matrix dimensions = 100 x 3000 (3000 predicted values for each lat in seq)
   pred_logit_psi <- X_psi %*% t(betas_psi)
@@ -618,9 +619,10 @@ samples <- do.call(rbind, samples)
   cri_psi <- apply(pred_prob_psi, 1, quantile, probs = c(0.025, 0.975)) 
   
   # Plot predictions
-  plot(mean_psi ~ latit, type = "l", bty = "l", ylim = c(0, 1), 
-       xlab = "Latitude", ylab = "Predicted occupancy")
-  polygon(c(latit, rev(latit)), c(cri_psi[1,], rev(cri_psi[2,])), 
+  par(mfrow=c(1,1))
+  plot(mean_psi ~ dists, type = "l", bty = "l", ylim = c(0, 1), 
+       xlab = "Distance to POI", ylab = "Predicted occupancy", las = 1)
+  polygon(c(dists, rev(dists)), c(cri_psi[1,], rev(cri_psi[2,])), 
           col = rgb(0, 0, 0, 0.2), border = NA)
   
 #------------------------------------------------------------------------------#
