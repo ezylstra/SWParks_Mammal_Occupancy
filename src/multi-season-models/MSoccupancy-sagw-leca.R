@@ -128,7 +128,8 @@ for (i in 1:ncol(dh)) {
 # In contrast to our single-season model, we'll put detection/survey data in 
 # long form. This makes it easier to create universal model scripts that can
 # be used with different combinations of temporal and spatial covariates. This 
-# may also result in shorter run times. 
+# may also result in shorter run times (because we don't have to cycle through
+# occasion-site combinations when the camera wasn't operational). 
 
 # Basically, instead of having site * occasion * season arrays, we'll create 
 # long vectors with detection and effort data, along with accompanying variables 
@@ -201,8 +202,11 @@ surveys$camera_type <- ifelse(surveys$yr < 2022, 1, 2)
 #------------------------------------------------------------------------------#
 
 # We want to think about variables that will explain transitions between 
-# occupancy status from one season to the next (ext/col), so the number of 
-# transitions is equal to the number of seasons - 1.
+# occupancy status from one season to the next (extinction/colonization), so the 
+# number of transitions is equal to the number of seasons - 1.
+
+# For now it's just weather covariates, but we can add other types of covariates
+# at any time
 
 # Create a dataframe that will contain seasonal covariates
 sites <- surveys %>%
@@ -212,45 +216,52 @@ sites <- surveys %>%
 
 transition_starts <- min(occasions$yr):(max(occasions$yr)-1)
 
-# Load rasters with seasonal (and spatial) data
-  # Create needed lists of folder and file names 
+# Load rasters with seasonal (and spatial) weather data
+  # Create lists of folder and file names 
   weather_folder <- "data/covariates/weather-derived-rasters/"
   weather_zip <- "data/covariates/weather-derived.zip"
-  weather_objects <- paste0("monsoon_ppt_", transition_starts)
-  weather_rasters <- paste0(weather_folder, weather_objects, ".tif")
   
   # Unzip weather folder first, if necessary
-  if (!all(unlist(lapply(X = weather_rasters, FUN = file.exists)))) {
+  if (length(list.files(weather_folder)) == 0) {
     unzip(weather_zip, overwrite = TRUE)
   }
-
-  # Load each raster and compile into a list
-  weather_list <- list()
-  for (i in 1:length(weather_objects)) {
-    weather_list[[i]] <- rast(weather_rasters[i])
-    names(weather_list[[i]]) <- "monsoon_ppt"
-  }
+  
+# List files in weather folder
+weather_files <- list.files(weather_folder, full.names = TRUE)
+  
+# Compile monsoon precipitation data (could do the same for other types of 
+# weather data if available)
+weather_var <- "monsoon_ppt"
+weather_subset <- weather_files[str_detect(weather_files, weather_var)]
+  
+# Load each raster and compile into a list
+weather_subset_list <- list()
+for (i in 1:length(weather_subset)) {
+  weather_subset_list[[i]] <- rast(weather_subset[i])
+  names(weather_subset_list[[i]]) <- weather_var
+}  
 
 # Create a list that will store covariate values for each location in each 
 # transition season
 sitetrans <- list()
-for (i in 1:length(weather_list)) {
+for (i in 1:length(weather_subset_list)) {
   sitetrans[[i]] <- sites
   sitetrans[[i]]$start_yr <- transition_starts[i] 
   sitetrans[[i]]$end_yr <- transition_starts[i] + 1
   sitetrans[[i]]$trans_index <- i
   sitetrans[[i]] <- cbind(sitetrans[[i]],
-                          terra::extract(x = weather_list[[i]],
+                          terra::extract(x = weather_subset_list[[i]],
                                          y = sitetrans[[i]][,c("long", "lat")],
                                          ID = FALSE))
 }
+    
 # Combine annual dataframes in list to a single dataframe
 sitetrans <- bind_rows(sitetrans)
-  
-# Remove weather_list from workspace, and remove rasters from local repo
-rm(weather_list)
+    
+# Remove weather_subset_list from workspace, and remove rasters from local repo
+rm(weather_subset_list)
 invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
-
+    
 #------------------------------------------------------------------------------#
 # Spatial covariates
 #------------------------------------------------------------------------------#
@@ -306,7 +317,7 @@ cor_df <- as.data.frame(as.table(correl))
 cor_df %>% 
   arrange(desc(abs(Freq))) %>% 
   filter(Freq != 1 & abs(Freq) > 0.5)
-  # should probably only use one of: elev, slope, roads
+  # should probably only use one of: elev, slope (and maybe roads?)
   # should probably only use one of: pois, trail
 
 # Scale continuous covariates by mean, SD
