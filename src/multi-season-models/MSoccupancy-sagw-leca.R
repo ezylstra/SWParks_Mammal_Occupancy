@@ -203,8 +203,8 @@ surveys$camera_new <- ifelse(surveys$yr < 2022, 0, 1)
 #------------------------------------------------------------------------------#
 
 # We want to think about variables that will explain transitions between 
-# occupancy status from one season to the next (extinction/colonization), so the 
-# number of transitions is equal to the number of seasons - 1.
+# occupancy status from one season to the next (extinction/colonization). Note 
+# that the number of transitions is equal to the number of seasons - 1.
 
 # For now it's just weather covariates, but we can add other types of covariates
 # at any time
@@ -229,30 +229,33 @@ transition_starts <- min(occasions$yr):(max(occasions$yr)-1)
   
 # List files in weather folder
 weather_files <- list.files(weather_folder, full.names = TRUE)
-weather_files <- weather_files[str_detect(weather_files, "2016", negate = TRUE)]
-  
+
 # Compile monsoon precipitation data (could do the same for other types of 
 # weather data if available)
 weather_var <- "monsoon_ppt"
-weather_subset <- weather_files[str_detect(weather_files, weather_var)]
+monsoon_files <- weather_files[str_detect(weather_files, weather_var)]
+# Remove monsoon rasters associated with periods outside the years of interest
+# (monsoon rainfall in year x could explain transitions between years x and x+1)
+monsoon_yrs <- paste0(as.character(transition_starts), collapse = "|")
+monsoon_files <- monsoon_files[str_detect(monsoon_files, monsoon_yrs)]
 
 # Load each raster and compile into a list
-weather_subset_list <- list()
-for (i in 1:length(weather_subset)) {
-  weather_subset_list[[i]] <- rast(weather_subset[i])
-  names(weather_subset_list[[i]]) <- weather_var
+monsoon_list <- list()
+for (i in 1:length(monsoon_files)) {
+  monsoon_list[[i]] <- rast(monsoon_files[i])
+  names(monsoon_list[[i]]) <- weather_var
 }  
 
 # Create a list that will store covariate values for each location in each 
 # transition season
 sitetrans <- list()
-for (i in 1:length(weather_subset_list)) {
+for (i in 1:length(monsoon_list)) {
   sitetrans[[i]] <- sites
   sitetrans[[i]]$start_yr <- transition_starts[i] 
   sitetrans[[i]]$end_yr <- transition_starts[i] + 1
   sitetrans[[i]]$trans_index <- i
   sitetrans[[i]] <- cbind(sitetrans[[i]],
-                          terra::extract(x = weather_subset_list[[i]],
+                          terra::extract(x = monsoon_list[[i]],
                                          y = sitetrans[[i]][,c("long", "lat")],
                                          ID = FALSE))
 }
@@ -267,8 +270,8 @@ for (i in weather_var) {
   sitetrans[,paste0(i, "_z")] <- (sitetrans[,i] - meani) / sdi
 }
     
-# Remove weather_subset_list from workspace, and remove rasters from local repo
-rm(weather_subset_list)
+# Remove monsoon_list from workspace, and remove rasters from local repo
+rm(monsoon_list)
 invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
     
 #------------------------------------------------------------------------------#
@@ -278,12 +281,20 @@ invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
 # Load rasters with spatial data
   
   # Create needed lists of folder and file names 
-  park_folder <- "data/covariates/rasters-SAGW/"
-  park_zip <- "data/covariates/rasters-SAGW.zip"
+  park_folder <- paste0("data/covariates/rasters-", park, "/")
+  park_zip <- paste0("data/covariates/rasters-", park, ".zip")
+
   raster_filenames <- c("dist_boundary", "dist_pois", "dist_roads", "dist_trail", 
-                        "east", "north", "slope", "vegclasses", "dist_wash")
-  park_rasters <- c("SAGW_DEM_1as.tif", 
-                    paste0(raster_filenames, "_sagw.tif"))
+                        "east", "north", "slope")
+  if (park == "SAGW") {
+    raster_filenames <- c(raster_filenames, "vegclasses", "dist_wash")
+  }
+  if (park == "CHIR") {
+    raster_filenames <- c(raster_filenames, "burn_severity_2011")
+  }
+
+  park_rasters <- c(paste0(park, "_DEM_1as.tif"), 
+                    paste0(raster_filenames, "_", tolower(park), ".tif"))
   park_rasters <- paste0(park_folder, park_rasters)
 
   # Unzip SAGW folder first, if necessary
@@ -339,19 +350,27 @@ for (i in covs_cont) {
 # For vegetation classes, make 1 = low gradient desert the reference level
 # and create indicators for 2 (low hillslope, foothills) and 3 (med-high 
 # gradient, hilly)
-spatial_covs <- spatial_covs %>%
-  mutate(vegclass2 = ifelse(vegclasses == 2, 1, 0),
-         vegclass3 = ifelse(vegclasses == 3, 1, 0)) %>%
-  select(-vegclasses)
-
+if (park == "SAGW") {
+  spatial_covs <- spatial_covs %>%
+    mutate(vegclass2 = ifelse(vegclasses == 2, 1, 0),
+           vegclass3 = ifelse(vegclasses == 3, 1, 0)) %>%
+    select(-vegclasses)
+}
+  
 # Remove raster_list from workspace, and remove rasters from local repo
 rm(raster_list)
 invisible(file.remove(list.files(park_folder, full.names = TRUE)))
 
 # Attach spatial covariates to surveys dataframe so we can use them as 
 # covariates for detection
-surveys <- left_join(surveys, 
-                     spatial_covs[,c("loc", paste0(covs_cont, "_z"), "vegclass2", "vegclass3")])
+if (park == "SAGW") {
+  surveys <- left_join(surveys, 
+                       spatial_covs[,c("loc", paste0(covs_cont, "_z"), "vegclass2", "vegclass3")])
+} else {
+  surveys <- left_join(surveys, 
+                       spatial_covs[,c("loc", paste0(covs_cont, "_z"))])  
+}
+
 
 # Attach subset of spatial covariates to sitetrans dataframe so we can use them 
 # as covariates for extinction/colonization
