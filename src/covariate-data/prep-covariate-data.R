@@ -243,7 +243,7 @@ burn <- terra::crop(burn, dem_chir)
 burn <- terra::resample(burn, dem_chir, method = "near")
 
 # Write to file
-# writeRaster(burn, paste0(chir_folder, "burn_severity_chir2011.tif")) 
+# writeRaster(burn, paste0(chir_folder, "burn_severity_2011_chir.tif")) 
 
 #------------------------------------------------------------------------------#
 # Vegetation classes (SAGW only)
