@@ -192,7 +192,6 @@ occasions <- occasions %>%
          mid_yday_z = (mid_yday - mean(mid_yday))/sd(mid_yday))
 
 surveys$day_z <- occasions$mid_yday_z[match(surveys$occ, occasions$yr_occ)]
-surveys$day_z2 <- surveys$day_z * surveys$day_z
 
 # Type of camera (new cameras deployed in 2022, all the same before that)
 # TODO: check that this is correct and there were no other equipment changes
