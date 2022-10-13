@@ -1,12 +1,13 @@
 ################################################################################
-# Multi-season occupancy analysis
+# Multi-season occupancy analysis for species, park, years, and covariates 
+# specified in MSoccupancy-wrapper.R
 
 # ER Zylstra
-# Updated 2022-10-07
+# Updated 2022-10-13
 ################################################################################
 
 #------------------------------------------------------------------------------#
-# Create detection histories for selected park, species
+# Create detection histories for selected park, species, years
 #------------------------------------------------------------------------------#
 
 # Load sampling occasion data (park, year, start/end, duration)
@@ -67,8 +68,8 @@ ddh <- event_mat
         colnames(ddh) == as.character(obs$o_day[i])] <- 1
   }
   # checks:
-  sum(ddh == 1, na.rm = TRUE)
-  sum(obs$o_day %in% occ_days)
+  # sum(ddh == 1, na.rm = TRUE)
+  # sum(obs$o_day %in% occ_days)
 
 # Create a function to aggregate daily detection data during each occasion
   # NA if camera wasn't operational throughout entire occasion (all values = NA)
@@ -96,6 +97,10 @@ for (i in 1:ncol(dh)) {
   dh[,i] <- apply(multiday, 1, paNA)
   effort[,i] <- apply(multiday, 1, propNA)
 }
+
+#------------------------------------------------------------------------------#
+# Put detection and effort data into long form
+#------------------------------------------------------------------------------#
 
 # In contrast to our single-season model, we'll put detection/survey data in 
 # long form. This makes it easier to create universal model scripts that can
@@ -130,7 +135,7 @@ eff_long <- eff_df %>%
   as.data.frame
 
 # Merge detection and effort data
-surveys <- left_join(dh_long, eff_long)
+surveys <- left_join(dh_long, eff_long, by = c("loc", "occ"))
 
 # Remove rows with det = NA (no survey data for that occasion/location)
 surveys <- filter(surveys, !is.na(det))
@@ -152,7 +157,7 @@ for (i in 1:nrow(surveys)) {
 }
 
 #------------------------------------------------------------------------------#
-# Add occasion-specific covariates
+# Add occasion-specific covariates to detection data
 #------------------------------------------------------------------------------#
 
 # Day of the year (use midpoint of each occasion)
@@ -176,18 +181,18 @@ surveys$camera_new <- ifelse(surveys$yr < 2022, 0, 1)
 # occupancy status from one season to the next (extinction/colonization). Note 
 # that the number of transitions is equal to the number of seasons - 1.
 
-# For now it's just weather covariates, but we can add other types of covariates
-# at any time
+# For now we just have weather covariates, but we can add other types of 
+# covariates at any time
 
 # Create a dataframe that will contain seasonal covariates
 sites <- surveys %>%
   select(loc, site_index) %>%
   distinct %>%
-  left_join(., locs_park)
+  left_join(., locs_park, by = "loc")
 
 transition_starts <- min(occasions$yr):(max(occasions$yr)-1)
 
-# Load rasters with seasonal (and spatial) weather data
+# Load rasters with seasonal weather data (that also varies over space)
   # Create lists of folder and file names 
   weather_folder <- "data/covariates/weather-derived-rasters/"
   weather_zip <- "data/covariates/weather-derived.zip"
@@ -230,7 +235,7 @@ for (i in 1:length(monsoon_list)) {
                                          ID = FALSE))
 }
     
-# Combine annual dataframes in list to a single dataframe
+# Combine annual dataframes in sitetrans list to a single dataframe
 sitetrans <- bind_rows(sitetrans)
 
 # Scale continuous covariates by mean, SD
@@ -240,12 +245,12 @@ for (i in weather_var) {
   sitetrans[,paste0(i, "_z")] <- (sitetrans[,i] - meani) / sdi
 }
     
-# Remove monsoon_list from workspace, and remove rasters from local repo
+# Remove raster list from workspace, and remove rasters from local repo
 rm(monsoon_list)
 invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
     
 #------------------------------------------------------------------------------#
-# Spatial covariates
+# Spatial covariates (time invariant)
 #------------------------------------------------------------------------------#
 
 # Load rasters with spatial data
@@ -267,7 +272,7 @@ invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
                     paste0(raster_filenames, "_", tolower(park), ".tif"))
   park_rasters <- paste0(park_folder, park_rasters)
 
-  # Unzip SAGW folder first, if necessary
+  # Unzip park folder first, if necessary
   if (!all(unlist(lapply(X = park_rasters, FUN = file.exists)))) {
     unzip(park_zip, overwrite = TRUE)
   }
@@ -307,8 +312,6 @@ cor_df <- as.data.frame(as.table(correl))
 cor_df %>% 
   arrange(desc(abs(Freq))) %>% 
   filter(Freq != 1 & abs(Freq) > 0.5)
-  # should probably only use one of: elev, slope (and maybe roads?)
-  # should probably only use one of: pois, trail
 
 # Scale continuous covariates by mean, SD
 for (i in covs_cont) {
@@ -327,7 +330,7 @@ if (park == "SAGW") {
     select(-vegclasses)
 }
   
-# Remove raster_list from workspace, and remove rasters from local repo
+# Remove raster list from workspace, and remove rasters from local repo
 rm(raster_list)
 invisible(file.remove(list.files(park_folder, full.names = TRUE)))
 
@@ -335,22 +338,28 @@ invisible(file.remove(list.files(park_folder, full.names = TRUE)))
 # covariates for detection
 if (park == "SAGW") {
   surveys <- left_join(surveys, 
-                       spatial_covs[,c("loc", paste0(covs_cont, "_z"), "vegclass2", "vegclass3")])
+                       spatial_covs[,c("loc", paste0(covs_cont, "_z"), "vegclass2", "vegclass3")],
+                       by = "loc")
 } else {
   surveys <- left_join(surveys, 
-                       spatial_covs[,c("loc", paste0(covs_cont, "_z"))])  
+                       spatial_covs[,c("loc", paste0(covs_cont, "_z"))],
+                       by = "loc")  
 }
 
 
 # Attach subset of spatial covariates to sitetrans dataframe so we can use them 
-# as covariates for extinction/colonization
+# as covariates for extinction/colonization (for now, assuming the only spatial
+# covariate that might be used for ext/col is elevation)
 covs_extcol <- c("elev")
 sitetrans <- left_join(sitetrans, 
-                       spatial_covs[,c("loc", paste0(covs_extcol, "_z"))])
+                       spatial_covs[,c("loc", paste0(covs_extcol, "_z"))], 
+                       by = "loc")
 
 #------------------------------------------------------------------------------#
-# Extract covariate values for each parameter
+# Extract covariate values for each parameter 
+# (covariates selected in MSoccupancy-wrapper.R)
 #------------------------------------------------------------------------------#
+covs_cont <- c(covs_cont, "effort", "day", "monsoon_ppt", "burn_severity_2011")
 
 # Initial occupancy (psi)  
   # Create vector of standardized covariate names
@@ -373,7 +382,7 @@ sitetrans <- left_join(sitetrans,
 
 # Detection probability (p)  
   # Create vector of standardized covariate names
-  covariates_p <- ifelse(covariates_p %in% c(covs_cont, "effort", "day"),
+  covariates_p <- ifelse(covariates_p %in% covs_cont,
                          paste0(covariates_p, "_z"), covariates_p)
   if (!is.na(p_quadratics)) {
     p_quadratics<- covariates_p[p_quadratics]
@@ -392,7 +401,7 @@ sitetrans <- left_join(sitetrans,
 
 # Extinction probability (eps)  
   # Create vector of standardized covariate names
-  covariates_eps <- ifelse(covariates_eps %in% c(covs_cont, "monsoon_ppt"),
+  covariates_eps <- ifelse(covariates_eps %in% covs_cont,
                            paste0(covariates_eps, "_z"), covariates_eps)  
   if (!is.na(eps_quadratics)) {
     eps_quadratics<- covariates_eps[eps_quadratics]
@@ -412,10 +421,10 @@ sitetrans <- left_join(sitetrans,
     eps_interacts <- matrix(NA, nrow = 1, ncol = 2)
     for (i in 1:n_eps_interacts) {
       eps_interacts[i,] <- get(paste0("eps_int", i))
-      eps_interacts[i,1] <- ifelse(eps_interacts[i,1] %in% c(covs_cont, "monsoon_ppt"),
+      eps_interacts[i,1] <- ifelse(eps_interacts[i,1] %in% covs_cont,
                                    paste0(eps_interacts[i,1], "_z"),
                                    eps_interacts[i,1])
-      eps_interacts[i,2] <- ifelse(eps_interacts[i,2] %in% c(covs_cont, "monsoon_ppt"),
+      eps_interacts[i,2] <- ifelse(eps_interacts[i,2] %in% covs_cont,
                                    paste0(eps_interacts[i,2], "_z"),
                                    eps_interacts[i,2])    
       cov_eps[,paste0(eps_interacts[i,], collapse = "_")] <- 
@@ -427,7 +436,7 @@ sitetrans <- left_join(sitetrans,
 
 # Colonization probability (gam)  
   # Create vector of standardized covariate names
-  covariates_gam <- ifelse(covariates_gam %in% c(covs_cont, "monsoon_ppt"),
+  covariates_gam <- ifelse(covariates_gam %in% covs_cont,
                            paste0(covariates_gam, "_z"), covariates_gam)  
   if (!is.na(gam_quadratics)) {
     gam_quadratics<- covariates_gam[gam_quadratics]
@@ -447,10 +456,10 @@ sitetrans <- left_join(sitetrans,
     gam_interacts <- matrix(NA, nrow = 1, ncol = 2)
     for (i in 1:n_gam_interacts) {
       gam_interacts[i,] <- get(paste0("gam_int", i))
-      gam_interacts[i,1] <- ifelse(gam_interacts[i,1] %in% c(covs_cont, "monsoon_ppt"),
+      gam_interacts[i,1] <- ifelse(gam_interacts[i,1] %in% covs_cont,
                                    paste0(gam_interacts[i,1], "_z"),
                                    gam_interacts[i,1])
-      gam_interacts[i,2] <- ifelse(gam_interacts[i,2] %in% c(covs_cont, "monsoon_ppt"),
+      gam_interacts[i,2] <- ifelse(gam_interacts[i,2] %in% covs_cont,
                                    paste0(gam_interacts[i,2], "_z"),
                                    gam_interacts[i,2])    
       cov_gam[,paste0(gam_interacts[i,], collapse = "_")] <- 
@@ -478,9 +487,9 @@ n_cov_gam <- ncol(cov_gam)
   # Create an array with detection data (row = site, col = occ, slice = season)
   # Then use an apply function, summarizing over columns
 
-n_sites <- max(surveys$site_index) # 60
-n_seasons <- max(surveys$season_index) # 6
-max_n_occasions <- max(surveys$occ_index) # 6
+n_sites <- max(surveys$site_index)
+n_seasons <- max(surveys$season_index)
+max_n_occasions <- max(surveys$occ_index)
 season_occ <- data.frame(season_index = 1:n_seasons)
 season_occ$yr <- surveys$yr[match(season_occ$season_index, surveys$season_index)]
 for (i in 1:n_seasons) {

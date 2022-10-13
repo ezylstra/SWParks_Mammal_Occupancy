@@ -1,8 +1,8 @@
 ################################################################################
-# Multi-season occupancy analysis
+# Specifying parameters to run a multi-season occupancy analysis
 
 # ER Zylstra
-# Updated 2022-10-07
+# Updated 2022-10-13
 ################################################################################
 
 library(dplyr)
@@ -47,7 +47,8 @@ years <- 2017:2022
   
   # Indicate (by number) if you want to include quadratic effects for any of the
   # elements in covariates_psi (NA if none; c(1,3) would include linear and 
-  # quadratic effects of the 1st and 3rd covariates in the vector above)
+  # quadratic effects of the 1st and 3rd covariates in the covariates_psi vector
+  # above)
   psi_quadratics <- c(2)
 
 # Covariates for detection probability (p)
