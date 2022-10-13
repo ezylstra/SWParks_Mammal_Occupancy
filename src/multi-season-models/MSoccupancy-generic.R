@@ -361,119 +361,127 @@ sitetrans <- left_join(sitetrans,
 #------------------------------------------------------------------------------#
 covs_cont <- c(covs_cont, "effort", "day", "monsoon_ppt", "burn_severity_2011")
 
-# Initial occupancy (psi)  
-  # Create vector of standardized covariate names
-  covariates_psi <- ifelse(covariates_psi %in% covs_cont,
-                           paste0(covariates_psi, "_z"), covariates_psi)
-  if (!is.na(psi_quadratics)) {
-    psi_quadratics <- covariates_psi[psi_quadratics]
-  } 
-  # Extract covariate values
-  cov_psi <- spatial_covs %>%
-    select(contains(covariates_psi))
-  # Add quadratics if needed
-  if (!is.na(psi_quadratics)) {
-    cov_psi[,paste0(psi_quadratics, "2")] <- cov_psi[,psi_quadratics] ^ 2
+# Initial occupancy (psi)
+  if (!all(is.na(covariates_psi))) {
+    # Create vector of standardized covariate names
+    covariates_psi <- ifelse(covariates_psi %in% covs_cont,
+                             paste0(covariates_psi, "_z"), covariates_psi)
+    if (!is.na(psi_quadratics)) {
+      psi_quadratics <- covariates_psi[psi_quadratics]
+    } 
+    # Extract covariate values
+    cov_psi <- spatial_covs %>%
+      select(contains(covariates_psi))
+    # Add quadratics if needed
+    if (!is.na(psi_quadratics)) {
+      cov_psi[,paste0(psi_quadratics, "2")] <- cov_psi[,psi_quadratics] ^ 2
+    }
+    # Put columns in alphabetical order and convert to a matrix
+    cov_psi <- cov_psi %>%
+      select(order(colnames(.))) %>%
+      as.matrix
   }
-  # Put columns in alphabetical order and convert to a matrix
-  cov_psi <- cov_psi %>%
-    select(order(colnames(.))) %>%
-    as.matrix
-
+    
 # Detection probability (p)  
-  # Create vector of standardized covariate names
-  covariates_p <- ifelse(covariates_p %in% covs_cont,
-                         paste0(covariates_p, "_z"), covariates_p)
-  if (!is.na(p_quadratics)) {
-    p_quadratics<- covariates_p[p_quadratics]
-  } 
-  # Extract covariate values
-  cov_p <- surveys %>%
-    select(contains(covariates_p))
-  # Add quadratics if needed
-  if (!is.na(p_quadratics)) {
-    cov_p[,paste0(p_quadratics, "2")] <- cov_p[,p_quadratics] ^ 2
+  if (!all(is.na(covariates_p))) { 
+    # Create vector of standardized covariate names
+    covariates_p <- ifelse(covariates_p %in% covs_cont,
+                           paste0(covariates_p, "_z"), covariates_p)
+    if (!is.na(p_quadratics)) {
+      p_quadratics<- covariates_p[p_quadratics]
+    } 
+    # Extract covariate values
+    cov_p <- surveys %>%
+      select(contains(covariates_p))
+    # Add quadratics if needed
+    if (!is.na(p_quadratics)) {
+      cov_p[,paste0(p_quadratics, "2")] <- cov_p[,p_quadratics] ^ 2
+    }
+    # Put columns in alphabetical order and convert to a matrix
+    cov_p <- cov_p %>%
+      select(order(colnames(.))) %>%
+      as.matrix  
   }
-  # Put columns in alphabetical order and convert to a matrix
-  cov_p <- cov_p %>%
-    select(order(colnames(.))) %>%
-    as.matrix  
 
 # Extinction probability (eps)  
-  # Create vector of standardized covariate names
-  covariates_eps <- ifelse(covariates_eps %in% covs_cont,
-                           paste0(covariates_eps, "_z"), covariates_eps)  
-  if (!is.na(eps_quadratics)) {
-    eps_quadratics<- covariates_eps[eps_quadratics]
-  }   
-  # Extract covariate values  
-  cov_eps <- sitetrans %>%
-    select(contains(covariates_eps))
-  # Add quadratics if needed
-  if (!is.na(eps_quadratics)) {
-    cov_eps[,paste0(eps_quadratics, "2")] <- cov_eps[,eps_quadratics] ^ 2
-  }
-  # Put columns in alphabetical order
-  cov_eps <- cov_eps %>%
-    select(order(colnames(.)))
-  # Add interactions if needed
-  if (n_eps_interacts > 0) {
-    eps_interacts <- matrix(NA, nrow = 1, ncol = 2)
-    for (i in 1:n_eps_interacts) {
-      eps_interacts[i,] <- get(paste0("eps_int", i))
-      eps_interacts[i,1] <- ifelse(eps_interacts[i,1] %in% covs_cont,
-                                   paste0(eps_interacts[i,1], "_z"),
-                                   eps_interacts[i,1])
-      eps_interacts[i,2] <- ifelse(eps_interacts[i,2] %in% covs_cont,
-                                   paste0(eps_interacts[i,2], "_z"),
-                                   eps_interacts[i,2])    
-      cov_eps[,paste0(eps_interacts[i,], collapse = "_")] <- 
-        cov_eps[,eps_interacts[i,1]] * cov_eps[,eps_interacts[i,2]]
+  if (!all(is.na(covariates_eps))) {
+    # Create vector of standardized covariate names
+    covariates_eps <- ifelse(covariates_eps %in% covs_cont,
+                             paste0(covariates_eps, "_z"), covariates_eps)  
+    if (!is.na(eps_quadratics)) {
+      eps_quadratics<- covariates_eps[eps_quadratics]
+    }   
+    # Extract covariate values  
+    cov_eps <- sitetrans %>%
+      select(contains(covariates_eps))
+    # Add quadratics if needed
+    if (!is.na(eps_quadratics)) {
+      cov_eps[,paste0(eps_quadratics, "2")] <- cov_eps[,eps_quadratics] ^ 2
     }
+    # Put columns in alphabetical order
+    cov_eps <- cov_eps %>%
+      select(order(colnames(.)))
+    # Add interactions if needed
+    if (n_eps_interacts > 0) {
+      eps_interacts <- matrix(NA, nrow = 1, ncol = 2)
+      for (i in 1:n_eps_interacts) {
+        eps_interacts[i,] <- get(paste0("eps_int", i))
+        eps_interacts[i,1] <- ifelse(eps_interacts[i,1] %in% covs_cont,
+                                     paste0(eps_interacts[i,1], "_z"),
+                                     eps_interacts[i,1])
+        eps_interacts[i,2] <- ifelse(eps_interacts[i,2] %in% covs_cont,
+                                     paste0(eps_interacts[i,2], "_z"),
+                                     eps_interacts[i,2])    
+        cov_eps[,paste0(eps_interacts[i,], collapse = "_")] <- 
+          cov_eps[,eps_interacts[i,1]] * cov_eps[,eps_interacts[i,2]]
+      }
+    }
+    # Convert to a matrix
+    cov_eps <- as.matrix(cov_eps)
   }
-  # Convert to a matrix
-  cov_eps <- as.matrix(cov_eps)
-
+  
 # Colonization probability (gam)  
-  # Create vector of standardized covariate names
-  covariates_gam <- ifelse(covariates_gam %in% covs_cont,
-                           paste0(covariates_gam, "_z"), covariates_gam)  
-  if (!is.na(gam_quadratics)) {
-    gam_quadratics<- covariates_gam[gam_quadratics]
-  }   
-  # Extract covariate values  
-  cov_gam <- sitetrans %>%
-    select(contains(covariates_gam))
-  # Add quadratics if needed
-  if (!is.na(gam_quadratics)) {
-    cov_gam[,paste0(gam_quadratics, "2")] <- cov_gam[,gam_quadratics] ^ 2
-  }
-  # Put columns in alphabetical order
-  cov_gam <- cov_gam %>%
-    select(order(colnames(.)))
-  # Add interactions if needed
-  if (n_gam_interacts > 0) {
-    gam_interacts <- matrix(NA, nrow = 1, ncol = 2)
-    for (i in 1:n_gam_interacts) {
-      gam_interacts[i,] <- get(paste0("gam_int", i))
-      gam_interacts[i,1] <- ifelse(gam_interacts[i,1] %in% covs_cont,
-                                   paste0(gam_interacts[i,1], "_z"),
-                                   gam_interacts[i,1])
-      gam_interacts[i,2] <- ifelse(gam_interacts[i,2] %in% covs_cont,
-                                   paste0(gam_interacts[i,2], "_z"),
-                                   gam_interacts[i,2])    
-      cov_gam[,paste0(gam_interacts[i,], collapse = "_")] <- 
-        cov_gam[,gam_interacts[i,1]] * cov_gam[,gam_interacts[i,2]]
+  if (!all(is.na(covariates_gam))) {   
+    # Create vector of standardized covariate names
+    covariates_gam <- ifelse(covariates_gam %in% covs_cont,
+                             paste0(covariates_gam, "_z"), covariates_gam)  
+    if (!is.na(gam_quadratics)) {
+      gam_quadratics<- covariates_gam[gam_quadratics]
+    }   
+    # Extract covariate values  
+    cov_gam <- sitetrans %>%
+      select(contains(covariates_gam))
+    # Add quadratics if needed
+    if (!is.na(gam_quadratics)) {
+      cov_gam[,paste0(gam_quadratics, "2")] <- cov_gam[,gam_quadratics] ^ 2
     }
+    # Put columns in alphabetical order
+    cov_gam <- cov_gam %>%
+      select(order(colnames(.)))
+    # Add interactions if needed
+    if (n_gam_interacts > 0) {
+      gam_interacts <- matrix(NA, nrow = 1, ncol = 2)
+      for (i in 1:n_gam_interacts) {
+        gam_interacts[i,] <- get(paste0("gam_int", i))
+        gam_interacts[i,1] <- ifelse(gam_interacts[i,1] %in% covs_cont,
+                                     paste0(gam_interacts[i,1], "_z"),
+                                     gam_interacts[i,1])
+        gam_interacts[i,2] <- ifelse(gam_interacts[i,2] %in% covs_cont,
+                                     paste0(gam_interacts[i,2], "_z"),
+                                     gam_interacts[i,2])    
+        cov_gam[,paste0(gam_interacts[i,], collapse = "_")] <- 
+          cov_gam[,gam_interacts[i,1]] * cov_gam[,gam_interacts[i,2]]
+      }
+    }
+    # Convert to a matrix
+    cov_gam <- as.matrix(cov_gam)
   }
-  # Convert to a matrix
-  cov_gam <- as.matrix(cov_gam)
-
+  
 # Calculate the number of covariates for each parameter  
-n_cov_psi <- ncol(cov_psi)
-n_cov_p <- ncol(cov_p)
-n_cov_eps <- ncol(cov_eps)
-n_cov_gam <- ncol(cov_gam)
+if (exists("cov_psi")) {n_cov_psi <- ncol(cov_psi)}
+if (exists("cov_p")) {n_cov_p <- ncol(cov_p)}
+if (exists("cov_eps")) {n_cov_eps <- ncol(cov_eps)}
+if (exists("cov_gam")) {n_cov_gam <- ncol(cov_gam)}
 
 #------------------------------------------------------------------------------#
 # Package things up for JAGS
@@ -535,44 +543,74 @@ inits_state_occ <- function(y_array){
 # check:
 # inits_state_occ(y_array)
 
-# Bundle data for JAGS
+# Bundle data for JAGS that will be needed in any model, regardless of covariate 
+# structure
 jags_data <- list(y = surveys$det,
                   n_sites = n_sites,
                   n_seasons = n_seasons,
                   n_obs = nrow(surveys),
                   n_sitetrans = nrow(sitetrans),
-                  cov_psi = cov_psi,
-                  n_cov_psi = ncol(cov_psi),
-                  cov_p = cov_p,
-                  n_cov_p = ncol(cov_p),
-                  cov_eps = cov_eps,
-                  n_cov_eps = ncol(cov_eps),
-                  cov_gam = cov_gam,
-                  n_cov_gam = ncol(cov_gam),
                   site = surveys$site_index,
                   season = surveys$season_index,
                   site_ec = sitetrans$site_index,
                   trans_ec = sitetrans$trans_index,
                   z = known_state_occ(y_array))
 
-# List of parameters to monitor
-params <- c("mean_psi", "beta_psi0", "beta_psi",
-            "mean_p", "beta_p0", "beta_p",
-            "mean_eps", "beta_eps0", "beta_eps",
-            "mean_gam", "beta_gam0", "beta_gam",
-            "PAO")
+# Vector of parameters to monitor (needed for all models)
+params <- c("mean_psi", "beta_psi0", "mean_p", "beta_p0",
+            "mean_eps", "beta_eps0", "mean_gam", "beta_gam0", "PAO")
 
-# Initial values
-inits <- function(){list(mean_psi = runif(1, 0, 1),
-                         beta_psi = runif(n_cov_psi, -2, -2),
-                         mean_p = runif(1, 0, 1),
-                         beta_p = runif(n_cov_p, -2, 2),
-                         mean_eps = runif(1, 0, 1),
-                         beta_eps = runif(n_cov_eps, -2, 2),
-                         mean_gam = runif(1, 0, 1),
-                         beta_gam = runif(n_cov_gam, -2, 2),
-                         z = inits_state_occ(y_array))}
+# List of initial values (needed for all models)
+inits_list <- list(mean_psi = runif(1, 0, 1),
+                   mean_p = runif(1, 0, 1),
+                   mean_eps = runif(1, 0, 1),
+                   mean_gam = runif(1, 0, 1),
+                   z = inits_state_occ(y_array))
 
+# Add in data, parameters, inits associated with covariates
+if (exists("cov_psi")) {
+  jags_data <- c(jags_data,
+                 list(cov_psi = cov_psi),
+                 list(n_cov_psi = n_cov_psi))
+  params <- c(params, "beta_psi")
+  inits_list <- c(inits_list,
+                  list(beta_psi = runif(n_cov_psi, -2, 2)))
+}
+if (exists("cov_p")) {
+  jags_data <- c(jags_data,
+                 list(cov_p = cov_p),
+                 list(n_cov_p = n_cov_p))
+  params <- c(params, "beta_p")
+  inits_list <- c(inits_list,
+                  list(beta_p = runif(n_cov_p, -2, 2)))
+}
+if (exists("cov_eps")) {
+  jags_data <- c(jags_data,
+                 list(cov_eps = cov_eps),
+                 list(n_cov_eps = n_cov_eps))
+  params <- c(params, "beta_eps")
+  inits_list <- c(inits_list,
+                  list(beta_eps = runif(n_cov_eps, -2, 2)))
+}
+if (exists("cov_gam")) {
+  jags_data <- c(jags_data,
+                 list(cov_gam = cov_gam),
+                 list(n_cov_gam = n_cov_gam))
+  params <- c(params, "beta_gam")
+  inits_list <- c(inits_list,
+                  list(beta_gam = runif(n_cov_gam, -2, 2)))
+}
+
+inits <- function(){inits_list}
+
+# Identify correct JAGS model
+jags_model <- "JAGS/JAGS_MS"
+if (exists("cov_psi")) {jags_model <- paste0(jags_model, "_", "psi")}
+if (exists("cov_p")) {jags_model <- paste0(jags_model, "_", "p")}
+if (exists("cov_eps")) {jags_model <- paste0(jags_model, "_", "eps")}
+if (exists("cov_gam")) {jags_model <- paste0(jags_model, "_", "gam")}
+jags_model <- paste0(jags_model, ".txt")
+  
 #------------------------------------------------------------------------------#
 # Run model in JAGS
 #------------------------------------------------------------------------------#
@@ -586,7 +624,7 @@ nt <- 10     # Thinning rate
 out <- jags(data = jags_data,
             inits = inits,
             parameters.to.save = params,
-            model.file = "JAGS/JAGS_MultiSeasonWithCovs.txt",
+            model.file = jags_model,
             n.chains = nc,
             n.adapt = na,
             n.burnin = nb,

@@ -1,5 +1,5 @@
 ################################################################################
-# Specifying parameters to run a multi-season occupancy analysis
+# Run a multi-season occupancy analysis
 
 # ER Zylstra
 # Updated 2022-10-13
@@ -43,8 +43,9 @@ years <- 2017:2022
   # Options (all parks): elev, boundary, pois, roads, trail, east, north, slope
   # Additional options (SAGW): wash, vegclass
   # Additional options (CHIR): burn_severity_2011
+  # Set as NA if you don't want any covariates
   covariates_psi <- c("pois", "elev", "vegclass")
-  
+
   # Indicate (by number) if you want to include quadratic effects for any of the
   # elements in covariates_psi (NA if none; c(1,3) would include linear and 
   # quadratic effects of the 1st and 3rd covariates in the covariates_psi vector
@@ -56,14 +57,16 @@ years <- 2017:2022
   # trail, east, north, slope
   # Additional options (SAGW): wash, vegclass
   # Additional options (CHIR): burn_severity_2011
+  # Set as NA if you don't want any covariates
   covariates_p <- c("effort", "day", "camera_new")
-  
+
   # Indicate (by number) if you want to include quadratic effects for any of the
   # elements in covariates_p
   p_quadratics <- c(2)
 
 # Covariates for extinction probability (eps)
   # Options (all parks): monsoon_ppt, elev
+  # Set as NA if you don't want any covariates
   covariates_eps <- c("elev", "monsoon_ppt")
 
   # Indicate (by number) if you want to include quadratic effects for any of the
@@ -79,6 +82,7 @@ years <- 2017:2022
 
 # Covariates for colonization probability (gam)
   # Options (all parks): monsoon_ppt, elev
+  # Set as NA if you don't want any covariates
   covariates_gam <- c("elev", "monsoon_ppt")
   
   # Indicate (by number) if you want to include quadratic effects for any of the
@@ -108,7 +112,11 @@ model_filename <- paste0("output/models/",
                          tolower(species), "-MS-",
                          date,
                          ".Rdata")
-  
-save(out, surveys, spatial_covs, sitetrans, cov_psi, cov_p, cov_eps, cov_gam,
-     file = model_filename)
+
+obj_to_save <- c("out", "surveys", "spatial_covs", "sitetrans")
+if (!all(is.na(covariates_psi))) {obj_to_save <- c(obj_to_save, "cov_psi")}
+if (!all(is.na(covariates_p))) {obj_to_save <- c(obj_to_save, "cov_p")}
+if (!all(is.na(covariates_eps))) {obj_to_save <- c(obj_to_save, "cov_eps")}
+if (!all(is.na(covariates_gam))) {obj_to_save <- c(obj_to_save, "cov_gam")}
+save(list = obj_to_save, file = model_filename)
 
