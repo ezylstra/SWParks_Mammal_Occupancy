@@ -22,3 +22,8 @@ data/covariates/rasters-ORPI/*
 !data/covariates/rasters-ORPI/.gitkeep
 data/covariates/rasters-SAGW/*
 !data/covariates/rasters-SAGW/.gitkeep
+
+# Output
+output/models/*
+!output/models/.gitkeep
+
