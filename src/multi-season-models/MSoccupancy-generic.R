@@ -13,9 +13,10 @@
 # Load sampling occasion data (park, year, start/end, duration)
 occasions <- read.csv("data/occasions/occasions-all-parks.csv")
 
-# Extract sampling occasion info for selected park
+# Extract sampling occasion info for selected park and years
 occasions <- occasions %>%
-  filter(Park == park) %>%
+  filter(Park == PARK) %>%
+  filter(yr %in% YEARS) %>%
   arrange(yr, occasion)
 
 # Add occasion ID
@@ -33,17 +34,17 @@ for (i in 1:nrow(occasions)) {
   occ_days <- append(occ_days, occasions$start_day[i]:occasions$end_day[i])
 }
 
-# Extract photo observations for park, species
+# Extract photo observations for park, species, years
 # Retain a maximum of one observation per day at each location
 obs <- dat %>% 
-  filter(Park == park & Species_code == species) %>%
+  filter(Park == PARK & Species_code == SPECIES & yr %in% YEARS) %>%
   select(StdLocName, obsdate, yr, o_day) %>%
   arrange(StdLocName, obsdate) %>%
   distinct
 
 # Extract information about camera locations in selected park
 locs_park <- locs %>%
-  filter(UnitCode == park) %>%
+  filter(UnitCode == PARK) %>%
   select(StdLocName, POINT_X, POINT_Y) %>%
   rename(loc = StdLocName, long = POINT_X, lat = POINT_Y)
 
@@ -190,7 +191,7 @@ sites <- surveys %>%
   distinct %>%
   left_join(., locs_park, by = "loc")
 
-transition_starts <- min(occasions$yr):(max(occasions$yr)-1)
+transition_starts <- YEARS[-length(YEARS)]
 
 # Load rasters with seasonal weather data (that also varies over space)
   # Create lists of folder and file names 
@@ -256,20 +257,20 @@ invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
 # Load rasters with spatial data
   
   # Create needed lists of folder and file names 
-  park_folder <- paste0("data/covariates/rasters-", park, "/")
-  park_zip <- paste0("data/covariates/rasters-", park, ".zip")
+  park_folder <- paste0("data/covariates/rasters-", PARK, "/")
+  park_zip <- paste0("data/covariates/rasters-", PARK, ".zip")
 
   raster_filenames <- c("dist_boundary", "dist_pois", "dist_roads", "dist_trail", 
                         "east", "north", "slope")
-  if (park == "SAGW") {
+  if (PARK == "SAGW") {
     raster_filenames <- c(raster_filenames, "vegclasses", "dist_wash")
   }
-  if (park == "CHIR") {
+  if (PARK == "CHIR") {
     raster_filenames <- c(raster_filenames, "burn_severity_2011")
   }
 
-  park_rasters <- c(paste0(park, "_DEM_1as.tif"), 
-                    paste0(raster_filenames, "_", tolower(park), ".tif"))
+  park_rasters <- c(paste0(PARK, "_DEM_1as.tif"), 
+                    paste0(raster_filenames, "_", tolower(PARK), ".tif"))
   park_rasters <- paste0(park_folder, park_rasters)
 
   # Unzip park folder first, if necessary
@@ -323,7 +324,7 @@ for (i in covs_cont) {
 # For vegetation classes, make 1 = low gradient desert the reference level
 # and create indicators for 2 (low hillslope, foothills) and 3 (med-high 
 # gradient, hilly)
-if (park == "SAGW") {
+if (PARK == "SAGW") {
   spatial_covs <- spatial_covs %>%
     mutate(vegclass2 = ifelse(vegclasses == 2, 1, 0),
            vegclass3 = ifelse(vegclasses == 3, 1, 0)) %>%
@@ -336,7 +337,7 @@ invisible(file.remove(list.files(park_folder, full.names = TRUE)))
 
 # Attach spatial covariates to surveys dataframe so we can use them as 
 # covariates for detection
-if (park == "SAGW") {
+if (PARK == "SAGW") {
   surveys <- left_join(surveys, 
                        spatial_covs[,c("loc", paste0(covs_cont, "_z"), "vegclass2", "vegclass3")],
                        by = "loc")
@@ -345,7 +346,6 @@ if (park == "SAGW") {
                        spatial_covs[,c("loc", paste0(covs_cont, "_z"))],
                        by = "loc")  
 }
-
 
 # Attach subset of spatial covariates to sitetrans dataframe so we can use them 
 # as covariates for extinction/colonization (for now, assuming the only spatial
@@ -362,19 +362,17 @@ sitetrans <- left_join(sitetrans,
 covs_cont <- c(covs_cont, "effort", "day", "monsoon_ppt", "burn_severity_2011")
 
 # Initial occupancy (psi)
-  if (!all(is.na(covariates_psi))) {
+  if (!all(is.na(COVARS_PSI))) {
     # Create vector of standardized covariate names
-    covariates_psi <- ifelse(covariates_psi %in% covs_cont,
-                             paste0(covariates_psi, "_z"), covariates_psi)
-    if (!is.na(psi_quadratics)) {
-      psi_quadratics <- covariates_psi[psi_quadratics]
-    } 
+    covars_psi <- ifelse(COVARS_PSI %in% covs_cont,
+                         paste0(COVARS_PSI, "_z"), COVARS_PSI)
     # Extract covariate values
     cov_psi <- spatial_covs %>%
-      select(contains(covariates_psi))
+      select(contains(covars_psi))
     # Add quadratics if needed
-    if (!is.na(psi_quadratics)) {
-      cov_psi[,paste0(psi_quadratics, "2")] <- cov_psi[,psi_quadratics] ^ 2
+    if (!all(is.na(PSI_QUADS))) {
+      psi_quads <- covars_psi[PSI_QUADS]
+      cov_psi[,paste0(psi_quads, "2")] <- cov_psi[,psi_quads] ^ 2
     }
     # Put columns in alphabetical order and convert to a matrix
     cov_psi <- cov_psi %>%
@@ -383,19 +381,17 @@ covs_cont <- c(covs_cont, "effort", "day", "monsoon_ppt", "burn_severity_2011")
   }
     
 # Detection probability (p)  
-  if (!all(is.na(covariates_p))) { 
+  if (!all(is.na(COVARS_P))) { 
     # Create vector of standardized covariate names
-    covariates_p <- ifelse(covariates_p %in% covs_cont,
-                           paste0(covariates_p, "_z"), covariates_p)
-    if (!is.na(p_quadratics)) {
-      p_quadratics<- covariates_p[p_quadratics]
-    } 
+    covars_p <- ifelse(COVARS_P %in% covs_cont,
+                       paste0(COVARS_P, "_z"), COVARS_P)
     # Extract covariate values
     cov_p <- surveys %>%
-      select(contains(covariates_p))
+      select(contains(covars_p))
     # Add quadratics if needed
-    if (!is.na(p_quadratics)) {
-      cov_p[,paste0(p_quadratics, "2")] <- cov_p[,p_quadratics] ^ 2
+    if (!all(is.na(P_QUADS))) {
+      p_quads <- covars_p[P_QUADS]
+      cov_p[,paste0(p_quads, "2")] <- cov_p[,p_quads] ^ 2
     }
     # Put columns in alphabetical order and convert to a matrix
     cov_p <- cov_p %>%
@@ -404,28 +400,26 @@ covs_cont <- c(covs_cont, "effort", "day", "monsoon_ppt", "burn_severity_2011")
   }
 
 # Extinction probability (eps)  
-  if (!all(is.na(covariates_eps))) {
+  if (!all(is.na(COVARS_EPS))) {
     # Create vector of standardized covariate names
-    covariates_eps <- ifelse(covariates_eps %in% covs_cont,
-                             paste0(covariates_eps, "_z"), covariates_eps)  
-    if (!is.na(eps_quadratics)) {
-      eps_quadratics<- covariates_eps[eps_quadratics]
-    }   
+    covars_eps <- ifelse(COVARS_EPS %in% covs_cont,
+                         paste0(COVARS_EPS, "_z"), COVARS_EPS)  
     # Extract covariate values  
     cov_eps <- sitetrans %>%
-      select(contains(covariates_eps))
+      select(contains(covars_eps))
     # Add quadratics if needed
-    if (!is.na(eps_quadratics)) {
-      cov_eps[,paste0(eps_quadratics, "2")] <- cov_eps[,eps_quadratics] ^ 2
+    if (!all(is.na(EPS_QUADS))) {
+      eps_quads <- covars_eps[EPS_QUADS]
+      cov_eps[,paste0(eps_quads, "2")] <- cov_eps[,eps_quads] ^ 2
     }
     # Put columns in alphabetical order
     cov_eps <- cov_eps %>%
       select(order(colnames(.)))
     # Add interactions if needed
-    if (n_eps_interacts > 0) {
+    if (N_EPS_INTERACTS > 0) {
       eps_interacts <- matrix(NA, nrow = 1, ncol = 2)
-      for (i in 1:n_eps_interacts) {
-        eps_interacts[i,] <- get(paste0("eps_int", i))
+      for (i in 1:N_EPS_INTERACTS) {
+        eps_interacts[i,] <- get(paste0("EPS_INT", i))
         eps_interacts[i,1] <- ifelse(eps_interacts[i,1] %in% covs_cont,
                                      paste0(eps_interacts[i,1], "_z"),
                                      eps_interacts[i,1])
@@ -441,28 +435,26 @@ covs_cont <- c(covs_cont, "effort", "day", "monsoon_ppt", "burn_severity_2011")
   }
   
 # Colonization probability (gam)  
-  if (!all(is.na(covariates_gam))) {   
+  if (!all(is.na(COVARS_GAM))) {   
     # Create vector of standardized covariate names
-    covariates_gam <- ifelse(covariates_gam %in% covs_cont,
-                             paste0(covariates_gam, "_z"), covariates_gam)  
-    if (!is.na(gam_quadratics)) {
-      gam_quadratics<- covariates_gam[gam_quadratics]
-    }   
+    covars_gam <- ifelse(COVARS_GAM %in% covs_cont,
+                         paste0(COVARS_GAM, "_z"), COVARS_GAM)  
     # Extract covariate values  
     cov_gam <- sitetrans %>%
-      select(contains(covariates_gam))
+      select(contains(covars_gam))
     # Add quadratics if needed
-    if (!is.na(gam_quadratics)) {
-      cov_gam[,paste0(gam_quadratics, "2")] <- cov_gam[,gam_quadratics] ^ 2
+    if (!all(is.na(GAM_QUADS))) {
+      gam_quads<- covars_gam[GAM_QUADS]
+      cov_gam[,paste0(gam_quads, "2")] <- cov_gam[,gam_quads] ^ 2
     }
     # Put columns in alphabetical order
     cov_gam <- cov_gam %>%
       select(order(colnames(.)))
     # Add interactions if needed
-    if (n_gam_interacts > 0) {
+    if (N_GAM_INTERACTS > 0) {
       gam_interacts <- matrix(NA, nrow = 1, ncol = 2)
-      for (i in 1:n_gam_interacts) {
-        gam_interacts[i,] <- get(paste0("gam_int", i))
+      for (i in 1:N_GAM_INTERACTS) {
+        gam_interacts[i,] <- get(paste0("GAM_INT", i))
         gam_interacts[i,1] <- ifelse(gam_interacts[i,1] %in% covs_cont,
                                      paste0(gam_interacts[i,1], "_z"),
                                      gam_interacts[i,1])
