@@ -2,10 +2,11 @@
 # Process results from a multi-season occupancy analysis
 
 # ER Zylstra
-# Updated 2022-10-13
+# Updated 2022-10-19
 ################################################################################
 
 library(dplyr)
+library(lubridate)
 library(stringr)
 library(terra)
 library(jagsUI)
@@ -17,7 +18,7 @@ library(MCMCvis)
 
 PARK <- "SAGW"
 SPECIES <- "LECA"
-DATE <- "2022-10-13"
+DATE <- "2022-10-19"
 output_file <- paste0("output/models/",
                       tolower(PARK), "-",
                       tolower(SPECIES), "-MS-",
@@ -35,7 +36,7 @@ print(out, digits = 2)
 # MCMCtrace(out,pdf = FALSE)
 
 #------------------------------------------------------------------------------#
-# Extract posterior samples, and set parameters for summary tables, figures
+# Extract posterior samples and set parameters for summary tables, figures
 #------------------------------------------------------------------------------#
 
 # Extract posterior samples from jagsUI object and combine into one dataframe
@@ -64,8 +65,8 @@ exclude <- paste(c("mean", "PAO", "0", "deviance"), collapse = "|")
 covar_samples <- samples[,str_detect(colnames(samples), exclude, negate = TRUE)]
 covar_samples <- covar_samples[,order(colnames(covar_samples))]
 
-# Function to calculate the proportion of posterior samples that are > 0 for 
-# median values > 0 or < 0 for median values < 0
+# Function to calculate the proportion of posterior samples that are > 0 when 
+# the median is > 0 or < 0 for medians < 0 (f in summary table)
 prop_samples <- function(x) {
   if (median(x) > 0) {
     prop <- sum(x > 0) / length(x)
@@ -113,10 +114,111 @@ pao_summary <- pao_summary %>%
 pao_summary         
 
 #------------------------------------------------------------------------------#
-# TO DO:
+# Calculate marginal effects for continuous covariate (example)
+#------------------------------------------------------------------------------#
 
-# Add example code for plotting or calculating marginal effects (in 
-# MSoccupancy-sagw-leca.R)
+# Estimate how colonization probability would change with a 1-unit (SD) 
+# increase in elev
+
+  # Notes: logit is the log of the odds
+  # Odds are the probability event happens / probability event doesn't happen
+  # So logit(gamma[i]) = log(gamma[i] / (1-gamma[i])) = log(odds)
+  # Odds a site gets colonized at mean elevation = exp(beta_gam0)
+  # Odds a site gets colonized with 1-SD increase in elevation = 
+  # exp(beta_gam0 + beta_gam1 * 1) = exp(beta_gam0)*exp(beta_gam1)
+  # So the odds will change by a FACTOR of exp(beta_gam1):
+  # Odds[elev+1SD] = Odds[mean elev] * exp(beta_gam1)
+
+# For sagw-leca-MS-2022-10-19.Rdata model, elevation effect is beta_gam[1]
+# logit(gamma[i]) = beta_gam0 + beta_gam[1] * elevation[i]
+beta_gam <- samples[,"beta_gam[1]"]
+change <- exp(beta_gam)
+mean(change) # 0.49
+quantile(change, probs = c(lcl, ucl)) #0.27, 0.78
+# The odds a site is colonized are estimated to be 51% lower for each 
+# 1-SD increase in elevation (95% CI = 22-73%) [assuming other covariates held
+# constant]
+
+#------------------------------------------------------------------------------#
+# Plot marginal effects for continuous covariate (example)
+#------------------------------------------------------------------------------#
+
+# Estimate how detection probability changes with day-of-year
+
+# For sagw-leca-MS-2022-10-19.Rdata model, linear and quadratic effect of day
+# are beta_p[2:3]
+# logit(p[i]) = beta_p0 + beta_p[2] * doy[i] + beta_p[3] * doy[i] * doy[i]
+
+# Generate a vector of days that span the range that occurred during study
+day_nums <- seq(min(surveys$day), max(surveys$day), length = 100)
+# Standardize these values (Make sure to grab the mean/SD from the dataframe 
+# where values were standardized in MSoccupancy-generic.R. For day number, this 
+# was in the occasions dataframe)
+day_nums_z <- (day_nums - mean(occasions$mid_yday)) / sd(occasions$mid_yday)
+# Create a matrix of covariate values (including the intercept [1])
+X_p <- cbind(int = 1, doy = day_nums_z, doy2 = day_nums_z *day_nums_z)
+# Create a matrix with posterior samples for the parameters we need
+betas_p <- samples[,c("beta_p0", "beta_p[2]", "beta_p[3]")]
+# Generate a matrix of predicted values on the logit scale
+# Matrix dimensions = 100 x 3000 (3000 predicted values for each day in seq)
+pred_logit_p <- X_p %*% t(betas_p)
+# Backtransform to the probability scale
+pred_prob_p <- exp(pred_logit_p) / (1 + exp(pred_logit_p))
+# Calculate mean and credible interval for each value
+mean_p <- apply(pred_prob_p, 1, mean)
+cri_p <- apply(pred_prob_p, 1, quantile, probs = c(lcl, ucl)) 
+
+# Plot predictions
+  # For day-of-year, transform day number to date (for easier interpretation)
+  day_nums_axis <- seq(min(day_nums), max(day_nums), by = 10)
+  days_axis <- parse_date_time(paste(2022, as.character(day_nums_axis)), 
+                          orders = "yj")
+par(mfrow=c(1,1), mar = c(3, 4, 1, 1))
+plot(mean_p ~ day_nums, type = "l", ylim = c(0, 1), axes = FALSE,
+     xlab = "", ylab = "")
+  axis(1, at = c(par("usr")[1], par("usr")[2]), tck = FALSE, labels = FALSE)
+  axis(1, at = day_nums_axis, labels = format(days_axis, "%m-%d"), 
+       tcl = -0.25, mgp = c(1.5, 0.4, 0))
+  axis(2, at = c(par("usr")[3], par("usr")[4]), tck = FALSE, labels = FALSE)
+  axis(2, at = seq(0, 1, by = 0.2), tcl = -0.25, las = 1, mgp = c(1.5, 0.5, 0),
+       labels = c(paste0("0.", seq(0, 8, 2)), "1.0"))
+  polygon(c(day_nums, rev(day_nums)), c(cri_p[1,], rev(cri_p[2,])), 
+          col = rgb(0, 0, 0, 0.2), border = NA)
+  mtext("Date (midpoint of occasion)", side = 1, line = 1.8)
+  mtext("Probability of occupancy in Year 1", las = 0, side = 2, line = 2.5)
+
+#------------------------------------------------------------------------------#
+# Calculate marginal effects for categorical covariate (example)
+#------------------------------------------------------------------------------#
+
+# Estimate how vegetation class affects probabilities of occupancy in the first 
+# year 
+
+# For sagw-leca-MS-2022-10-13.Rdata model, vegclass1 (low gradient desert) is 
+# the reference level, effect of vegclass2 (low hillslope, north-facing) is 
+# beta_psi[5], and effect of vegclass3 (medium-high gradient) is beta_psi[6]
+
+# Probability of occupancy in vegclass1 (at mean values of other covariates)
+beta_psi0 <- samples[,"beta_psi0"]
+vegclass1 <- exp(beta_psi0)/(1 + exp(beta_psi0)) 
+mean(vegclass1) # 0.53
+quantile(vegclass1, probs = c(lcl, ucl)) #0.25, 0.82
+# Probability of initial occupancy = 0.53 (95% CI = 0.25, 0.82)
+
+# Probability of occupancy in vegclass2 (at mean values of other covariates)
+beta_veg2 <- samples[,"beta_psi[5]"]
+vegclass2L <- beta_psi0 + beta_veg2
+vegclass2 <- exp(vegclass2L)/(1 + exp(vegclass2L)) 
+mean(vegclass2) # 0.05
+quantile(vegclass2, probs = c(lcl, ucl)) #0.00, 0.25
+# Probability of initial occupancy = 0.05 (95% CI = 0.00, 0.25)
+
+
+
+
+
+#------------------------------------------------------------------------------#
+# TO DO:
 
 # Add code to estimate trends
 
