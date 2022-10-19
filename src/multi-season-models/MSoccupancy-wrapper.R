@@ -30,10 +30,10 @@ source("src/photo-data/format-mammal-data.R")
 # Specify model parameters (objects in all caps)
 #------------------------------------------------------------------------------#
 
-# Park of interest ("CHIR", "ORPI", or "SAGW")
+# Select park of interest ("CHIR", "ORPI", or "SAGW")
 PARK <- "SAGW"
 
-# Species of interest (select option from species$Species_code)
+# Select species of interest (select option from species$Species_code)
 SPECIES <- "LECA"
 
 # Specify years to include (earliest possible year = 2016)
@@ -47,9 +47,9 @@ YEARS <- 2017:2022
   COVARS_PSI <- c("pois", "elev", "vegclass")
 
   # Indicate (by number) if you want to include quadratic effects for any of the
-  # elements in covariates_psi (NA if none; c(1,3) would include linear and 
-  # quadratic effects of the 1st and 3rd covariates in the covariates_psi vector
-  # above)
+  # elements in COVARS_PSI (NA if none). For example, PSI_QUADS <- c(1,3) would 
+  # include linear and quadratic effects for the 1st and 3rd covariates in the 
+  # COVARS_PSI vector above)
   PSI_QUADS <- c(2,1)
 
 # Covariates for detection probability (p)
@@ -61,7 +61,7 @@ YEARS <- 2017:2022
   COVARS_P <- c("effort", "day", "camera_new")
 
   # Indicate (by number) if you want to include quadratic effects for any of the
-  # elements in covariates_p
+  # elements in COVARS_P
   P_QUADS <- c(2)
 
 # Covariates for extinction probability (eps)
@@ -70,13 +70,13 @@ YEARS <- 2017:2022
   COVARS_EPS <- c("elev", "monsoon_ppt")
 
   # Indicate (by number) if you want to include quadratic effects for any of the
-  # elements in covariates_eps
+  # elements in COVARS_EPS
   EPS_QUADS <- NA  
 
   # To include interactions between covariates:
-  # Specify the number of desired interactions, and create a vector with the 
-  # names of the two variables to include (note: these variables must appear in 
-  # covariates_eps)
+  # Specify the number of desired interactions, and create a vector for each 
+  # interaction with the names of the two variables to include (note: these 
+  # variables must appear in COVARS_EPS)
   N_EPS_INTERACTS <- 1
   EPS_INT1 <- c("elev", "monsoon_ppt")
 
@@ -86,13 +86,13 @@ YEARS <- 2017:2022
   COVARS_GAM <- c("elev", "monsoon_ppt")
   
   # Indicate (by number) if you want to include quadratic effects for any of the
-  # elements in covariates_gam
+  # elements in COVARS_GAM
   GAM_QUADS <- NA  
   
   # To include interactions between covariates:
-  # Specify the number of desired interactions, and create a vector with the 
-  # names of the two variables to include (note: these variables must appear in 
-  # covariates_gam)
+  # Specify the number of desired interactions, and create a vector for each 
+  # interaction with the names of the two variables to include (note: these 
+  # variables must appear in COVARS_GAM)
   N_GAM_INTERACTS <- 0
   # GAM_INT1 <- c("monsoon_ppt", "elev")
 
@@ -104,7 +104,7 @@ source("src/multi-season-models/MSoccupancy-generic.R")
 
 # Create filename to store results
 # For now, using park, species, and date in filename but could add more 
-# descriptors if needed (eg, something about covariates):
+# descriptors if needed (e.g., something about covariates):
 date <- Sys.Date()
 model_filename <- paste0("output/models/",
                          tolower(PARK), "-",
