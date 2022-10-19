@@ -528,7 +528,7 @@ nt <- 10     # Thinning rate
 out <- jags(data = jags_data,
             inits = inits,
             parameters.to.save = params,
-            model.file = "JAGS/JAGS_MultiSeasonWithCovs.txt",
+            model.file = "JAGS/JAGS_MS_psi_p_eps_gam.txt",
             n.chains = nc,
             n.adapt = na,
             n.burnin = nb,
