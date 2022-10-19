@@ -2,7 +2,7 @@
 # Run a multi-season occupancy analysis
 
 # ER Zylstra
-# Updated 2022-10-13
+# Updated 2022-10-19
 ################################################################################
 
 library(dplyr)
@@ -101,22 +101,21 @@ YEARS <- 2017:2022
 #------------------------------------------------------------------------------#
   
 source("src/multi-season-models/MSoccupancy-generic.R")
-  
-# Save JAGS model and other objects to file in output/models
+
+# Create filename to store results
+# For now, using park, species, and date in filename but could add more 
+# descriptors if needed (eg, something about covariates):
 date <- Sys.Date()
-  
-# For now, using park, species, and date to identify the model, but could
-# add more descriptors to the filename:
 model_filename <- paste0("output/models/",
                          tolower(PARK), "-",
                          tolower(SPECIES), "-MS-",
                          date,
                          ".Rdata")
 
-obj_to_save <- c("out", "surveys", "spatial_covs", "sitetrans")
+# Save JAGS model and other objects to file
+obj_to_save <- c("out", "surveys", "spatial_covs", "sitetrans", "occasions")
 if (!all(is.na(COVARS_PSI))) {obj_to_save <- c(obj_to_save, "cov_psi")}
 if (!all(is.na(COVARS_P))) {obj_to_save <- c(obj_to_save, "cov_p")}
 if (!all(is.na(COVARS_EPS))) {obj_to_save <- c(obj_to_save, "cov_eps")}
 if (!all(is.na(COVARS_GAM))) {obj_to_save <- c(obj_to_save, "cov_gam")}
 save(list = obj_to_save, file = model_filename)
-
