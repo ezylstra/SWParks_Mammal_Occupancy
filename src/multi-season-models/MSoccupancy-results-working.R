@@ -8,9 +8,11 @@
 library(dplyr)
 library(lubridate)
 library(stringr)
+library(tidyverse)
 library(terra)
 library(jagsUI)
 library(MCMCvis)
+library(ggplot2)
 
 #------------------------------------------------------------------------------#
 # Load the workspace that contains the JAGS model
@@ -114,7 +116,109 @@ pao_summary <- pao_summary %>%
 pao_summary         
 
 #------------------------------------------------------------------------------#
-# Calculate marginal effects for continuous covariate (example)
+# Plotting predicted probability of occupancy in first year
+#------------------------------------------------------------------------------#
+
+# Essentially, we want to create a heat map with values of psi for each cell
+
+# Identify covariates in model
+psi_covars <- unique(str_remove(colnames(cov_psi), "_z2|_z"))
+# Unzip park rasters
+park_folder <- paste0("data/covariates/rasters-", PARK, "/")
+park_zip <- paste0("data/covariates/rasters-", PARK, ".zip")
+if (length(list.files(park_folder)) == 0) {
+  unzip(park_zip)
+}
+
+# Next steps:
+# Identify rasters associated with covairates in psi_covars
+# Standardize covariates in rasters and create quadratic layers where needed
+# Combine rasters with beta posterior distributions
+# Calculate the median value (and maybe the SD) for each cell 
+
+#------------------------------------------------------------------------------#
+# Plotting predicted probability of occupancy in last year
+#------------------------------------------------------------------------------#
+
+# General approach:
+# For each MCMC iteration:
+# Estimate initial occupancy probability for each cell (section above)
+# Draw a value latent occupancy state for each cell, z[i,1] from a Bernoulli
+# Calculate gam[i,1] and eps[i,1] from beta_gam, beta_eps, and cell covariate values
+# Calculate each cell's prob of occupancy in yr 2 based on z[i, 1], gam[i, 1], eps[i, 1]
+# Cycle through years.
+
+#------------------------------------------------------------------------------#
+# Estimate trend in occupancy for surveyed locations
+#------------------------------------------------------------------------------#
+
+# Extract 1000 (of 3000) posterior samples for PAO estimates
+pao <- samples[seq(1, 3000, by = 3), grep("PAO", colnames(samples))]
+
+# For each MCMC iteration, estimate a linear trend in logit(occupancy)
+# (note: this is a trend for surveyed locations only)
+pao_logit <- log(pao / (1 - pao))
+year_trend <- 0:(ncol(pao_logit) - 1)
+trends <- data.frame(iter = 1:nrow(pao_logit), int = NA, slope = NA)
+for (i in 1:nrow(pao_logit)) {
+  m <- lm(pao_logit[i,] ~ year_trend)
+  trends[i,2:3] <- coef(m)
+}
+
+# Summarize trend estimates
+summary(trends$slope)
+hist(trends$slope, breaks = 50)
+
+# Plot trends on the logit scale (each gray line represents one MCMC iteration)
+trends <- trends %>%
+  mutate(yr2022 = int + 5 * slope)
+
+ggplot() +
+  geom_segment(trends,
+               mapping = aes(x = 2017, xend = 2022, y = int, yend = yr2022),
+               size = 0.3, col = "gray") +
+  geom_segment(trends,
+               mapping = aes(x = 2017, xend = 2022, 
+                             y = median(int), yend = median(yr2022)),
+               size = 0.8, col = "dodgerblue3") +
+  labs(x = "Year", y = "logit(Proportion of sites occupied)")
+
+# Prep data to plot (logit-linear) trends on the probability scale.
+# Create a sequence of values that spans yr_trend
+yr_predict <- seq(0, max(year_trend), length = 100)
+# Create a matrix, with a column of 1s (for the intercept) and yr_predict
+yr_predict_matrix <- rbind(1, yr_predict)
+# Predict values: logit(occupancy) = beta0 + slope*yr_predict (matrix math)
+preds_logit <- as.matrix(trends[,c("int", "slope")]) %*% yr_predict_matrix
+# Convert predictions to probability scale. 
+preds_prob <- exp(preds_logit)/(1 + exp(preds_logit))
+colnames(preds_prob) <- yr_predict
+# Calculate the median value across iterations for each value of yr_predict
+preds_median <- data.frame(Year = yr_predict + 2017, 
+                           Occupancy = apply(preds_prob, 2, median))
+# Add column to identify MCMC iteration
+preds_prob <- cbind(preds_prob, iter = 1:nrow(preds_prob))
+# Convert predictions to long form for ggplot
+preds_long <- preds_prob %>%
+  as.data.frame %>%
+  pivot_longer(cols = !iter,
+               names_to = "Year",
+               values_to = "Occupancy") %>%
+  mutate(Year = as.numeric(Year) + 2017) %>%
+  as.data.frame
+
+# Plot trends on the probability scale (each line represents one MCMC iteration)
+ggplot() +
+  geom_line(preds_long,
+            mapping = aes(x = Year, y = Occupancy, group = iter),
+            col = "gray") + 
+  geom_line(preds_median,
+            mapping = aes(x = Year, y = Occupancy),
+            size = 0.8, col = "dodgerblue3") +
+  labs(y = "Proportion of sites occupied")
+
+#------------------------------------------------------------------------------#
+# Calculate marginal effects for a continuous covariate (example)
 #------------------------------------------------------------------------------#
 
 # Estimate how colonization probability would change with a 1-unit (SD) 
@@ -140,7 +244,7 @@ quantile(change, probs = c(lcl, ucl)) #0.27, 0.78
 # constant]
 
 #------------------------------------------------------------------------------#
-# Plot marginal effects for continuous covariate (example)
+# Plot marginal effects for a continuous covariate (example)
 #------------------------------------------------------------------------------#
 
 # Estimate how detection probability changes with day-of-year
@@ -167,28 +271,33 @@ pred_prob_p <- exp(pred_logit_p) / (1 + exp(pred_logit_p))
 # Calculate mean and credible interval for each value
 mean_p <- apply(pred_prob_p, 1, mean)
 cri_p <- apply(pred_prob_p, 1, quantile, probs = c(lcl, ucl)) 
+# Put objects in dataframe for ggplot
+plot_data <- data.frame(mean = mean_p,
+                        day_nums = day_nums,
+                        lcl = cri_p[1,],
+                        ucl = cri_p[2,])
 
 # Plot predictions
-  # For day-of-year, transform day number to date (for easier interpretation)
+  # For day-of-year, transform day numbers we want on x-axis to date 
+  # (for easier interpretation)
   day_nums_axis <- seq(min(day_nums), max(day_nums), by = 10)
   days_axis <- parse_date_time(paste(2022, as.character(day_nums_axis)), 
                           orders = "yj")
-par(mfrow=c(1,1), mar = c(3, 4, 1, 1))
-plot(mean_p ~ day_nums, type = "l", ylim = c(0, 1), axes = FALSE,
-     xlab = "", ylab = "")
-  axis(1, at = c(par("usr")[1], par("usr")[2]), tck = FALSE, labels = FALSE)
-  axis(1, at = day_nums_axis, labels = format(days_axis, "%m-%d"), 
-       tcl = -0.25, mgp = c(1.5, 0.4, 0))
-  axis(2, at = c(par("usr")[3], par("usr")[4]), tck = FALSE, labels = FALSE)
-  axis(2, at = seq(0, 1, by = 0.2), tcl = -0.25, las = 1, mgp = c(1.5, 0.5, 0),
-       labels = c(paste0("0.", seq(0, 8, 2)), "1.0"))
-  polygon(c(day_nums, rev(day_nums)), c(cri_p[1,], rev(cri_p[2,])), 
-          col = rgb(0, 0, 0, 0.2), border = NA)
-  mtext("Date (midpoint of occasion)", side = 1, line = 1.8)
-  mtext("Probability of occupancy in Year 1", las = 0, side = 2, line = 2.5)
+
+par(mfrow = c(1, 1))
+ggplot() + 
+  geom_ribbon(plot_data,
+              mapping = aes(x = day_nums, ymin = lcl, ymax = ucl), 
+              fill = "gray70") +
+  geom_line(plot_data,
+            mapping = aes(x = day_nums, y = mean)) +
+  scale_y_continuous(limits = c(0.4, 0.9)) +
+  scale_x_continuous(breaks = day_nums_axis, labels = format(days_axis, "%m-%d")) + 
+  labs(x = "Date", y = "Probability of occupancy in Year 1") +
+  theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
 
 #------------------------------------------------------------------------------#
-# Calculate marginal effects for categorical covariate (example)
+# Calculate marginal effects for a categorical covariate (example)
 #------------------------------------------------------------------------------#
 
 # Estimate how vegetation class affects probabilities of occupancy in the first 
@@ -213,15 +322,3 @@ mean(vegclass2) # 0.05
 quantile(vegclass2, probs = c(lcl, ucl)) #0.00, 0.25
 # Probability of initial occupancy = 0.05 (95% CI = 0.00, 0.25)
 
-
-
-
-
-#------------------------------------------------------------------------------#
-# TO DO:
-
-# Add code to estimate trends
-
-# Add code to plot predictions
-
-#------------------------------------------------------------------------------#
