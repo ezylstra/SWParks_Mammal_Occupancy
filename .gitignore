@@ -26,4 +26,5 @@ data/covariates/rasters-SAGW/*
 # Output
 output/models/*
 !output/models/.gitkeep
+!output/models/sagw-leca-MS-2022-10-19.Rdata
 
