@@ -3,7 +3,7 @@
 # specified in MSoccupancy-wrapper.R
 
 # ER Zylstra
-# Updated 2022-10-13
+# Updated 2022-10-19
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -168,6 +168,7 @@ occasions <- occasions %>%
          mid_yday = round((start_yday + end_yday)/2),
          mid_yday_z = (mid_yday - mean(mid_yday))/sd(mid_yday))
 
+surveys$day <- occasions$mid_yday[match(surveys$occ, occasions$yr_occ)]
 surveys$day_z <- occasions$mid_yday_z[match(surveys$occ, occasions$yr_occ)]
 
 # Type of camera (new cameras deployed in 2022, all the same before that)
