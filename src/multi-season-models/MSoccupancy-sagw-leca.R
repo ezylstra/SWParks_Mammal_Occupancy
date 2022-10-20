@@ -46,15 +46,6 @@ occasions <- occasions %>%
   filter(Park == park) %>%
   arrange(yr, occasion)
 
-# Add occasion ID
-occasions$yr_occ <- paste0(occasions$yr, "_", occasions$occasion)
-
-# Convert occasion start/end dates to day numbers
-occasions$start_day <- 
-  as.numeric(date(occasions$start)) - as.numeric(as.Date("2015-12-31"))
-occasions$end_day <- 
-  as.numeric(date(occasions$end)) - as.numeric(as.Date("2015-12-31"))
-
 # Create a list of days included in sampling occasions
 occ_days <- NULL
 for (i in 1:nrow(occasions)) {
