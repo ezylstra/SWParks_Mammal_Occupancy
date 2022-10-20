@@ -3,7 +3,7 @@
 # Delineate sampling occasions
 
 # ER Zylstra
-# 2022-06-02
+# Updated: 2022-10-20
 ################################################################################
 
 library(dplyr)
@@ -34,21 +34,41 @@ days_df$yr <- year(days_df$date)
 occ_length <- 7
   # May want to evaluate if 7 days is the best choice (Iannarilli et al. 2019?)
 
-# Set the minimum proportion of cameras in a park that need to be operational
-# for that date to be included in a sampling occasion
+# Set the maximum number of sampling occasions in a year (because batteries 
+# will start dying)
+occ_max <- 6
+
+# Identify the minimum proportion of cameras in a park that need to be 
+# operational for that date to be included in a sampling occasion
 threshold <- 0.60
 
-# For now, just delineating occasions at SAGW.
-# Will eventually edit the script to loop through all parks.
+# List of parks to include
+parks <- c("CHIR", "ORPI", "SAGW")
+
+# Range of photo observations for each park
+park_photos <- dat %>%
+  filter(Park %in% parks) %>%
+  group_by(Park) %>%
+  summarize(first_yr = min(yr),
+            last_yr = max(yr)) %>%
+  data.frame
+
 n <- 0
 
-for (park in c("SAGW")) {
+for (park in parks) {
+
   n <- n + 1
 
   # Extract events data for selected park
   event_park <- events %>%
     filter(Park == park) %>%
     select(StdLocName, d_date, r_date, d_yr, r_yr, duration, d_day, r_day)
+    
+  # Limit events to only those years when we have photo data
+  yr_min <- park_photos$first_yr[park_photos$Park == park]
+  yr_max <- park_photos$last_yr[park_photos$Park == park]
+  event_park <- event_park %>%
+    filter(d_yr %in% yr_min:yr_max)
   
   # Extract rows from events matrix that correspond to locations in selected park
   event_mat_park <- event_mat[rownames(event_mat) %in% event_park$StdLocName,]
@@ -68,40 +88,75 @@ for (park in c("SAGW")) {
   # data.frame(unclass(rle(days_park$at_thresh)))
   # filter(days_park, yr == 2017 & prop_deploy > 0)
   
-  # Identify the first day in each year that the threshold was met
-  firstday_yr <- days_park %>%
-    filter(at_thresh == 1) %>%
-    group_by(yr) %>%
-    summarize(day1 = min(daynum)) %>%
-    as.data.frame
+  # Identify "streaks" of days when the threshold is met
+  days_park1 <- days_park %>%
+    filter(at_thresh == 1)
+  days_park1$streak <- 1
+  for (i in 2:nrow(days_park1)) {
+    days_park1$streak[i] <- ifelse(days_park1$daynum[i] - days_park1$daynum[i-1] == 1,
+                                   days_park1$streak[i-1],
+                                   days_park1$streak[i-1] + 1)
+  }
   
-  # Generate occasion number (within a year)
+  # Starting a new "streak" at CHIR in 2019, when all cameras were re-deployed 
+  # in summer (between 17 and 21 June)
+  if (park == "CHIR") {
+    days_park1$streak <- ifelse(days_park1$date >= "2019-06-21",
+                                days_park1$streak + 1,
+                                days_park1$streak)
+  }
+
+  # Identify the first day in each streak that the threshold was met
+  firstday <- days_park1 %>%
+    group_by(streak) %>%
+    summarize(day1 = min(daynum),
+              yr = year(date[daynum == min(daynum)])) %>%
+    data.frame
+  
+  # Generate occasion number (within a streak)
+  days_park$streak <- days_park1$streak[match(days_park$daynum, days_park1$daynum)]
   days_park$occasion <- NA
-  for (i in days_park$daynum[days_park$at_thresh == 1]) {
+  for (i in days_park1$daynum) {
     days_park$occasion[i] <- 
-      ceiling((i - firstday_yr$day1[firstday_yr$yr == days_df$yr[i]] + 1) / occ_length)
+      ceiling((i - firstday$day1[firstday$streak == days_park$streak[i]] + 1) / occ_length)
   }
   
   # Create a dataframe with information about each occasion
   occasions <- days_park %>%
     filter(!is.na(occasion)) %>%
-    group_by(Park, yr, occasion) %>%
+    group_by(Park, streak, occasion) %>%
     summarize(duration = length(occasion),
               start = min(date),
               end = max(date)) %>%
-    as.data.frame
+    as.data.frame  
   
-  # Exclude any occasions shorter than occ_length
-  occasions$keep <- 1*(occasions$duration == occ_length) 
-  days_park <- left_join(days_park, select(occasions, c(yr, occasion, keep)))
-  days_park$keep[is.na(days_df$keep)] <- 0
-  # occasions
-  # days_park[760:800,]
-  
+  # Exclude any occasions shorter than occ_length, and then retain a maximum
+  # of occ_max occasions per streak/year
+  occasions$full_duration <- 1*(occasions$duration == occ_length)
+  occasions_max <- occasions %>%
+    group_by(streak) %>%
+    summarize(max_occ = max(occasion[full_duration == 1]),
+              yr = year(min(start))) %>%
+    data.frame
+  occasions_max$max_keep <- ifelse(occasions_max$max_occ > occ_max, 
+                                   occ_max, 
+                                   occasions_max$max_occ)
+  occasions <- left_join(occasions, 
+                         select(occasions_max, c(streak, max_keep, yr)), 
+                         by = "streak")
+  occasions$keep <- ifelse(occasions$occasion > occasions$max_keep, 0, 1)
+
   # Remove occasions that won't be used in analysis from the dataframe
+  # (Assuming only one streak starts per year, we can use yr instead of streak)
   occasions <- occasions %>% 
     filter(keep == 1) %>%
-    select(-keep)
+    select(-c(streak, full_duration, max_keep, keep))
+
+  # Add occasion ID and convert occasion start/end dates to day numbers
+  occasions <- occasions %>%
+    mutate(yr_occ = paste0(occasions$yr, "_", occasions$occasion),
+           start_day = as.numeric(date(start)) - as.numeric(as.Date("2015-12-31")),
+           end_day = as.numeric(date(end)) - as.numeric(as.Date("2015-12-31")))
 
   # Append information about sampling occasions to occasions_allparks
   if (n == 1) {
@@ -109,12 +164,6 @@ for (park in c("SAGW")) {
   } else {
     occasions_allparks <- rbind(occasions_allparks, occasions)
   }
-  
-  # Export days_park dataframe as csv?
-  # write.csv(days_park,
-  #           file = paste0(park, "_days.csv"),
-  #           row.names = FALSE)
-  
 }
 
 # Export occasions dataframe as csv
