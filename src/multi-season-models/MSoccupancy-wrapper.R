@@ -36,7 +36,7 @@ PARK <- "SAGW"
 # Select species of interest (select option from species$Species_code)
 SPECIES <- "LECA"
 
-# Specify years to include (earliest possible year = 2016)
+# Specify years to include (earliest possible year = 2016 for ORPI, 2017 other parks)
 YEARS <- 2017:2022
 
 # Covariates for initial occupancy (psi)
