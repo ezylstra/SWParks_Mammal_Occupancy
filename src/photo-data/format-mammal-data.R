@@ -25,7 +25,7 @@ dat <- read.csv("data/mammals/MAMMALS_ALL_2022-08-12.csv")
 locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
 
 # Deployment schedule
-events <- read.csv("data/mammals/Wildlife_Events_ALL_20220809.csv")[,3:20]
+events <- read.csv("data/mammals/SODN_Wildlife_Events_20221025.csv")[,c(3:20, 28:29)]
 
 #------------------------------------------------------------------------------#
 # Format events data
@@ -41,7 +41,7 @@ events <- read.csv("data/mammals/Wildlife_Events_ALL_20220809.csv")[,3:20]
 events <- select(events, c(StdLocName, ProtocolVersion, DeployDate, 
                            RetrievalDate, CameraName, MountMethod, 
                            BatteryStatus, CameraSensitivity, 
-                           DelaySec, ImagePer, TotalPics))
+                           DelaySec, ImagePer, TotalPics, CrewDeploy))
 
 # Add column to identify Park and remove information about parks that aren't in 
 # photo observations dataset (GICL and National Wildlife refuges)
@@ -120,12 +120,20 @@ events$duration <- as.double(difftime(as.POSIXct(events$r_datetime),
   summary(events$duration)
   # hist(events$duration, breaks = 25)
 
-# View events with duration < 1 day
-filter(events, duration < 1)
-head(filter(events, Park == 'TONT'))
-# Remove these events (all at TONT when cameras immediately re-deployed)
-events <- filter(events, duration > 1)
+#------------------------------------------------------------------------------#
+# Format and organize information about deployment personnel
+#------------------------------------------------------------------------------#  
 
+deploys <- events %>%
+  group_by(CrewDeploy, Park) %>%
+  summarize(n = length(d_yr),
+            first_yr = min(d_yr),
+            last_yr = max(d_yr)) %>%
+  data.frame
+
+# All blanks are at MOCC
+# Some <NA>s created in this script (adding MOWE events)
+  
 #------------------------------------------------------------------------------#
 # Format and organize mammal observation data
 #------------------------------------------------------------------------------#
