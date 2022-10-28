@@ -123,7 +123,7 @@ pao_summary
 # Essentially, we want to create a heat map with values of psi for each cell
 
 # Identify covariates in model
-psi_covars <- unique(str_remove(colnames(cov_psi), "_z2|_z"))
+psi_covars <- unique(str_remove(colnames(cov_psi), "_z2|_z|[:digit:]"))
 # Unzip park rasters
 park_folder <- paste0("data/covariates/rasters-", PARK, "/")
 park_zip <- paste0("data/covariates/rasters-", PARK, ".zip")
@@ -131,9 +131,73 @@ if (length(list.files(park_folder)) == 0) {
   unzip(park_zip)
 }
 
-# Next steps:
-# Identify rasters associated with covairates in psi_covars
-# Standardize covariates in rasters and create quadratic layers where needed
+# Select just those rasters that were used in model of initial occupancy
+park_rasters <- list.files(path = park_folder, 
+                           pattern = ".tif", 
+                           full.names = TRUE)
+if ("elev" %in% psi_covars) {
+  raster_covars <- replace(x = psi_covars,
+                           list = which(psi_covars == "elev"), 
+                           values = "DEM")
+}
+
+# Load rasters into a list
+raster_list <- list()
+for (i in 1:length(raster_covars)) {
+  park_raster_ind <- which(str_detect(park_rasters, raster_covars[i]))
+  raster_list[[i]] <- terra::rast(park_rasters[park_raster_ind])
+}
+names(raster_list) <- psi_covars
+
+# Load park boundary to crop rasters
+boundaries <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
+boundary <- subset(boundaries, boundaries$UNIT_CODE == PARK)
+raster_list <- lapply(raster_list, FUN = crop, ext(boundary))
+
+# Extract rasters with continuous covariates
+psi_covarsc <- psi_covars[!psi_covars %in% cat_covars]
+raster_cont <- raster_list[psi_covarsc]
+
+# Standardize continuous rasters and create quadratic where needed
+for (cov in names(raster_cont)) {
+  cov_mn <- mean(spatial_covs[,cov])
+  cov_sd <- sd(spatial_covs[,cov])
+  raster_cont[[cov]] <- (raster_cont[[cov]] - cov_mn)/cov_sd
+  if (paste0(cov, "2") %in% covar_summary$covariate) {
+    raster_cont <- c(raster_cont, raster_cont[[cov]] ^ 2)
+    names(raster_cont)[[length(raster_cont)]] <- paste0(cov, "2")
+  }
+}
+raster_cont <- raster_cont[order(names(raster_cont))]
+rast_final <- rast(raster_cont)
+
+# Extract rasters with categorical covariates (only vegclasses for now)
+cat_covar <- "vegclass"
+if (cat_covar %in% psi_covars) {
+  raster_cat <- raster_list[[cat_covar]]
+  raster_cat[raster_cat == 4] <- NA
+  veg2 <- 1 * (raster_cat == 2)
+  names(veg2) <- "veg2"
+  veg3 <- 1 * (raster_cat == 3)
+  names(veg3) <- "veg3"
+  rast_final <- c(rast_final, veg2, veg3)
+}
+
+# Extract posterior samples for initial occupancy parameters
+psi_samp <- samples[,grep("beta_psi", colnames(samples))]
+# For now, retain 500 of 3000 samples
+psi_samp <- psi_samp[seq(1, 3000, by = 1000),]
+betas_no_int <- psi_samp[,-1]
+
+###############################
+
+# Probably easier to create a raster with all 1s for intercept
+# Use raster package? 
+
+# extract raster values in a matrix (each row a cell, each column a raster value)
+cov_values <- values(rast_final)
+preds <- cov_values %*% t(betas_no_int)
+
 # Combine rasters with beta posterior distributions
 # Calculate the median value (and maybe the SD) for each cell 
 
