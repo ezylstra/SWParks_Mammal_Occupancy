@@ -36,6 +36,7 @@ print(out, digits = 2)
 
 # Trace and density plots
 # MCMCtrace(out,pdf = FALSE)
+# par(mfrow = c(1,1))
 
 #------------------------------------------------------------------------------#
 # Extract posterior samples and set parameters for summary tables, figures
@@ -171,15 +172,16 @@ hist(trends$slope, breaks = 50)
 
 # Plot trends on the logit scale (each gray line represents one MCMC iteration)
 trends <- trends %>%
-  mutate(yr2022 = int + 5 * slope)
+  mutate(last_yr = int + max(year_trend) * slope)
 
 ggplot() +
   geom_segment(trends,
-               mapping = aes(x = 2017, xend = 2022, y = int, yend = yr2022),
+               mapping = aes(x = min(year), xend = max(year), 
+                             y = int, yend = last_yr),
                size = 0.3, col = "gray") +
   geom_segment(trends,
-               mapping = aes(x = 2017, xend = 2022, 
-                             y = median(int), yend = median(yr2022)),
+               mapping = aes(x = min(year), xend = max(year), 
+                             y = median(int), yend = median(last_yr)),
                size = 0.8, col = "dodgerblue3") +
   labs(x = "Year", y = "logit(Proportion of sites occupied)")
 
@@ -194,7 +196,7 @@ preds_logit <- as.matrix(trends[,c("int", "slope")]) %*% yr_predict_matrix
 preds_prob <- exp(preds_logit)/(1 + exp(preds_logit))
 colnames(preds_prob) <- yr_predict
 # Calculate the median value across iterations for each value of yr_predict
-preds_median <- data.frame(Year = yr_predict + 2017, 
+preds_median <- data.frame(Year = yr_predict + min(year), 
                            Occupancy = apply(preds_prob, 2, median))
 # Add column to identify MCMC iteration
 preds_prob <- cbind(preds_prob, iter = 1:nrow(preds_prob))
@@ -204,7 +206,7 @@ preds_long <- preds_prob %>%
   pivot_longer(cols = !iter,
                names_to = "Year",
                values_to = "Occupancy") %>%
-  mutate(Year = as.numeric(Year) + 2017) %>%
+  mutate(Year = as.numeric(Year) + min(year)) %>%
   as.data.frame
 
 # Plot trends on the probability scale (each line represents one MCMC iteration)
@@ -293,7 +295,7 @@ ggplot() +
             mapping = aes(x = day_nums, y = mean)) +
   scale_y_continuous(limits = c(0.4, 0.9)) +
   scale_x_continuous(breaks = day_nums_axis, labels = format(days_axis, "%m-%d")) + 
-  labs(x = "Date", y = "Probability of occupancy in Year 1") +
+  labs(x = "Date", y = "Detection probability") +
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
 
 #------------------------------------------------------------------------------#
