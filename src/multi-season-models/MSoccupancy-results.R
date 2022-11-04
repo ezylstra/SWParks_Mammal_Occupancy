@@ -357,7 +357,7 @@ ggplot() +
               fill = "gray70") +
   geom_line(plot_data,
             mapping = aes(x = day_nums, y = mean)) +
-  scale_y_continuous(limits = c(0.4, 0.9)) +
+  scale_y_continuous(limits = c(0.3, 0.9)) +
   scale_x_continuous(breaks = day_nums_axis, labels = format(days_axis, "%m-%d")) + 
   labs(x = "Date", y = "Detection probability") +
   theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
