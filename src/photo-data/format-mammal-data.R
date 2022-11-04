@@ -27,13 +27,15 @@ locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")
 # Deployment schedule
 events <- read.csv("data/mammals/SODN_Wildlife_Events_20221025.csv")[,c(3:20, 28:29)]
 
+# Experience level of personnel deploying cameras
+deploys <- read.csv("data/covariates/deployment-personnel.csv")
+
 #------------------------------------------------------------------------------#
 # Format events data
 #------------------------------------------------------------------------------#
 
 # Notes about sampling "events":
-# Occasionally (esp at smaller parks), cameras were immediately re-deployed for 
-# continuous sampling
+# Occasionally cameras were immediately re-deployed for continuous sampling
 # Occasionally two cameras were deployed at the same location simultaneously
 # Sometimes cameras left out for >1 yr. Not sure how long they collected photos.
 
@@ -117,23 +119,32 @@ events$duration <- as.double(difftime(as.POSIXct(events$r_datetime),
                                       as.POSIXct(events$d_datetime), 
                                       units = 'days'))
   # Summarize/Visualize 
-  summary(events$duration)
+  # summary(events$duration)
   # hist(events$duration, breaks = 25)
 
 #------------------------------------------------------------------------------#
 # Format and organize information about deployment personnel
 #------------------------------------------------------------------------------#  
 
-deploys <- events %>%
-  group_by(CrewDeploy, Park) %>%
-  summarize(n = length(d_yr),
-            first_yr = min(d_yr),
-            last_yr = max(d_yr)) %>%
-  data.frame
+# Identify deployment personnel that are experts or experienced
+exp2 <- deploys$personnel[deploys$expertise == "expert"]
+exp1 <- deploys$personnel[deploys$expertise == "experienced"]
 
-# All blanks are at MOCC
-# Some <NA>s created in this script (adding MOWE events)
-  
+# Create deploy_exp variable for each camera deployment with: 
+  # 2 = at least one expert present 
+  # 1 = at least one experienced person present
+  # 0 = all novices
+events <- events %>%
+  mutate(deploy_exp = ifelse(str_detect(CrewDeploy, 
+                                        paste(exp2, collapse = "|")),
+                             2, ifelse(str_detect(CrewDeploy, 
+                                                  paste(exp1, collapse = "|")),
+                                       1, 0)),
+         deploy_exp = ifelse(is.na(deploy_exp), 0, deploy_exp))
+
+# checks
+  # count(events, CrewDeploy, deploy_exp)
+
 #------------------------------------------------------------------------------#
 # Format and organize mammal observation data
 #------------------------------------------------------------------------------#
