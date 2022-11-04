@@ -152,6 +152,29 @@ for (i in 1:nrow(surveys)) {
 }
 
 #------------------------------------------------------------------------------#
+# Incorporate information about deployment personnel
+#------------------------------------------------------------------------------#
+# Add a column for each occasion to events_park, indicating whether the 
+# occasion was associated with that deployment event or not (1/0) 
+occ_matrix <- matrix(NA, nrow = nrow(events_park), ncol = nrow(occasions))
+colnames(occ_matrix) <- occasions$yr_occ
+for (i in 1:nrow(occ_matrix)) {
+  for (j in 1:ncol(occ_matrix)) {
+    occ_matrix[i,j] <- 1 * any(occasions$start_day[j]:occasions$end_day[j] %in% 
+                                 events_park$d_day[i]:events_park$r_day[i])
+  }
+}
+events_park <- cbind(events_park, occ_matrix)
+  
+# For each row in the survey dataframe, attach the deployment personnel 
+# experience value that corresponds with that camera location and occasion
+for (i in 1:nrow(surveys)) {
+  surveys$deploy_exp[i] <- 
+    events_park$deploy_exp[events_park$StdLocName == surveys$loc[i] &
+                             events_park[,surveys$occ[i]] == 1]
+}
+
+#------------------------------------------------------------------------------#
 # Add occasion-specific covariates to detection data
 #------------------------------------------------------------------------------#
 
@@ -355,6 +378,9 @@ sitetrans <- left_join(sitetrans,
 # (covariates selected in MSoccupancy-wrapper.R)
 #------------------------------------------------------------------------------#
 covs_cont <- c(covs_cont, "effort", "day", "monsoon_ppt", "burn_severity_2011")
+# Not including camera_new or deploy_exp in this list because we don't want to 
+# standardize (0 indicates camera type used prior to 2022 and inexperienced 
+# people deploying cameras)
 
 # Initial occupancy (psi)
   if (!all(is.na(COVARS_PSI))) {

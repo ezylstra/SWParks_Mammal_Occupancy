@@ -53,12 +53,12 @@ YEARS <- 2017:2022
   PSI_QUADS <- c(2,1)
 
 # Covariates for detection probability (p)
-  # Options (all parks): effort, day, camera_new, elev, boundary, pois, roads, 
-  # trail, east, north, slope
+  # Options (all parks): effort, day, camera_new, deploy_exp, elev, boundary, 
+  # pois, roads, trail, east, north, slope
   # Additional options (SAGW): wash, vegclass
   # Additional options (CHIR): burn_severity_2011
   # Set as NA if you don't want any covariates
-  COVARS_P <- c("effort", "day", "camera_new")
+  COVARS_P <- c("effort", "day", "camera_new", "deploy_exp")
 
   # Indicate (by number) if you want to include quadratic effects for any of the
   # elements in COVARS_P
