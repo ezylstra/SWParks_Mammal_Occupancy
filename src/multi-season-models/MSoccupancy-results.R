@@ -2,7 +2,7 @@
 # Process results from a multi-season occupancy analysis
 
 # ER Zylstra
-# Updated 2022-10-19
+# Updated 2022-11-04
 ################################################################################
 
 library(dplyr)
@@ -154,8 +154,11 @@ boundaries <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
 boundary <- subset(boundaries, boundaries$UNIT_CODE == PARK)
 raster_list <- lapply(raster_list, FUN = crop, ext(boundary))
 
+# Identify categorical covariates (only vegclasses for now)
+cat_covar <- "vegclass"
+
 # Extract rasters with continuous covariates
-psi_covarsc <- psi_covars[!psi_covars %in% cat_covars]
+psi_covarsc <- psi_covars[!psi_covars %in% cat_covar]
 raster_cont <- raster_list[psi_covarsc]
 
 # Standardize continuous rasters and create quadratic where needed
@@ -171,8 +174,7 @@ for (cov in names(raster_cont)) {
 raster_cont <- raster_cont[order(names(raster_cont))]
 rast_final <- rast(raster_cont)
 
-# Extract rasters with categorical covariates (only vegclasses for now)
-cat_covar <- "vegclass"
+# Extract rasters with categorical covariates
 if (cat_covar %in% psi_covars) {
   raster_cat <- raster_list[[cat_covar]]
   raster_cat[raster_cat == 4] <- NA
@@ -183,23 +185,40 @@ if (cat_covar %in% psi_covars) {
   rast_final <- c(rast_final, veg2, veg3)
 }
 
+# Create a raster layer with just ones for the intercept
+rast_final <- c(rast(rast_final[[1]], vals = 1), rast_final)
+names(rast_final)[[1]] <- "int"
+
 # Extract posterior samples for initial occupancy parameters
 psi_samp <- samples[,grep("beta_psi", colnames(samples))]
-# For now, retain 500 of 3000 samples
-psi_samp <- psi_samp[seq(1, 3000, by = 1000),]
-betas_no_int <- psi_samp[,-1]
+# For testing, retain 3 of 3000 samples
+psi_samp <- as.matrix(psi_samp[seq(1, 3000, by = 1000),])
 
-###############################
+# Convert SpatRaster to a dataframe (with one row for each cell, each column = layer)
+rast_final_df <- as.data.frame(rast_final, cell = TRUE) #130193 rows (removed rows with NAs)
+# Do math
+preds_df_logit <- as.matrix(rast_final_df[,-1]) %*% t(psi_samp) # now 3 layers, one for each posterior sample
+preds_df <- exp(preds_df_logit)/(1 + exp(preds_df_logit))
+# Re-attach cell numbers
+preds_df <- data.frame(cell = rast_final_df$cell, preds_df)
+# Convert back to a SpatRaster
+preds_raster <- rast(rast_final[[1:3]])
+names(preds_raster) <- paste("samp", 1:3)
+preds_raster[preds_df$cell] <- preds_df[,-1]
+# plot(preds_raster)
+# plot(preds_raster[[1]])
 
-# Probably easier to create a raster with all 1s for intercept
-# Use raster package? 
+# Calculate the median
+preds_median <- median(preds_raster)
+plot(preds_median)
+preds_sd <- stdev(preds_raster)
+plot(preds_sd)
+# Note: if pop=TRUE (which I think is the default), stdev computes the population 
+# standard deviation, computed as: f <- function(x) sqrt(sum((x-mean(x))^2) / length(x))
 
-# extract raster values in a matrix (each row a cell, each column a raster value)
-cov_values <- values(rast_final)
-preds <- cov_values %*% t(betas_no_int)
-
-# Combine rasters with beta posterior distributions
-# Calculate the median value (and maybe the SD) for each cell 
+#############################
+# Still working on this
+#############################
 
 #------------------------------------------------------------------------------#
 # Plotting predicted probability of occupancy in last year
