@@ -167,7 +167,7 @@ for (park in parks) {
 }
 
 # Export occasions dataframe as csv
-write.csv(occasions_allparks, 
-          file = "data/occasions/occasions-all-parks.csv",
-          row.names = FALSE)
+# write.csv(occasions_allparks, 
+#           file = "data/occasions/occasions-all-parks.csv",
+#           row.names = FALSE)
 
