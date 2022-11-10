@@ -191,34 +191,39 @@ names(rast_final)[[1]] <- "int"
 
 # Extract posterior samples for initial occupancy parameters
 psi_samp <- samples[,grep("beta_psi", colnames(samples))]
-# For testing, retain 3 of 3000 samples
-psi_samp <- as.matrix(psi_samp[seq(1, 3000, by = 1000),])
+# Identify the number of posterior samples we want to use for prediction
+nsamp <- 1000 # Helpful to set this to 3 (or some small number) when testing
+subsamples <- floor(seq(1, nrow(samples), length = nsamp))
+# Extract subset of posterior samples (n = nsamp)
+psi_samp <- as.matrix(psi_samp[subsamples,])
 
 # Convert SpatRaster to a dataframe (with one row for each cell, each column = layer)
 rast_final_df <- as.data.frame(rast_final, cell = TRUE) #130193 rows (removed rows with NAs)
-# Do math
-preds_df_logit <- as.matrix(rast_final_df[,-1]) %*% t(psi_samp) # now 3 layers, one for each posterior sample
+# Do the math (results in predictions on logit scale for each cell [row] and 
+# posterior sample [column])
+preds_df_logit <- as.matrix(rast_final_df[,-1]) %*% t(psi_samp) 
+# Convert to probability scale
 preds_df <- exp(preds_df_logit)/(1 + exp(preds_df_logit))
 # Re-attach cell numbers
-preds_df <- data.frame(cell = rast_final_df$cell, preds_df)
+preds_df <- cbind(cell = rast_final_df$cell, preds_df)
 # Convert back to a SpatRaster
-preds_raster <- rast(rast_final[[1:3]])
-names(preds_raster) <- paste("samp", 1:3)
-preds_raster[preds_df$cell] <- preds_df[,-1]
-# plot(preds_raster)
-# plot(preds_raster[[1]])
+preds_raster <- rast(rep(rast_final[[1]], nsamp))
+names(preds_raster) <- paste("sample", subsamples)
+preds_raster[preds_df[,1]] <- preds_df[,-1]
+  # Check:
+  # plot(preds_raster[[1:2]])
+  # psi_samp[1:2,]
 
-# Calculate the median
+# Calculate the median value in each cell (our best estimate of initial occ)
 preds_median <- median(preds_raster)
 plot(preds_median)
-preds_sd <- stdev(preds_raster)
+# Calculate the SD across posterior samples in each cell
+preds_sd <- stdev(preds_raster, pop = FALSE)
 plot(preds_sd)
-# Note: if pop=TRUE (which I think is the default), stdev computes the population 
-# standard deviation, computed as: f <- function(x) sqrt(sum((x-mean(x))^2) / length(x))
+# Note: pop = TRUE computes the population SD (denom = n), pop = FALSE computes
+# the sample standard deviation (denom = n-1)
 
-#############################
-# Still working on this
-#############################
+# TODO: add options to save these rasters and/or plots?
 
 #------------------------------------------------------------------------------#
 # Plotting predicted probability of occupancy in last year
