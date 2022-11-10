@@ -2,7 +2,7 @@
 # Process results from a multi-season occupancy analysis
 
 # ER Zylstra
-# Updated 2022-11-04
+# Updated 2022-11-10
 ################################################################################
 
 library(dplyr)
@@ -228,6 +228,92 @@ plot(preds_sd)
 #------------------------------------------------------------------------------#
 # Plotting predicted probability of occupancy in last year
 #------------------------------------------------------------------------------#
+
+# Identify covariates for extinction and colonization
+# gam_covars <- unique(str_remove_all(colnames(cov_gam), "_z2|_z|[:digit:]"))
+# eps_covars <- unique(str_remove_all(colnames(cov_eps), "_z2|_z|[:digit:]"))
+# Will want to identify interactions where they occur, but this is difficult
+# Maybe better to save objects from the wrapper script (eg, EPS_INT1)?
+# Could then also bring in COVARS_PSI, COVARS_GAM, COVARS_EPS....
+COVARS_GAM <- c("elev", "monsoon_ppt")
+COVARS_EPS <- c("elev", "monsoon_ppt")
+EPS_INT1 <- c("elev", "monsoon_ppt")
+
+# We already have all the spatial covars unzipped from section above
+
+# List of potential seasonal covariates
+seas_covariates <- c("monsoon_ppt") # Will add more in time
+
+# Identify all the rasters we'll need for extinction and colonization
+seas_gam <- str_subset(COVARS_GAM, paste(seas_covariates, collapse = "|"))
+seas_eps <- str_subset(COVARS_EPS, paste(seas_covariates, collapse = "|"))
+seas_both <- unique(c(seas_gam, seas_eps))
+ 
+# Need to unzip and load rasters with weather data (or eventually raster with 
+# any annually varying covs)
+weather_folder <- "data/covariates/weather-derived-rasters/"
+weather_zip <- "data/covariates/weather-derived.zip"
+# Unzip weather folder first, if necessary
+if (length(list.files(weather_folder)) == 0) {
+  unzip(weather_zip, overwrite = TRUE)
+}
+# List files in weather folder
+weather_files <- list.files(weather_folder, full.names = TRUE)
+
+# For each seasonal covariate we'll need, create a list of rasters
+for (cov in seas_both) {
+  cov_files <- weather_files[str_detect(weather_files, cov)]
+  # Remove rasters associated with periods outside the years of interest
+  # (eg, monsoon rainfall in year x could explain transitions between years x and x+1)
+  cov_yrs <- paste0(as.character(year), collapse = "|")
+  cov_files <- cov_files[str_detect(cov_files, cov_yrs)]
+
+  
+  ####################################################
+  # Everything in the rest of this section needs work.....
+  
+  # Load each raster and compile into a list
+  cov_list <- list()
+  for (i in 1:length(cov_files)) {
+    cov_list[[i]] <- rast(cov_files[i])
+    names(cov_list[[i]]) <- paste(cov, year[i], sep = "_")  ##### is this a good idea?
+  }  
+  
+  # Crop rasters to park boundary
+  cov_list <- lapply(cov_list, FUN = crop, ext(boundary))
+  
+  # Scale values in each raster using means, SDs from sitetrans column (monsoon_ppt)
+  
+} # Close loop for each seasonal covariate 
+  
+
+# Then for eps and col separately...{}
+
+  # add spatial covar raster to list, IF NEEDED (and in the same order as they appear in the model)
+  
+  # Create a raster layer with just ones for the intercept
+  rast_final <- c(rast(rast_final[[1]], vals = 1), rast_final)
+  names(rast_final)[[1]] <- "int"
+
+  # Combine all rasters in list to a spatraster
+  
+  # Convert to a dataframe
+  
+  # Create season-specific dataframes with intercept, spatial covs, and seasonal cov [1 col per cov]
+  
+  # If interactions, create new column
+  
+  # Do linear algebra to get eps[,1], eps[,2], ...gam[,1], gam[,2], etc...
+  
+# Close eps and gam loops
+  
+# Then create a seasonal loop
+  
+  # draw values of z[,1] from preds_df MAKE SURE CELL #s MATCH UP!  
+  for (i in 1:nyears) {
+    # do element-wise math with z[,i], gam[,i], eps[,i] to get Ez[,i]
+    # draw z[,i+1] from Ez[,i]
+  }
 
 # General approach:
 # For each MCMC iteration:
