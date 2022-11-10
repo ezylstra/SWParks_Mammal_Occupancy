@@ -53,6 +53,10 @@ ucl <- 0.975
 # Set number of digits for reporting summary statistics
 digits <- 2
 
+# Identify the number of posterior samples we want to use for figures (spatial
+# predictions and trends)
+nsamp <- 1000
+
 #------------------------------------------------------------------------------#
 # Summaries of posterior distributions for covariate effects (with names)
 #------------------------------------------------------------------------------#
@@ -189,13 +193,9 @@ if (cat_covar %in% psi_covars) {
 rast_final <- c(rast(rast_final[[1]], vals = 1), rast_final)
 names(rast_final)[[1]] <- "int"
 
-# Extract posterior samples for initial occupancy parameters
-psi_samp <- samples[,grep("beta_psi", colnames(samples))]
-# Identify the number of posterior samples we want to use for prediction
-nsamp <- 1000 # Helpful to set this to 3 (or some small number) when testing
+# Extract posterior samples for initial occupancy parameters (n = nsamp)
 subsamples <- floor(seq(1, nrow(samples), length = nsamp))
-# Extract subset of posterior samples (n = nsamp)
-psi_samp <- as.matrix(psi_samp[subsamples,])
+psi_samp <- samples[subsamples, grep("beta_psi", colnames(samples))]
 
 # Convert SpatRaster to a dataframe (with one row for each cell, each column = layer)
 rast_final_df <- as.data.frame(rast_final, cell = TRUE) #130193 rows (removed rows with NAs)
@@ -241,8 +241,9 @@ plot(preds_sd)
 # Estimate trend in occupancy for surveyed locations
 #------------------------------------------------------------------------------#
 
-# Extract 1000 (of 3000) posterior samples for PAO estimates
-pao <- samples[seq(1, 3000, by = 3), grep("PAO", colnames(samples))]
+# Extract subset of posterior samples (n = nsamp)
+subsamples <- floor(seq(1, nrow(samples), length = nsamp))
+pao <- samples[subsamples, grep("PAO", colnames(samples))]
 
 # For each MCMC iteration, estimate a linear trend in logit(occupancy)
 # (note: this is a trend for surveyed locations only)
