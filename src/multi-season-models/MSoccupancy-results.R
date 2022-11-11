@@ -2,7 +2,7 @@
 # Process results from a multi-season occupancy analysis
 
 # ER Zylstra
-# Updated 2022-11-10
+# Updated 2022-11-11
 ################################################################################
 
 library(dplyr)
@@ -53,9 +53,10 @@ ucl <- 0.975
 # Set number of digits for reporting summary statistics
 digits <- 2
 
-# Identify the number of posterior samples we want to use for figures (spatial
+# Identify a subset of posterior samples we want to use for figures (spatial
 # predictions and trends)
-nsamp <- 1000
+nsamp <- 500
+subsamples <- floor(seq(1, nrow(samples), length = nsamp))
 
 #------------------------------------------------------------------------------#
 # Summaries of posterior distributions for covariate effects (with names)
@@ -99,7 +100,10 @@ covar_summary <- covar_summary %>%
          ucl = round(apply(covar_samples, 2, quantile, ucl), digits),
          overlap0 = ifelse(lcl * ucl > 0, FALSE, TRUE),
          f = round(apply(covar_samples, 2, prop_samples), digits))
-covar_summary         
+covar_summary    
+
+# Remove unnecessary objects
+rm(covar_samples)
 
 #------------------------------------------------------------------------------#
 # Summaries of posterior distributions for proportion of sampled sites occupied
@@ -120,11 +124,12 @@ pao_summary <- pao_summary %>%
          ucl = round(apply(pao_samples, 2, quantile, ucl), digits))
 pao_summary         
 
+# Remove unnecessary objects
+rm(pao_samples)
+
 #------------------------------------------------------------------------------#
 # Plotting predicted probability of occupancy in first year
 #------------------------------------------------------------------------------#
-
-# Essentially, we want to create a heat map with values of psi for each cell
 
 # Identify covariates in model
 psi_covars <- unique(str_remove(colnames(cov_psi), "_z2|_z|[:digit:]"))
@@ -194,18 +199,24 @@ rast_final <- c(rast(rast_final[[1]], vals = 1), rast_final)
 names(rast_final)[[1]] <- "int"
 
 # Extract posterior samples for initial occupancy parameters (n = nsamp)
-subsamples <- floor(seq(1, nrow(samples), length = nsamp))
 psi_samp <- samples[subsamples, grep("beta_psi", colnames(samples))]
 
 # Convert SpatRaster to a dataframe (with one row for each cell, each column = layer)
 rast_final_df <- as.data.frame(rast_final, cell = TRUE) #130193 rows (removed rows with NAs)
 # Do the math (results in predictions on logit scale for each cell [row] and 
 # posterior sample [column])
-preds_df_logit <- as.matrix(rast_final_df[,-1]) %*% t(psi_samp) 
+preds_df <- as.matrix(rast_final_df[,-1]) %*% t(psi_samp) 
 # Convert to probability scale
-preds_df <- exp(preds_df_logit)/(1 + exp(preds_df_logit))
+preds_df <- exp(preds_df)/(1 + exp(preds_df))
 # Re-attach cell numbers
 preds_df <- cbind(cell = rast_final_df$cell, preds_df)
+
+##############################################
+# Check:
+# better to calculate medians, SDs in dataframe first and 
+# only create rasters with single layers after????
+##############################################
+
 # Convert back to a SpatRaster
 preds_raster <- rast(rep(rast_final[[1]], nsamp))
 names(preds_raster) <- paste("sample", subsamples)
@@ -216,17 +227,25 @@ preds_raster[preds_df[,1]] <- preds_df[,-1]
 
 # Calculate the median value in each cell (our best estimate of initial occ)
 preds_median <- median(preds_raster)
-plot(preds_median)
-# Calculate the SD across posterior samples in each cell
-preds_sd <- stdev(preds_raster, pop = FALSE)
-plot(preds_sd)
-# Note: pop = TRUE computes the population SD (denom = n), pop = FALSE computes
-# the sample standard deviation (denom = n-1)
+# plot(preds_median)
 
-# TODO: add options to save these rasters and/or plots?
+# Calculate the SD across posterior samples in each cell
+  # Note: pop = TRUE computes the population SD (denom = n), pop = FALSE computes
+  # the sample standard deviation (denom = n-1)
+preds_sd <- stdev(preds_raster, pop = FALSE)
+# plot(preds_sd)
+
+# Remove unnecessary objects
+rm(preds_raster, raster_list, raster_cont, raster_cat, psi_samp, rast_final_df)
+
+# List of TODOs: 
+  # add options to save these rasters and/or plots?
+  # think about whether we want to make predictions to highest elevations 
+    # where we didn't survey (and where SD of predictions if very high)
+  # improve object names throughout
 
 #------------------------------------------------------------------------------#
-# Plotting predicted probability of occupancy in last year
+# Estimate the probability of occupancy across the park in subsequent years
 #------------------------------------------------------------------------------#
 
 # Identify covariates for extinction and colonization
@@ -235,22 +254,22 @@ plot(preds_sd)
 # Will want to identify interactions where they occur, but this is difficult
 # Maybe better to save objects from the wrapper script (eg, EPS_INT1)?
 # Could then also bring in COVARS_PSI, COVARS_GAM, COVARS_EPS....
+# For now...
 COVARS_GAM <- c("elev", "monsoon_ppt")
 COVARS_EPS <- c("elev", "monsoon_ppt")
 EPS_INT1 <- c("elev", "monsoon_ppt")
 
-# We already have all the spatial covars unzipped from section above
-
 # List of potential seasonal covariates
 seas_covariates <- c("monsoon_ppt") # Will add more in time
 
-# Identify all the rasters we'll need for extinction and colonization
+# Identify all the rasters we'll need for seasonal covariates in models of 
+# extinction and colonization
 seas_gam <- str_subset(COVARS_GAM, paste(seas_covariates, collapse = "|"))
 seas_eps <- str_subset(COVARS_EPS, paste(seas_covariates, collapse = "|"))
 seas_both <- unique(c(seas_gam, seas_eps))
  
-# Need to unzip and load rasters with weather data (or eventually raster with 
-# any annually varying covs)
+# Need to unzip and load rasters with weather data (or eventually any rasters 
+# with annually varying covariates)
 weather_folder <- "data/covariates/weather-derived-rasters/"
 weather_zip <- "data/covariates/weather-derived.zip"
 # Unzip weather folder first, if necessary
@@ -260,68 +279,300 @@ if (length(list.files(weather_folder)) == 0) {
 # List files in weather folder
 weather_files <- list.files(weather_folder, full.names = TRUE)
 
-# For each seasonal covariate we'll need, create a list of rasters
+# For each seasonal covariate in the model, create a list of rasters
 for (cov in seas_both) {
   cov_files <- weather_files[str_detect(weather_files, cov)]
   # Remove rasters associated with periods outside the years of interest
-  # (eg, monsoon rainfall in year x could explain transitions between years x and x+1)
-  cov_yrs <- paste0(as.character(year), collapse = "|")
-  cov_files <- cov_files[str_detect(cov_files, cov_yrs)]
+  # (eg, monsoon rainfall in year x explains transitions between yrs x and x+1)
+  cov_yrs <- year[-length(year)]
+  cov_yrs_search <- paste0(as.character(cov_yrs), collapse = "|")
+  cov_files <- cov_files[str_detect(cov_files, cov_yrs_search)]
 
+  # Identify the mean and SD from surveyed locations for standardizing
+  cov_mn <- mean(sitetrans[,cov])
+  cov_sd <- sd(sitetrans[,cov])
   
-  ####################################################
-  # Everything in the rest of this section needs work.....
-  
-  # Load each raster and compile into a list
+  # Load each raster into a list, resample (so it has the same geometry as 
+  # spatial rasters in rast_final created above), and standardize
   cov_list <- list()
   for (i in 1:length(cov_files)) {
     cov_list[[i]] <- rast(cov_files[i])
-    names(cov_list[[i]]) <- paste(cov, year[i], sep = "_")  ##### is this a good idea?
+    cov_list[[i]] <- resample(cov_list[[i]], rast_final, method = "near")
+    cov_list[[i]] <- mask(cov_list[[i]], boundary)
+    cov_list[[i]] <- (cov_list[[i]] - cov_mn)/cov_sd
   }  
+  names(cov_list) <- paste(cov, cov_yrs, sep = "_")
   
-  # Crop rasters to park boundary
-  cov_list <- lapply(cov_list, FUN = crop, ext(boundary))
-  
-  # Scale values in each raster using means, SDs from sitetrans column (monsoon_ppt)
-  
-} # Close loop for each seasonal covariate 
-  
+  # Name the raster list appropriately (e.g., monsoon_ppt_list)
+  assign(paste0(cov, "_list"), cov_list)
+}  
 
-# Then for eps and col separately...{}
-
-  # add spatial covar raster to list, IF NEEDED (and in the same order as they appear in the model)
+# Calculate colonization probability for each cell, year
+  # (For now, can accommodate models that have interactions but not quadratics)
   
-  # Create a raster layer with just ones for the intercept
-  rast_final <- c(rast(rast_final[[1]], vals = 1), rast_final)
-  names(rast_final)[[1]] <- "int"
-
-  # Combine all rasters in list to a spatraster
+  # Extract posterior samples for extinction parameters (n = nsamp)
+  gam_samp <- samples[subsamples, grep("beta_gam", colnames(samples))]
+  
+  # Identify spatial covariates in model (if any)
+  spat_gam <- str_subset(COVARS_GAM, 
+                         paste(seas_covariates, collapse = "|"),
+                         negate = TRUE)
+  
+  # Load rasters associated with spatial covariates into a list 
+  # (also, crop and mask each raster to park boundary and standardize)
+  if ("elev" %in% spat_gam) {
+    spat_gam_r <- replace(x = spat_gam,
+                          list = which(spat_gam == "elev"), 
+                          values = "DEM")
+  }  
+  spat_gam_list <- list()
+  for (i in 1:length(spat_gam_r)) {
+    raster_ind <- which(str_detect(park_rasters, spat_gam_r[i]))
+    spat_gam_list[[i]] <- rast(park_rasters[raster_ind])
+    spat_gam_list[[i]] <- crop(spat_gam_list[[i]], ext(boundary))
+    spat_gam_list[[i]] <- mask(spat_gam_list[[i]], boundary)
+    cov_mn <- mean(spatial_covs[,spat_gam[i]])
+    cov_sd <- sd(spatial_covs[,spat_gam[i]])
+    spat_gam_list[[i]] <- (spat_gam_list[[i]] - cov_mn)/cov_sd
+  }
+  names(spat_gam_list) <- spat_gam
+  
+  # Create SpatRaster with a layer for the intercept, a layer for each 
+  # spatial covariate, and layers for each year of seasonal covariate data
+  gam_list <- list()
+  for (i in 1:length(seas_gam)) {
+    gam_list <- c(gam_list, get(paste0(seas_gam[[i]], "_list")))
+  }
+  gam_list <- c(spat_gam_list, gam_list)
+  gam_raster <- rast(gam_list)
+  gam_raster <- c(rast(gam_raster[[1]], vals = 1), gam_raster)
+  names(gam_raster)[[1]] <- "int"
   
   # Convert to a dataframe
+  gam_raster_df <- as.data.frame(gam_raster, cell = TRUE) 
   
-  # Create season-specific dataframes with intercept, spatial covs, and seasonal cov [1 col per cov]
-  
-  # If interactions, create new column
-  
-  # Do linear algebra to get eps[,1], eps[,2], ...gam[,1], gam[,2], etc...
-  
-# Close eps and gam loops
-  
-# Then create a seasonal loop
-  
-  # draw values of z[,1] from preds_df MAKE SURE CELL #s MATCH UP!  
-  for (i in 1:nyears) {
-    # do element-wise math with z[,i], gam[,i], eps[,i] to get Ez[,i]
-    # draw z[,i+1] from Ez[,i]
+  # Create season-specific dataframes with a column of 1s for the intercept and
+  # one column for each spatial and seasonal covariate
+  for (i in 1:length(cov_yrs)) {
+    # Extract the columns we need from gam_raster_df
+    year_cols <- str_subset(names(gam_raster_df), as.character(cov_yrs[i]))
+    gam_yr <- gam_raster_df %>%
+      select(int, all_of(spat_gam), all_of(year_cols))
+    # Strip the year out of any column name
+    colnames(gam_yr) <- str_remove(colnames(gam_yr), paste0("_", cov_yrs[i]))
+    
+    # Create columns with interactions (if needed)
+    n_ints <- str_subset(ls(), "GAM_INT")
+    if (length(n_ints) > 0) {
+      for (j in 1:length(n_ints)) {
+        int <- get(n_ints[j])
+        int_ind <- which(colnames(gam_yr) %in% int)
+        gam_yr[,paste(int, collapse = "_")] <- gam_yr[,int_ind[1]] * gam_yr[,int_ind[2]]
+      }
+    }
+    
+    # Make sure columns are in the same order they appear in the model
+    col_order <- covar_summary$covariate[covar_summary$parameter == "colonization"]
+    gam_yr <- gam_yr[,c("int", col_order)]
+    
+    # Do the math (results in predictions of colonization probability on the 
+    # logit scale for each cell [row] and posterior sample [column])
+    gam_prob <- as.matrix(gam_yr) %*% t(gam_samp)
+    # Convert to probability scale
+    gam_prob <- exp(gam_prob)/(1 + exp(gam_prob))
+    # Attach cell numbers
+    gam_prob <- cbind(cell = gam_raster_df$cell, gam_prob)
+    # Give this matrix a name that identifies the transition year (eg, gam_1)
+    assign(paste0("gam_", i), gam_prob)
   }
+  # Remove unnecessary objects
+  # rm(gam_prob, gam_yr, gam_raster_df, spat_gam_list, gam_list)
 
-# General approach:
-# For each MCMC iteration:
-# Estimate initial occupancy probability for each cell (section above)
-# Draw a value latent occupancy state for each cell, z[i,1] from a Bernoulli
-# Calculate gam[i,1] and eps[i,1] from beta_gam, beta_eps, and cell covariate values
-# Calculate each cell's prob of occupancy in yr 2 based on z[i, 1], gam[i, 1], eps[i, 1]
-# Cycle through years.
+# Calculate extinction probability for each cell, year
+  # (For now, can accommodate models that have interactions but not quadratics)
+
+  # Extract posterior samples for extinction parameters (n = nsamp)
+  eps_samp <- samples[subsamples, grep("beta_eps", colnames(samples))]
+
+  # Identify spatial covariates in model (if any)
+  spat_eps <- str_subset(COVARS_EPS, 
+                         paste(seas_covariates, collapse = "|"),
+                         negate = TRUE)
+  
+  # Load rasters associated with spatial covariates into a list 
+  # (also, crop and mask each raster to park boundary and standardize)
+  if ("elev" %in% spat_eps) {
+    spat_eps_r <- replace(x = spat_eps,
+                          list = which(spat_eps == "elev"), 
+                          values = "DEM")
+  }  
+  spat_eps_list <- list()
+  for (i in 1:length(spat_eps_r)) {
+    raster_ind <- which(str_detect(park_rasters, spat_eps_r[i]))
+    spat_eps_list[[i]] <- rast(park_rasters[raster_ind])
+    spat_eps_list[[i]] <- crop(spat_eps_list[[i]], ext(boundary))
+    spat_eps_list[[i]] <- mask(spat_eps_list[[i]], boundary)
+    cov_mn <- mean(spatial_covs[,spat_eps[i]])
+    cov_sd <- sd(spatial_covs[,spat_eps[i]])
+    spat_eps_list[[i]] <- (spat_eps_list[[i]] - cov_mn)/cov_sd
+  }
+  names(spat_eps_list) <- spat_eps
+  
+  # Create SpatRaster with a layer for the intercept, a layer for each 
+  # spatial covariate, and layers for each year of seasonal covariate data
+  eps_list <- list()
+  for (i in 1:length(seas_eps)) {
+    eps_list <- c(eps_list, get(paste0(seas_eps[[i]], "_list")))
+  }
+  eps_list <- c(spat_eps_list, eps_list)
+  eps_raster <- rast(eps_list)
+  eps_raster <- c(rast(eps_raster[[1]], vals = 1), eps_raster)
+  names(eps_raster)[[1]] <- "int"
+
+  # Convert to a dataframe
+  eps_raster_df <- as.data.frame(eps_raster, cell = TRUE) 
+
+  # Create season-specific dataframes with a column of 1s for the intercept and
+  # one column for each spatial and seasonal covariate
+  for (i in 1:length(cov_yrs)) {
+    # Extract the columns we need from eps_raster_df
+    year_cols <- str_subset(names(eps_raster_df), as.character(cov_yrs[i]))
+    eps_yr <- eps_raster_df %>%
+      select(int, all_of(spat_eps), all_of(year_cols))
+    # Strip the year out of any column name
+    colnames(eps_yr) <- str_remove(colnames(eps_yr), paste0("_", cov_yrs[i]))
+    
+    # Create columns with interactions (if needed)
+    n_ints <- str_subset(ls(), "EPS_INT")
+    if (length(n_ints) > 0) {
+      for (j in 1:length(n_ints)) {
+        int <- get(n_ints[j])
+        int_ind <- which(colnames(eps_yr) %in% int)
+        eps_yr[,paste(int, collapse = "_")] <- eps_yr[,int_ind[1]] * eps_yr[,int_ind[2]]
+      }
+    }
+    
+    # Make sure columns are in the same order they appear in the model
+    col_order <- covar_summary$covariate[covar_summary$parameter == "extinction"]
+    eps_yr <- eps_yr[,c("int", col_order)]
+    
+    # Do the math (results in predictions of extinction probability on the 
+    # logit scale for each cell [row] and posterior sample [column])
+    eps_prob <- as.matrix(eps_yr) %*% t(eps_samp)
+    # Convert to probability scale
+    eps_prob <- exp(eps_prob)/(1 + exp(eps_prob))
+    # Attach cell numbers
+    eps_prob <- cbind(cell = eps_raster_df$cell, eps_prob)
+    # Give this matrix a name that identifies the transition year (eg, eps_1)
+    assign(paste0("eps_", i), eps_prob)
+  }
+  
+  # Remove unnecessary objects
+  # rm(eps_prob, eps_yr, eps_raster_df, spat_eps_list, eps_list)
+  # rm(list = str_subset(ls(), "_list"))
+  # BUT be sure to keep eps_raster
+  
+# Finally, run through each season and draw values of latent occupancy state (z) 
+# for each cell and year
+
+  ###################################################
+  # TODO: need to make sure we're making predictions of all parameters to the 
+  # same set of cells
+    # Any cells in the gam/eps set that aren't in the preds_df (init occ prob)?
+    eps_noocc <- eps_1[,"cell"][!eps_1[,"cell"] %in% preds_df[,"cell"]]
+    length(eps_noocc) #Yup, 3127
+    # Any cells in preds_df that aren't in gam/eps sets?
+    occ_noeps <- preds_df[,"cell"][!preds_df[,"cell"] %in% eps_1[,"cell"]]
+    length(occ_noeps) #Yup, 4700
+  
+    # For now, using set of cell numbers present in all predictions:
+    cells <- sort(intersect(preds_df[,"cell"], eps_1[,"cell"]))
+    preds_df <- preds_df[preds_df[,"cell"] %in% cells,]
+    
+  # Draw values of latent occupancy state in year 1: z[,1]
+  # (Occupancy probabilities are in preds_df)
+  z_1 <- matrix(rbinom(length(preds_df[,-1]), 1, preds_df[,-1]),
+                nrow = nrow(preds_df[,-1]), ncol = ncol(preds_df[,-1]))
+  # Calculate PAO in year 1
+  PAO_1 <- apply(z_1, 2, function(x) sum(x)/length(x))
+    # PAO_1 is a vector that has the estimated proportion of cells occupied
+    # for each posterior sample (n = nsamp)
+  
+  # For each subsequent year...
+  for (t in 1:length(cov_yrs)) {
+    
+    # Get the matrix of colonization probabilities for transition from year t to t+1
+    gam <- get(paste0("gam_", t))
+    gam <- gam[gam[,"cell"] %in% cells,]
+    gam <- gam[, -1]
+    
+    # Get the matrix of extinction probabilities for transition from year t to t+1
+    eps <- get(paste0("eps_", t))
+    eps <- eps[eps[,"cell"] %in% cells,]
+    eps <- eps[, -1]
+    
+    # Get the matrix of latent states in year t
+    if (t == 1) {
+      z <- z_1
+    } else {
+      z <- z_new
+    }
+    
+    # Calculate the probability of occupancy for each cell in year t + 1  
+    Ez <- gam * (1 - z) + (1 - eps) * z
+    
+    # Draw the latent occupancy state from a Bernoulli for each cell in season t+1
+    z_new <- matrix(rbinom(length(Ez), 1, Ez), nrow = nrow(Ez), ncol = ncol(Ez))
+    
+    # Save matrix with occupancy probabilities (Ez)
+    assign(paste0("Ez_", t + 1), Ez)
+    
+    # Calculate estimates of PAO (across entire park) for each year
+    assign(paste0("PAO_", t + 1), 
+           apply(z_new, 2, function(x) sum(x)/length(x)))
+  } 
+
+# Remove unnecessary objects
+rm(Ez, z_new, z, gam, eps,
+   gam_1, gam_2, gam_3, gam_4, gam_5,
+   eps_1, eps_2, eps_3, eps_4, eps_5)  
+
+# Create rasters with summaries of occupancy probabilities in each year
+for (t in 1:length(cov_yrs)) {
+  Ez <- get(paste0("Ez_", t + 1))
+  Ez_stats <- data.frame(cell = cells, 
+                         median = apply(Ez, 1, median),
+                         sd = apply(Ez, 1, sd))
+  preds_median <- rast(preds_median)
+  preds_median[Ez_stats[,1]] <- Ez_stats[,2]
+  names(preds_median) <- paste0("median_", cov_yrs[t] + 1)
+  assign(paste0("Ez_median_", t + 1), preds_median)
+  preds_sd <- rast(preds_sd)
+  preds_sd[Ez_stats[,1]] <- Ez_stats[,3]
+  names(preds_sd) <- paste0("sd_", cov_yrs[t] + 1)
+  assign(paste0("Ez_sd_", t + 1), preds_sd)  
+}
+
+# Merge all rasters with medians of occupancy probability estimates into one,
+# multi-layer SpatRaster (Ez_medians) and all rasters with SDs of occupancy 
+# probability estimates into one multi-layer SpatRaster (Ez_sds)
+Ez_medians <- Ez_median_2  ############# Prob change this to medians from year 1
+Ez_sds <- Ez_sd_2
+for (t in 3:(length(cov_yrs)+1)) {
+  new_median <- get(paste0("Ez_median_", t))
+  Ez_medians <- c(Ez_medians, new_median)
+  new_sd<- get(paste0("Ez_sd_", t))
+  Ez_sds <- c(Ez_sds, new_sd)
+}
+
+# Look at median occupancy probabilities by year
+plot(Ez_medians)
+# Look at SDs of those estimates by year
+plot(Ez_sds)
+
+# Remove unnecessary objects
+rm(list = str_subset(ls(), "Ez_median_"))
+rm(list = str_subset(ls(), "Ez_sd_"))
 
 #------------------------------------------------------------------------------#
 # Estimate trend in occupancy for surveyed locations
