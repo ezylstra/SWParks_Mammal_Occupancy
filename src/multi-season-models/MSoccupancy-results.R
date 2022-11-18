@@ -2,7 +2,7 @@
 # Process results from a multi-season occupancy analysis
 
 # ER Zylstra
-# Updated 2022-11-11
+# Updated 2022-11-18
 ################################################################################
 
 library(dplyr)
@@ -20,7 +20,7 @@ library(ggplot2)
 
 PARK <- "SAGW"
 SPECIES <- "LECA"
-DATE <- "2022-10-19"
+DATE <- "2022-11-18"
 output_file <- paste0("output/models/",
                       tolower(PARK), "-",
                       tolower(SPECIES), "-MS-",
@@ -54,7 +54,7 @@ ucl <- 0.975
 digits <- 2
 
 # Identify a subset of posterior samples we want to use for figures (spatial
-# predictions and trends)
+# predictions and trends). Keeping 1000s of samples will create memory issues.
 nsamp <- 500
 subsamples <- floor(seq(1, nrow(samples), length = nsamp))
 
@@ -238,17 +238,6 @@ rm(preds1_median_df, preds1_sd_df, raster_list, raster_cont, raster_cat,
 # Estimate the probability of occupancy across the park in subsequent years
 #------------------------------------------------------------------------------#
 
-# Identify covariates for extinction and colonization
-# gam_covars <- unique(str_remove_all(colnames(cov_gam), "_z2|_z|[:digit:]"))
-# eps_covars <- unique(str_remove_all(colnames(cov_eps), "_z2|_z|[:digit:]"))
-# Will want to identify interactions where they occur, but this is difficult
-# Maybe better to save objects from the wrapper script (eg, EPS_INT1)?
-# Could then also bring in COVARS_PSI, COVARS_GAM, COVARS_EPS....
-# For now...
-COVARS_GAM <- c("elev", "monsoon_ppt")
-COVARS_EPS <- c("elev", "monsoon_ppt")
-EPS_INT1 <- c("elev", "monsoon_ppt")
-
 # List of potential seasonal covariates
 seas_covariates <- c("monsoon_ppt") # Will add more in time
 
@@ -376,7 +365,7 @@ for (cov in seas_both) {
     assign(paste0("gam_", i), gam_prob)
   }
   # Remove unnecessary objects
-  # rm(gam_prob, gam_yr, gam_raster_df, spat_gam_list, gam_list)
+  rm(gam_prob, gam_yr, gam_raster_df, spat_gam_list, gam_list)
 
 # Calculate extinction probability for each cell, year
   # (For now, can accommodate models that have interactions but not quadratics)
@@ -458,31 +447,29 @@ for (cov in seas_both) {
   }
   
   # Remove unnecessary objects
-  # rm(eps_prob, eps_yr, eps_raster_df, spat_eps_list, eps_list)
-  # rm(list = str_subset(ls(), "_list"))
+  rm(eps_prob, eps_yr, eps_raster_df, spat_eps_list, eps_list)
+  rm(list = str_subset(ls(), "_list"))
   # BUT be sure to keep eps_raster
+
+# Need to make sure we're making predictions of all parameters to the same set 
+# of cells (could differ because of covariate availability)
+  # Any cells in the gam/eps set that aren't in the preds1_df (init occ prob)?
+  eps_noocc <- eps_1[,"cell"][!eps_1[,"cell"] %in% preds1_df[,"cell"]]
+  length(eps_noocc) 
+  # Any cells in preds_df that aren't in gam/eps sets?
+  occ_noeps <- preds1_df[,"cell"][!preds1_df[,"cell"] %in% eps_1[,"cell"]]
+  length(occ_noeps)
+  # Going forward, using set of cell numbers present in all predictions:
+  cells <- sort(intersect(preds1_df[,"cell"], eps_1[,"cell"]))
+  preds1_df <- preds1_df[preds1_df[,"cell"] %in% cells,]  
   
 # Finally, run through each season and draw values of latent occupancy state (z) 
 # for each cell and year
 
-  ###################################################
-  # TODO: need to make sure we're making predictions of all parameters to the 
-  # same set of cells
-    # Any cells in the gam/eps set that aren't in the preds_df (init occ prob)?
-    eps_noocc <- eps_1[,"cell"][!eps_1[,"cell"] %in% preds_df[,"cell"]]
-    length(eps_noocc) #Yup, 3127
-    # Any cells in preds_df that aren't in gam/eps sets?
-    occ_noeps <- preds_df[,"cell"][!preds_df[,"cell"] %in% eps_1[,"cell"]]
-    length(occ_noeps) #Yup, 4700
-  
-    # For now, using set of cell numbers present in all predictions:
-    cells <- sort(intersect(preds_df[,"cell"], eps_1[,"cell"]))
-    preds_df <- preds_df[preds_df[,"cell"] %in% cells,]
-    
   # Draw values of latent occupancy state in year 1: z[,1]
-  # (Occupancy probabilities are in preds_df)
-  z_1 <- matrix(rbinom(length(preds_df[,-1]), 1, preds_df[,-1]),
-                nrow = nrow(preds_df[,-1]), ncol = ncol(preds_df[,-1]))
+  # (Occupancy probabilities are in preds1_df)
+  z_1 <- matrix(rbinom(length(preds1_df[,-1]), 1, preds1_df[,-1]),
+                nrow = nrow(preds1_df[,-1]), ncol = ncol(preds1_df[,-1]))
   # Calculate PAO in year 1
   PAO_1 <- apply(z_1, 2, function(x) sum(x)/length(x))
     # PAO_1 is a vector that has the estimated proportion of cells occupied
@@ -517,7 +504,8 @@ for (cov in seas_both) {
     # Save matrix with occupancy probabilities (Ez)
     assign(paste0("Ez_", t + 1), Ez)
     
-    # Calculate estimates of PAO (across entire park) for each year
+    # Calculate estimates of PAO (across entire park) for each year 
+    # (will need this to estimate park-wide trends in occupancy)
     assign(paste0("PAO_", t + 1), 
            apply(z_new, 2, function(x) sum(x)/length(x)))
   } 
@@ -533,11 +521,11 @@ for (t in 1:length(cov_yrs)) {
   Ez_stats <- data.frame(cell = cells, 
                          median = apply(Ez, 1, median),
                          sd = apply(Ez, 1, sd))
-  preds_median <- rast(preds_median)
+  preds_median <- rast(preds1_median)
   preds_median[Ez_stats[,1]] <- Ez_stats[,2]
   names(preds_median) <- paste0("median_", cov_yrs[t] + 1)
   assign(paste0("Ez_median_", t + 1), preds_median)
-  preds_sd <- rast(preds_sd)
+  preds_sd <- rast(preds1_sd)
   preds_sd[Ez_stats[,1]] <- Ez_stats[,3]
   names(preds_sd) <- paste0("sd_", cov_yrs[t] + 1)
   assign(paste0("Ez_sd_", t + 1), preds_sd)  
@@ -546,9 +534,11 @@ for (t in 1:length(cov_yrs)) {
 # Merge all rasters with medians of occupancy probability estimates into one,
 # multi-layer SpatRaster (Ez_medians) and all rasters with SDs of occupancy 
 # probability estimates into one multi-layer SpatRaster (Ez_sds)
-Ez_medians <- Ez_median_2  ############# Prob change this to medians from year 1
-Ez_sds <- Ez_sd_2
-for (t in 3:(length(cov_yrs)+1)) {
+Ez_medians <- preds1_median  
+names(Ez_medians) <- paste0("median_", year[1])
+Ez_sds <- preds1_sd
+names(Ez_sds) <- paste0("sd_", year[1])
+for (t in 2:(length(cov_yrs)+1)) {
   new_median <- get(paste0("Ez_median_", t))
   Ez_medians <- c(Ez_medians, new_median)
   new_sd<- get(paste0("Ez_sd_", t))
@@ -599,7 +589,7 @@ ggplot() +
                mapping = aes(x = min(year), xend = max(year), 
                              y = median(int), yend = median(last_yr)),
                size = 0.8, col = "dodgerblue3") +
-  labs(x = "Year", y = "logit(Proportion of sites occupied)")
+  labs(x = "Year", y = "logit(Proportion of sampled sites occupied)")
 
 # Prep data to plot (logit-linear) trends on the probability scale.
 # Create a sequence of values that spans yr_trend
@@ -633,7 +623,77 @@ ggplot() +
   geom_line(preds_median,
             mapping = aes(x = Year, y = Occupancy),
             size = 0.8, col = "dodgerblue3") +
-  labs(y = "Proportion of sites occupied")
+  labs(y = "Proportion of sampled sites occupied")
+
+#------------------------------------------------------------------------------#
+# Estimate trend in occupancy across the entire park
+#------------------------------------------------------------------------------#
+
+# Using the PAO_1 ... PAO_X objects created above
+paos <- paste0("PAO_", 1:length(year))
+pao_park <- do.call(cbind, mget(paos))
+
+# For each MCMC iteration, estimate a linear trend in logit(occupancy)
+pao_park_logit <- log(pao_park / (1 - pao_park))
+year_trend <- 0:(ncol(pao_park_logit) - 1)
+trends_park <- data.frame(iter = 1:nrow(pao_park_logit), int = NA, slope = NA)
+for (i in 1:nrow(pao_park_logit)) {
+  m <- lm(pao_park_logit[i,] ~ year_trend)
+  trends_park[i,2:3] <- coef(m)
+}
+
+# Summarize trend estimates
+summary(trends_park$slope)
+hist(trends_park$slope, breaks = 50)
+
+# Plot trends on the logit scale (each gray line represents one MCMC iteration)
+trends_park <- trends_park %>%
+  mutate(last_yr = int + max(year_trend) * slope)
+
+ggplot() +
+  geom_segment(trends_park,
+               mapping = aes(x = min(year), xend = max(year), 
+                             y = int, yend = last_yr),
+               size = 0.3, col = "gray") +
+  geom_segment(trends_park,
+               mapping = aes(x = min(year), xend = max(year), 
+                             y = median(int), yend = median(last_yr)),
+               size = 0.8, col = "dodgerblue3") +
+  labs(x = "Year", y = "logit(Proportion of park occupied)")
+
+# Prep data to plot (logit-linear) trends on the probability scale.
+# Create a sequence of values that spans yr_trend
+yr_predict <- seq(0, max(year_trend), length = 100)
+# Create a matrix, with a column of 1s (for the intercept) and yr_predict
+yr_predict_matrix <- rbind(1, yr_predict)
+# Predict values: logit(occupancy) = beta0 + slope*yr_predict (matrix math)
+preds_park_logit <- as.matrix(trends_park[,c("int", "slope")]) %*% yr_predict_matrix
+# Convert predictions to probability scale. 
+preds_park_prob <- exp(preds_park_logit)/(1 + exp(preds_park_logit))
+colnames(preds_park_prob) <- yr_predict
+# Calculate the median value across iterations for each value of yr_predict
+preds_park_median <- data.frame(Year = yr_predict + min(year), 
+                                Occupancy = apply(preds_park_prob, 2, median))
+# Add column to identify MCMC iteration
+preds_park_prob <- cbind(preds_park_prob, iter = 1:nrow(preds_park_prob))
+# Convert predictions to long form for ggplot
+preds_park_long <- preds_park_prob %>%
+  as.data.frame %>%
+  pivot_longer(cols = !iter,
+               names_to = "Year",
+               values_to = "Occupancy") %>%
+  mutate(Year = as.numeric(Year) + min(year)) %>%
+  as.data.frame
+
+# Plot trends on the probability scale (each line represents one MCMC iteration)
+ggplot() +
+  geom_line(preds_park_long,
+            mapping = aes(x = Year, y = Occupancy, group = iter),
+            col = "gray") + 
+  geom_line(preds_park_median,
+            mapping = aes(x = Year, y = Occupancy),
+            size = 0.8, col = "dodgerblue3") +
+  labs(y = "Proportion of park occupied")
 
 #------------------------------------------------------------------------------#
 # Calculate marginal effects for a continuous covariate (example)
