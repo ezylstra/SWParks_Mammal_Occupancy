@@ -3,7 +3,7 @@
 # specified in MSoccupancy-wrapper.R
 
 # ER Zylstra
-# Updated 2022-10-19
+# Updated 2022-11-18
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -392,7 +392,8 @@ covs_cont <- c(covs_cont, "effort", "day", "monsoon_ppt", "burn_severity_2011")
       select(contains(covars_psi))
     # Add quadratics if needed
     if (!all(is.na(PSI_QUADS))) {
-      psi_quads <- covars_psi[PSI_QUADS]
+      psi_quads <- names(cov_psi)[str_detect(names(cov_psi), 
+                                             paste(PSI_QUADS, collapse = "|"))]
       cov_psi[,paste0(psi_quads, "2")] <- cov_psi[,psi_quads] ^ 2
     }
     # Put columns in alphabetical order and convert to a matrix
@@ -411,7 +412,8 @@ covs_cont <- c(covs_cont, "effort", "day", "monsoon_ppt", "burn_severity_2011")
       select(contains(covars_p))
     # Add quadratics if needed
     if (!all(is.na(P_QUADS))) {
-      p_quads <- covars_p[P_QUADS]
+      p_quads <- names(cov_p)[str_detect(names(cov_p), 
+                                         paste(P_QUADS, collapse = "|"))]
       cov_p[,paste0(p_quads, "2")] <- cov_p[,p_quads] ^ 2
     }
     # Put columns in alphabetical order and convert to a matrix
@@ -430,7 +432,8 @@ covs_cont <- c(covs_cont, "effort", "day", "monsoon_ppt", "burn_severity_2011")
       select(contains(covars_eps))
     # Add quadratics if needed
     if (!all(is.na(EPS_QUADS))) {
-      eps_quads <- covars_eps[EPS_QUADS]
+      eps_quads <- names(cov_eps)[str_detect(names(cov_eps), 
+                                             paste(EPS_QUADS, collapse = "|"))]
       cov_eps[,paste0(eps_quads, "2")] <- cov_eps[,eps_quads] ^ 2
     }
     # Put columns in alphabetical order
@@ -465,7 +468,8 @@ covs_cont <- c(covs_cont, "effort", "day", "monsoon_ppt", "burn_severity_2011")
       select(contains(covars_gam))
     # Add quadratics if needed
     if (!all(is.na(GAM_QUADS))) {
-      gam_quads<- covars_gam[GAM_QUADS]
+      gam_quads <- names(cov_gam)[str_detect(names(cov_gam), 
+                                             paste(GAM_QUADS, collapse = "|"))]
       cov_gam[,paste0(gam_quads, "2")] <- cov_gam[,gam_quads] ^ 2
     }
     # Put columns in alphabetical order
@@ -629,10 +633,11 @@ jags_model <- paste0(jags_model, ".txt")
 #------------------------------------------------------------------------------#
 
 nc <- 3      # Number of chains
-na <- 3000   # Number of iterations to run in the adaptive phase
+na <- 5000   # Number of iterations to run in the adaptive phase
 nb <- 10000  # Number of iterations to discard (burn-in)
-ni <- 20000  # Number of iterations per chain (including burn-in)
-nt <- 10     # Thinning rate
+ni <- 30000  # Number of iterations per chain (including burn-in)
+nt <- 20     # Thinning rate
+# Note: with this number of iterations, the model can take many minutes to run
 
 out <- jags(data = jags_data,
             inits = inits,

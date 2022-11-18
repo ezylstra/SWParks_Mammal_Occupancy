@@ -46,11 +46,9 @@ YEARS <- 2017:2022
   # Set as NA if you don't want any covariates
   COVARS_PSI <- c("pois", "elev", "vegclass")
 
-  # Indicate (by number) if you want to include quadratic effects for any of the
-  # elements in COVARS_PSI (NA if none). For example, PSI_QUADS <- c(1,3) would 
-  # include linear and quadratic effects for the 1st and 3rd covariates in the 
-  # COVARS_PSI vector above)
-  PSI_QUADS <- c(2,1)
+  # If you want to include quadratic effects for any of the elements in 
+  # COVARS_PSI, list them by name. If no quadratic effects, PSI_QUADS <- NA
+  PSI_QUADS <- c("elev", "pois")
 
 # Covariates for detection probability (p)
   # Options (all parks): effort, day, camera_new, deploy_exp, elev, boundary, 
@@ -60,17 +58,17 @@ YEARS <- 2017:2022
   # Set as NA if you don't want any covariates
   COVARS_P <- c("effort", "day", "camera_new", "deploy_exp")
 
-  # Indicate (by number) if you want to include quadratic effects for any of the
-  # elements in COVARS_P
-  P_QUADS <- c(2)
+  # If you want to include quadratic effects for any of the elements in 
+  # COVARS_P, list them by name. If no quadratic effects, P_QUADS <- NA
+  P_QUADS <- c("day")
 
 # Covariates for extinction probability (eps)
   # Options (all parks): monsoon_ppt, elev
   # Set as NA if you don't want any covariates
   COVARS_EPS <- c("elev", "monsoon_ppt")
 
-  # Indicate (by number) if you want to include quadratic effects for any of the
-  # elements in COVARS_EPS
+  # If you want to include quadratic effects for any of the elements in 
+  # COVARS_EPS, list them by name. If no quadratic effects, EPS_QUADS <- NA
   EPS_QUADS <- NA  
 
   # To include interactions between covariates:
@@ -85,8 +83,8 @@ YEARS <- 2017:2022
   # Set as NA if you don't want any covariates
   COVARS_GAM <- c("elev", "monsoon_ppt")
   
-  # Indicate (by number) if you want to include quadratic effects for any of the
-  # elements in COVARS_GAM
+  # If you want to include quadratic effects for any of the elements in 
+  # COVARS_GAM, list them by name. If no quadratic effects, GAM_QUADS <- NA
   GAM_QUADS <- NA  
   
   # To include interactions between covariates:
@@ -112,10 +110,13 @@ model_filename <- paste0("output/models/",
                          date,
                          ".Rdata")
 
-# Save JAGS model and other objects to file
-obj_to_save <- c("out", "surveys", "spatial_covs", "sitetrans", "occasions")
-if (!all(is.na(COVARS_PSI))) {obj_to_save <- c(obj_to_save, "cov_psi")}
-if (!all(is.na(COVARS_P))) {obj_to_save <- c(obj_to_save, "cov_p")}
-if (!all(is.na(COVARS_EPS))) {obj_to_save <- c(obj_to_save, "cov_eps")}
-if (!all(is.na(COVARS_GAM))) {obj_to_save <- c(obj_to_save, "cov_gam")}
+# List of all objects we want to save if they exist
+obj_to_save <- c("out", "surveys", "spatial_covs", "sitetrans", "occasions",
+                 "n_cov_psi", "n_cov_p", "n_cov_eps", "n_cov_gam",
+                 "COVARS_PSI", "COVARS_P", "COVARS_EPS", "COVARS_GAM", 
+                 ls()[str_detect(ls(), "INT")])
+# Remove items from the list if they don't exist
+obj_to_save <- obj_to_save[sapply(obj_to_save, exists)]
+
+# Save to file
 save(list = obj_to_save, file = model_filename)
