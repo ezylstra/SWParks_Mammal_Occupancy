@@ -201,42 +201,32 @@ names(rast_final)[[1]] <- "int"
 # Extract posterior samples for initial occupancy parameters (n = nsamp)
 psi_samp <- samples[subsamples, grep("beta_psi", colnames(samples))]
 
-# Convert SpatRaster to a dataframe (with one row for each cell, each column = layer)
-rast_final_df <- as.data.frame(rast_final, cell = TRUE) #130193 rows (removed rows with NAs)
+# Convert SpatRaster to a dataframe (one row for each cell, each column = layer)
+# note: this removes cells/rows with NAs
+rast_final_df <- as.data.frame(rast_final, cell = TRUE)
 # Do the math (results in predictions on logit scale for each cell [row] and 
 # posterior sample [column])
-preds_df <- as.matrix(rast_final_df[,-1]) %*% t(psi_samp) 
-# Convert to probability scale
-preds_df <- exp(preds_df)/(1 + exp(preds_df))
+preds1_df <- as.matrix(rast_final_df[,-1]) %*% t(psi_samp) 
+# Convert to probability scale (can take a few seconds)
+preds1_df <- exp(preds1_df)/(1 + exp(preds1_df))
 # Re-attach cell numbers
-preds_df <- cbind(cell = rast_final_df$cell, preds_df)
+preds1_df <- cbind(cell = rast_final_df$cell, preds1_df)
 
-##############################################
-# Check:
-# better to calculate medians, SDs in dataframe first and 
-# only create rasters with single layers after????
-##############################################
+# Calculate the median prediction in each cell and create a raster
+preds1_median_df <- cbind(preds1_df[,1], apply(preds1_df[,-1], 1, median))
+preds1_median <- rast(rast_final[[1]])
+preds1_median[preds1_median_df[,1]] <- preds1_median_df[,2]
+# plot(preds1_median)
 
-# Convert back to a SpatRaster
-preds_raster <- rast(rep(rast_final[[1]], nsamp))
-names(preds_raster) <- paste("sample", subsamples)
-preds_raster[preds_df[,1]] <- preds_df[,-1]
-  # Check:
-  # plot(preds_raster[[1:2]])
-  # psi_samp[1:2,]
-
-# Calculate the median value in each cell (our best estimate of initial occ)
-preds_median <- median(preds_raster)
-# plot(preds_median)
-
-# Calculate the SD across posterior samples in each cell
-  # Note: pop = TRUE computes the population SD (denom = n), pop = FALSE computes
-  # the sample standard deviation (denom = n-1)
-preds_sd <- stdev(preds_raster, pop = FALSE)
-# plot(preds_sd)
+# Calculate the SD of predictions in each cell and create a raster
+preds1_sd_df <- cbind(preds1_df[,1], apply(preds1_df[,-1], 1, sd))
+preds1_sd <- rast(rast_final[[1]])
+preds1_sd[preds1_sd_df[,1]] <- preds1_sd_df[,2] 
+# plot(preds1_sd)
 
 # Remove unnecessary objects
-rm(preds_raster, raster_list, raster_cont, raster_cat, psi_samp, rast_final_df)
+rm(preds1_median_df, preds1_sd_df, raster_list, raster_cont, raster_cat, 
+   psi_samp, rast_final_df)
 
 # List of TODOs: 
   # add options to save these rasters and/or plots?
