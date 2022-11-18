@@ -117,6 +117,8 @@ obj_to_save <- c("out", "surveys", "spatial_covs", "sitetrans", "occasions",
                  ls()[str_detect(ls(), "INT")])
 # Remove items from the list if they don't exist
 obj_to_save <- obj_to_save[sapply(obj_to_save, exists)]
+# Remove a couple other items from the list
+obj_to_save <- obj_to_save[!obj_to_save %in% c("N_GAM_INTERACTS", "N_EPS_INTERACTS")]
 
 # Save to file
 save(list = obj_to_save, file = model_filename)
