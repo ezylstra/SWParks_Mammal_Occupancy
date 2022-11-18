@@ -447,9 +447,8 @@ for (cov in seas_both) {
   }
   
   # Remove unnecessary objects
-  rm(eps_prob, eps_yr, eps_raster_df, spat_eps_list, eps_list)
+  rm(eps_prob, eps_yr, eps_raster_df, spat_eps_list, eps_list, eps_raster)
   rm(list = str_subset(ls(), "_list"))
-  # BUT be sure to keep eps_raster
 
 # Need to make sure we're making predictions of all parameters to the same set 
 # of cells (could differ because of covariate availability)
@@ -711,14 +710,14 @@ ggplot() +
   # So the odds will change by a FACTOR of exp(beta_gam1):
   # Odds[elev+1SD] = Odds[mean elev] * exp(beta_gam1)
 
-# For sagw-leca-MS-2022-10-19.Rdata model, elevation effect is beta_gam[1]
+# For sagw-leca-MS-2022-11-18.Rdata model, elevation effect is beta_gam[1]
 # logit(gamma[i]) = beta_gam0 + beta_gam[1] * elevation[i]
 beta_gam <- samples[,"beta_gam[1]"]
 change <- exp(beta_gam)
 mean(change) # 0.49
-quantile(change, probs = c(lcl, ucl)) #0.27, 0.78
+quantile(change, probs = c(lcl, ucl)) #0.27, 0.77
 # The odds a site is colonized are estimated to be 51% lower for each 
-# 1-SD increase in elevation (95% CI = 22-73%) [assuming other covariates held
+# 1-SD increase in elevation (95% CI = 23-73%) [assuming other covariates held
 # constant]
 
 #------------------------------------------------------------------------------#
@@ -727,7 +726,7 @@ quantile(change, probs = c(lcl, ucl)) #0.27, 0.78
 
 # Estimate how detection probability changes with day-of-year
 
-# For sagw-leca-MS-2022-10-19.Rdata model, linear and quadratic effect of day
+# For sagw-leca-MS-2022-11-18.Rdata model, linear and quadratic effect of day
 # are beta_p[2:3]
 # logit(p[i]) = beta_p0 + beta_p[2] * doy[i] + beta_p[3] * doy[i] * doy[i]
 
@@ -781,7 +780,7 @@ ggplot() +
 # Estimate how vegetation class affects probabilities of occupancy in the first 
 # year 
 
-# For sagw-leca-MS-2022-10-13.Rdata model, vegclass1 (low gradient desert) is 
+# For sagw-leca-MS-2022-11-18.Rdata model, vegclass1 (low gradient desert) is 
 # the reference level, effect of vegclass2 (low hillslope, north-facing) is 
 # beta_psi[5], and effect of vegclass3 (medium-high gradient) is beta_psi[6]
 
@@ -789,14 +788,14 @@ ggplot() +
 beta_psi0 <- samples[,"beta_psi0"]
 vegclass1 <- exp(beta_psi0)/(1 + exp(beta_psi0)) 
 mean(vegclass1) # 0.53
-quantile(vegclass1, probs = c(lcl, ucl)) #0.25, 0.82
-# Probability of initial occupancy = 0.53 (95% CI = 0.25, 0.82)
+quantile(vegclass1, probs = c(lcl, ucl)) #0.23, 0.82
+# Probability of initial occupancy = 0.53 (95% CI = 0.23, 0.82)
 
 # Probability of occupancy in vegclass2 (at mean values of other covariates)
 beta_veg2 <- samples[,"beta_psi[5]"]
 vegclass2L <- beta_psi0 + beta_veg2
 vegclass2 <- exp(vegclass2L)/(1 + exp(vegclass2L)) 
 mean(vegclass2) # 0.05
-quantile(vegclass2, probs = c(lcl, ucl)) #0.00, 0.25
-# Probability of initial occupancy = 0.05 (95% CI = 0.00, 0.25)
+quantile(vegclass2, probs = c(lcl, ucl)) #0.00, 0.24
+# Probability of initial occupancy = 0.05 (95% CI = 0.00, 0.24)
 
