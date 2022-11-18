@@ -2,7 +2,7 @@
 # Run a multi-season occupancy analysis
 
 # ER Zylstra
-# Updated 2022-10-19
+# Updated 2022-11-18
 ################################################################################
 
 library(dplyr)
@@ -112,7 +112,7 @@ model_filename <- paste0("output/models/",
 
 # List of all objects we want to save if they exist
 obj_to_save <- c("out", "surveys", "spatial_covs", "sitetrans", "occasions",
-                 "n_cov_psi", "n_cov_p", "n_cov_eps", "n_cov_gam",
+                 "cov_psi", "cov_p", "cov_eps", "cov_gam",
                  "COVARS_PSI", "COVARS_P", "COVARS_EPS", "COVARS_GAM", 
                  ls()[str_detect(ls(), "INT")])
 # Remove items from the list if they don't exist
