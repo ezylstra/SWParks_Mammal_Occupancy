@@ -32,7 +32,7 @@ orpi_zip_topo <- "data/covariates/rasters-ORPI-topo.zip"
 orpi_zip_dist <- "data/covariates/rasters-ORPI-dist.zip"
 sagw_zip <- "data/covariates/rasters-SAGW.zip"
 
-# Unzip park-specifc folders and load 30-m DEMs for each park
+# Unzip park-specific folders and load 30-m DEMs for each park
 unzip(zipfile = chir_zip)
 dem_chir_file <- paste0(chir_folder, "CHIR_DEM_1as.tif")
 dem_chir <- rast(dem_chir_file)
@@ -130,20 +130,26 @@ roads_sagw <- vect("data/covariates/shapefiles/roads_sagw.shp")
 trails <- vect("data/covariates/shapefiles/trails.shp")
 
 # Calculate distance to trails:
-  # dist_trail_chir <- rast(dem_chir)
-  # dist_trail_chir <- terra::crop(dist_trail_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
-  # dist_trail_chir <- terra::distance(dist_trail_chir, trails)
-  # writeRaster(dist_trail_chir, paste0(chir_folder, "dist_trail_chir.tif"))
+  dist_trail_chir <- rast(dem_chir)
+  dist_trail_chir <- terra::crop(dist_trail_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
+  dist_trail_chir <- terra::distance(dist_trail_chir, trails)
+  writeRaster(dist_trail_chir, 
+              paste0(chir_folder, "dist_trail_chir.tif"),
+              overwrite = TRUE)
 
-  # dist_trail_sagw <- rast(dem_sagw)
-  # dist_trail_sagw <- terra::crop(dist_trail_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
-  # dist_trail_sagw <- terra::distance(dist_trail_sagw, trails)
-  # writeRaster(dist_trail_sagw, paste0(sagw_folder, "dist_trail_sagw.tif"))
+  dist_trail_sagw <- rast(dem_sagw)
+  dist_trail_sagw <- terra::crop(dist_trail_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
+  dist_trail_sagw <- terra::distance(dist_trail_sagw, trails)
+  # writeRaster(dist_trail_sagw, 
+  #             paste0(sagw_folder, "dist_trail_sagw.tif"),
+  #             overwrite = TRUE)
 
-  # dist_trail_orpi <- rast(dem_orpi)
-  # dist_trail_orpi <- terra::crop(dist_trail_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
-  # dist_trail_orpi <- terra::distance(dist_trail_orpi, trails)
-  # writeRaster(dist_trail_orpi, paste0(orpi_folder, "dist_trail_orpi.tif"))
+  dist_trail_orpi <- rast(dem_orpi)
+  dist_trail_orpi <- terra::crop(dist_trail_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
+  dist_trail_orpi <- terra::distance(dist_trail_orpi, trails)
+  # writeRaster(dist_trail_orpi, 
+  #             paste0(orpi_folder, "dist_trail_orpi.tif"),
+  #             overwrite = TRUE)
 
 #------------------------------------------------------------------------------#
 # Distance to point-of-interest (POIs, buildings, parking lots combined)
@@ -169,20 +175,26 @@ allpois_orpi <- subset(allpois, allpois$UNITCODE == "ORPI")
 allpois_sagw <- subset(allpois, allpois$UNITCODE == "SAGU")
 
 # Calculate distance to these features
-  # dist_pois_chir <- rast(dem_chir)
-  # dist_pois_chir <- terra::crop(dist_pois_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
-  # dist_pois_chir <- terra::distance(dist_pois_chir, allpois_chir)
-  # writeRaster(dist_pois_chir, paste0(chir_folder, "dist_pois_chir.tif"))
+  dist_pois_chir <- rast(dem_chir)
+  dist_pois_chir <- terra::crop(dist_pois_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
+  dist_pois_chir <- terra::distance(dist_pois_chir, allpois_chir)
+  # writeRaster(dist_pois_chir, 
+  #             paste0(chir_folder, "dist_pois_chir.tif"),
+  #             overwrite = TRUE)
   
-  # dist_pois_sagw <- rast(dem_sagw)
-  # dist_pois_sagw <- terra::crop(dist_pois_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
-  # dist_pois_sagw <- terra::distance(dist_pois_sagw, allpois_sagw)
-  # writeRaster(dist_pois_sagw, paste0(sagw_folder, "dist_pois_sagw.tif"))
+  dist_pois_sagw <- rast(dem_sagw)
+  dist_pois_sagw <- terra::crop(dist_pois_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
+  dist_pois_sagw <- terra::distance(dist_pois_sagw, allpois_sagw)
+  # writeRaster(dist_pois_sagw, 
+  #             paste0(sagw_folder, "dist_pois_sagw.tif"),
+  #             overwrite = TRUE)
 
-  # dist_pois_orpi <- rast(dem_orpi)
-  # dist_pois_orpi <- terra::crop(dist_pois_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
-  # dist_pois_orpi <- terra::distance(dist_pois_orpi, allpois_orpi)
-  # writeRaster(dist_pois_orpi, paste0(orpi_folder, "dist_pois_orpi.tif"))
+  dist_pois_orpi <- rast(dem_orpi)
+  dist_pois_orpi <- terra::crop(dist_pois_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
+  dist_pois_orpi <- terra::distance(dist_pois_orpi, allpois_orpi)
+  # writeRaster(dist_pois_orpi, 
+  #             paste0(orpi_folder, "dist_pois_orpi.tif"),
+  #             overwrite = TRUE)
 
 #------------------------------------------------------------------------------#
 # Fire perimeter data
