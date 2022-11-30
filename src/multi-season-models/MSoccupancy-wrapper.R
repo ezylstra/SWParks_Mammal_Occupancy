@@ -77,7 +77,7 @@ YEARS <- 2017:2022
   # variables must appear in COVARS_EPS)
   N_EPS_INTERACTS <- 1
   EPS_INT1 <- c("elev", "monsoon_ppt")
-
+  
 # Covariates for colonization probability (gam)
   # Options (all parks): monsoon_ppt, elev
   # Set as NA if you don't want any covariates
@@ -94,10 +94,12 @@ YEARS <- 2017:2022
   N_GAM_INTERACTS <- 0
   # GAM_INT1 <- c("monsoon_ppt", "elev")
 
+  source("src/multi-season-models/MSoccupancy-covariate-check.R")
+
 #------------------------------------------------------------------------------#  
 # Run multi-season model and save results
 #------------------------------------------------------------------------------#
-  
+
 source("src/multi-season-models/MSoccupancy-generic.R")
 
 # Create filename to store results
