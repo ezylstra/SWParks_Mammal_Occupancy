@@ -72,11 +72,13 @@ trails_sf <- sf::st_read(tmp, drivers = "GeoJSON")
 trails <- terra::vect(trails_sf)
 # Note: this file includes trails in SAGE, but that's probably fine for now
 
-# Convert layer to NAD83
-crs(trails) <- crs(parks)
+# Reproject to NAD83
+trails <- terra::project(trails, crs(parks))
 
 # Write to file
-# writeVector(trails, filename = "data/covariates/shapefiles/trails.shp")
+# writeVector(trails, 
+#             filename = "data/covariates/shapefiles/trails.shp", 
+#             overwrite = TRUE)
 
 #------------------------------------------------------------------------------#
 # Points of interest
@@ -94,8 +96,8 @@ download.file(request, tmp)
 pois_sf <- sf::st_read(tmp, drivers = "GeoJSON")
 pois <- terra::vect(pois_sf)
 
-# Convert layer to NAD83
-crs(pois) <- crs(parks)
+# Reproject to NAD83
+pois <- terra::project(pois, crs(parks))
 
 # What are POIs?
 count(as.data.frame(pois), POITYPE)
@@ -122,7 +124,9 @@ count(as.data.frame(pois), POITYPE)
   pois <- subset(pois, pois$POITYPE != "Mile Marker")
 
 # Write to file
-# writeVector(pois, filename = "data/covariates/shapefiles/POIs.shp")
+# writeVector(pois, 
+#             filename = "data/covariates/shapefiles/POIs.shp",
+#             overwrite = TRUE)
 
 #------------------------------------------------------------------------------#
 # Buildings (polygons)
@@ -140,11 +144,13 @@ download.file(request, tmp)
 builds_sf <- geojsonsf::geojson_sf(tmp)
 builds <- terra::vect(builds_sf)
 
-# Convert layer to NAD83
-crs(builds) <- crs(parks)
+# Reproject to NAD83
+builds <- terra::project(builds, crs(parks))
 
 # Write to file
-# writeVector(builds, filename = "data/covariates/shapefiles/buildings.shp")
+# writeVector(builds, 
+#             filename = "data/covariates/shapefiles/buildings.shp",
+#             overwrite = TRUE)
 
 #------------------------------------------------------------------------------#
 #Parking lots (polygons)
@@ -162,9 +168,11 @@ download.file(request, tmp)
 lots_sf <- geojsonsf::geojson_sf(tmp)
 lots <- terra::vect(lots_sf)
 
-# Convert layer to NAD83
-crs(lots) <- crs(parks)
+# Reproject to NAD83
+lots <- terra::project(lots, crs(parks))
 
 # Write to file
-# writeVector(lots, filename = "data/covariates/shapefiles/parking_lots.shp")
+# writeVector(lots, 
+#             filename = "data/covariates/shapefiles/parking_lots.shp",
+#             overwrite = TRUE)
 
