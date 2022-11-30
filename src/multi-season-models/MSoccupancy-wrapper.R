@@ -2,7 +2,7 @@
 # Run a multi-season occupancy analysis
 
 # ER Zylstra
-# Updated 2022-11-18
+# Updated 2022-11-30
 ################################################################################
 
 library(dplyr)
@@ -31,12 +31,14 @@ source("src/photo-data/format-mammal-data.R")
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "SAGW"
+PARK <- "ORPI"
 
 # Select species of interest (select option from species$Species_code)
-SPECIES <- "LECA"
+SPECIES <- "LYRU" # LECA = black-tailed jackrabbits
 
-# Specify years to include (earliest possible year = 2016 for ORPI, 2017 other parks)
+# Specify years to include (earliest possible year = 2016 for ORPI, 2017 
+# other parks; but note that sampling occasions at ORPI in 2016 occurred later
+# than occasions in other years)
 YEARS <- 2017:2022
 
 # Covariates for initial occupancy (psi)
@@ -44,11 +46,11 @@ YEARS <- 2017:2022
   # Additional options (SAGW): wash, vegclass
   # Additional options (CHIR): burn_severity_2011
   # Set as NA if you don't want any covariates
-  COVARS_PSI <- c("pois", "elev", "vegclass")
+  COVARS_PSI <- c("pois", "elev", "slope")
 
   # If you want to include quadratic effects for any of the elements in 
   # COVARS_PSI, list them by name. If no quadratic effects, PSI_QUADS <- NA
-  PSI_QUADS <- c("elev", "pois")
+  PSI_QUADS <- c("elev", "slope")
 
 # Covariates for detection probability (p)
   # Options (all parks): effort, day, camera_new, deploy_exp, elev, boundary, 
@@ -91,14 +93,14 @@ YEARS <- 2017:2022
   # Specify the number of desired interactions, and create a vector for each 
   # interaction with the names of the two variables to include (note: these 
   # variables must appear in COVARS_GAM)
-  N_GAM_INTERACTS <- 0
-  # GAM_INT1 <- c("monsoon_ppt", "elev")
+  N_GAM_INTERACTS <- 1
+  GAM_INT1 <- c("elev", "monsoon_ppt")
 
   source("src/multi-season-models/MSoccupancy-covariate-check.R")
 
 #------------------------------------------------------------------------------#  
 # Run multi-season model and save results
-#------------------------------------------------------------------------------#
+#------------------------------------------------------------------------------# 
 
 source("src/multi-season-models/MSoccupancy-generic.R")
 
