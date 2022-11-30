@@ -2,7 +2,7 @@
 # Process results from a multi-season occupancy analysis
 
 # ER Zylstra
-# Updated 2022-11-18
+# Updated 2022-11-30
 ################################################################################
 
 library(dplyr)
@@ -179,7 +179,7 @@ if (exists("cov_psi")) {
   psi_list <- lapply(psi_list, FUN = crop, ext(boundary))
   
   # If vegclass (which is categorical) is in the model, create a layer for each
-  # layers associated with dummy variables in the model (SAGW: vegclass 2 and 3)
+  # dummy variables in the model (SAGW: vegclasses 2 and 3)
   if ("vegclass" %in% psi_covars) {
     veg_rast <- psi_list[["vegclass"]]
     veg_rast[veg_rast == 4] <- NA
@@ -513,7 +513,8 @@ if (exists("seas_both")) {rm(list = paste0(seas_eps, "_list"))}
   }
   rm(temp_df)
 
-# Finally, run through each season and draw values of latent occupancy state (z) 
+# Finally, run through each season, calculating the probability of occupancy and
+# drawing values of latent occupancy states (z) from Bernoulli distributions
 # for each cell and year
 
   # Draw values of latent occupancy state in year 1: z[,1]
@@ -533,7 +534,7 @@ if (exists("seas_both")) {rm(list = paste0(seas_eps, "_list"))}
     gam <- gam[gam[,"cell"] %in% cells,]
     gam <- gam[, -1]
     
-    # Get the matrix of extinction probabilities for transition from year t to t+1
+    # Get the matrix of extinction probs for transition from year t to t+1
     eps <- get(paste0("epsprob", yr_labels[t]))
     eps <- eps[eps[,"cell"] %in% cells,]
     eps <- eps[, -1]
@@ -545,7 +546,7 @@ if (exists("seas_both")) {rm(list = paste0(seas_eps, "_list"))}
       z <- z_new
     }
     
-    # Calculate the probability of occupancy for each cell in year t + 1  
+    # Calculate the probability of occupancy for each cell in year t+1  
     Ez <- gam * (1 - z) + (1 - eps) * z
     
     # Draw the latent occupancy state from a Bernoulli for each cell in year t+1
@@ -566,7 +567,8 @@ remove <- c("Ez", "z_new", "z", "gam", "eps", "z01",
 remove <- remove[sapply(remove, exists)]
 rm(list = remove)  
 
-# Create rasters with summaries of occupancy probabilities in each year
+# Create rasters with summaries of occupancy probabilities in each year 
+# (median and SD)
 for (t in 1:length(year)) {
   occprob <- get(paste0("occprob", yr_labels[t]))
   occ_stats <- data.frame(cell = cells, 
@@ -626,22 +628,23 @@ for (i in 1:nrow(pao_logit)) {
 
 # Summarize trend estimates
 summary(trends$slope)
+par(mfrow = c(1, 1))
 hist(trends$slope, breaks = 50)
 
 # Plot trends on the logit scale (each gray line represents one MCMC iteration)
-trends <- trends %>%
-  mutate(last_yr = int + max(year_trend) * slope)
-
-ggplot() +
-  geom_segment(trends,
-               mapping = aes(x = min(year), xend = max(year), 
-                             y = int, yend = last_yr),
-               size = 0.3, col = "gray") +
-  geom_segment(trends,
-               mapping = aes(x = min(year), xend = max(year), 
-                             y = median(int), yend = median(last_yr)),
-               size = 0.8, col = "dodgerblue3") +
-  labs(x = "Year", y = "logit(Proportion of sampled sites occupied)")
+# trends <- trends %>%
+#   mutate(last_yr = int + max(year_trend) * slope)
+# 
+# ggplot() +
+#   geom_segment(trends,
+#                mapping = aes(x = min(year), xend = max(year), 
+#                              y = int, yend = last_yr),
+#                size = 0.3, col = "gray") +
+#   geom_segment(trends,
+#                mapping = aes(x = min(year), xend = max(year), 
+#                              y = median(int), yend = median(last_yr)),
+#                size = 0.8, col = "dodgerblue3") +
+#   labs(x = "Year", y = "logit(Proportion of sampled sites occupied)")
 
 # Prep data to plot (logit-linear) trends on the probability scale.
 # Create a sequence of values that spans yr_trend
@@ -696,22 +699,23 @@ for (i in 1:nrow(pao_park_logit)) {
 
 # Summarize trend estimates
 summary(trends_park$slope)
+par(mfrow = c(1, 1))
 hist(trends_park$slope, breaks = 50)
 
 # Plot trends on the logit scale (each gray line represents one MCMC iteration)
-trends_park <- trends_park %>%
-  mutate(last_yr = int + max(year_trend) * slope)
-
-ggplot() +
-  geom_segment(trends_park,
-               mapping = aes(x = min(year), xend = max(year), 
-                             y = int, yend = last_yr),
-               size = 0.3, col = "gray") +
-  geom_segment(trends_park,
-               mapping = aes(x = min(year), xend = max(year), 
-                             y = median(int), yend = median(last_yr)),
-               size = 0.8, col = "dodgerblue3") +
-  labs(x = "Year", y = "logit(Proportion of park occupied)")
+# trends_park <- trends_park %>%
+#   mutate(last_yr = int + max(year_trend) * slope)
+# 
+# ggplot() +
+#   geom_segment(trends_park,
+#                mapping = aes(x = min(year), xend = max(year), 
+#                              y = int, yend = last_yr),
+#                size = 0.3, col = "gray") +
+#   geom_segment(trends_park,
+#                mapping = aes(x = min(year), xend = max(year), 
+#                              y = median(int), yend = median(last_yr)),
+#                size = 0.8, col = "dodgerblue3") +
+#   labs(x = "Year", y = "logit(Proportion of park occupied)")
 
 # Prep data to plot (logit-linear) trends on the probability scale.
 # Create a sequence of values that spans yr_trend
