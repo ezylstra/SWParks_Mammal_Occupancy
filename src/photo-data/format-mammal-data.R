@@ -36,7 +36,7 @@ deploys <- read.csv("data/covariates/deployment-personnel.csv")
 
 # Notes about sampling "events":
 # Occasionally cameras were immediately re-deployed for continuous sampling
-# Occasionally two cameras were deployed at the same location simultaneously
+
 # Sometimes cameras left out for >1 yr. Not sure how long they collected photos.
 
 # Only keep necessary columns
@@ -66,6 +66,16 @@ events <- events %>%
   select(-RetrievalDate)
 
   #-- Fix known issues in events dataset --------------------------------------#
+
+  # At a few locations at ORPI in 2021, two cameras were deployed at the same 
+  # location simultaneously (removing event information for one of the cameras)
+  events <- events %>%
+    filter(!(StdLocName == "Wildlife_ORPI_V101_16W" & 
+               year(d_datetime) == 2021 & CameraName == "SODN_040")) %>%
+    filter(!(StdLocName == "Wildlife_ORPI_V102_107W" & 
+               year(d_datetime) == 2021 & CameraName == "SODN_134")) %>%
+    filter(!(StdLocName == "Wildlife_ORPI_V103_06W" & 
+               year(d_datetime) == 2021 & CameraName == "SODN_167"))     
 
   # Change the retrieval date for CHIR camera 502-003 deployed in 2019
   events <- events %>%
@@ -111,8 +121,12 @@ events <- events %>%
 events <- relocate(events, c(Park, d_date, r_date), .after = StdLocName)
 events <- arrange(events, StdLocName, d_datetime)
 
-# Restrict events dataframe to 2016 forward
-events <- filter(events, d_yr > 2015)
+# Restrict events dataframe to 2016 forward for ORPI, 2017 forward for other
+# parks (CHIR has events listed in 2016 but no corresponding photos. Sampling
+# methods were different in 2016, so probably ok not to track those photos down)
+events <- events %>%
+  filter(!(Park == "ORPI" & d_yr < 2016)) %>%
+  filter(!(Park != "ORPI" & d_yr < 2017))
 
 # Calculate length of deployment, in days
 events$duration <- as.double(difftime(as.POSIXct(events$r_datetime), 
@@ -267,6 +281,8 @@ dat <- dat %>%
 locs <- locs %>% 
   # Remove GICL locations
   filter(UnitCode != "GICL") %>%
+  # Remove locations that don't appear in events dataframe 
+  filter(StdLocName %in% events$StdLocName) %>%
   # Remove leading "WBC_", "V", and "W" from MarkerName where they appear
   mutate(loc_short_np = ifelse(str_detect(MarkerName, "WBC"), 
                                str_replace(MarkerName, fixed ("WBC_"), ""),
@@ -300,9 +316,6 @@ dat <- dat %>%
 # Summarize sampling events by park and year (and compare to photo obs data)
 table(events$Park, events$d_yr)
 table(dat$Park, dat$yr)
-  # There are sampling events in CHIR in 2016 with no corresponding observations
-  # Sampling methods were different that year, so probably ok not to track 
-  # these down
 
 # Check that all cameras in photo obs dataset appear in the events dataset
 obslocs <- sort(unique(dat$StdLocName))
@@ -329,17 +342,23 @@ events$r_day <- as.numeric(events$r_date) - as.numeric(as.Date("2015-12-31"))
       event_mat[i, temp$d_day[j]:temp$r_day[j]] <- 1
     }
   }
-  # checks at random locations 
+  # Checks at 1 random location in each of 3 bigger parks
   # (only 1s during sampling event and 0s outside of event?):
-  events[events$StdLocName == eventlocs[206], 
-         c("StdLocName", "d_date", "r_date", "d_day","r_day")]
-  sum(event_mat[206, 1:390] == 1); sum(event_mat[206, 1:390] == 0) 
-  sum(event_mat[206, 391:424] == 1); sum(event_mat[206, 391:424] == 0) 
-  
-  events[events$StdLocName == eventlocs[111], 
-         c("StdLocName", "d_date", "r_date", "d_day","r_day")]
-  sum(event_mat[111, 1:115] == 1); sum(event_mat[111, 1:115] == 0) 
-  sum(event_mat[111, 810:853] == 1); sum(event_mat[111, 810:853] == 0) 
+  # # CHIR
+  # events[events$StdLocName == eventlocs[28], 
+  #        c("StdLocName", "d_date", "r_date", "d_day","r_day")]
+  # sum(event_mat[28, 1:629] == 1); sum(event_mat[28, 1:629] == 0) 
+  # sum(event_mat[28, 630:699] == 1); sum(event_mat[28, 630:699] == 0) 
+  # # ORPI
+  # events[events$StdLocName == eventlocs[111], 
+  #        c("StdLocName", "d_date", "r_date", "d_day","r_day")]
+  # sum(event_mat[111, 1:112] == 1); sum(event_mat[111, 1:112] == 0) 
+  # sum(event_mat[111, 113:168] == 1); sum(event_mat[111, 113:168] == 0)
+  # # SAGW
+  # events[events$StdLocName == eventlocs[190], 
+  #        c("StdLocName", "d_date", "r_date", "d_day","r_day")]  
+  # sum(event_mat[190, 1883:2210] == 1); sum(event_mat[190, 1883:2210] == 0) 
+  # sum(event_mat[190, 2211:2247] == 1); sum(event_mat[190, 2211:2247] == 0)
   
 # Create character strings with location and date for each mammal observation
 dat$o_day <- as.numeric(dat$obsdate) - as.numeric(as.Date("2015-12-31"))
@@ -351,7 +370,7 @@ for (i in 1:length(eventlocs)) {
   eventvec <- append(eventvec, paste(eventlocs[i], which(event_mat[i,] == 1), sep = "_"))
 }
   # check:
-  head(eventvec); head(events[,c(1, 13:14, 18, 17)])
+  head(eventvec); head(events[,c("StdLocName", "d_day", "r_day")])
   
 # Check that all photo dates were during listed sampling events
 summary(dat$locdate %in% eventvec) 

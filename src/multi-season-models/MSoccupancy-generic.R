@@ -169,9 +169,14 @@ events_park <- cbind(events_park, occ_matrix)
 # For each row in the survey dataframe, attach the deployment personnel 
 # experience value that corresponds with that camera location and occasion
 for (i in 1:nrow(surveys)) {
-  surveys$deploy_exp[i] <- 
-    events_park$deploy_exp[events_park$StdLocName == surveys$loc[i] &
-                             events_park[,surveys$occ[i]] == 1]
+  de <- events_park$deploy_exp[events_park$StdLocName == surveys$loc[i] &
+                               events_park[,surveys$occ[i]] == 1]
+  # Infrequently, there may be two events associated with a particular camera
+  # location and occasion when a camera was redeployed immediately.  In these
+  # instances, better to use the 2nd entry for deploy_exp (which reflects who
+  # REdeployed the camera)
+  de <- de[length(de)]
+  surveys$deploy_exp[i] <- de
 }
 
 #------------------------------------------------------------------------------#
@@ -276,7 +281,12 @@ invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
   
   # Create needed lists of folder and file names 
   park_folder <- paste0("data/covariates/rasters-", PARK, "/")
-  park_zip <- paste0("data/covariates/rasters-", PARK, ".zip")
+  if (PARK == "ORPI") {
+    park_zip1 <- "data/covariates/rasters-ORPI-dist.zip"
+    park_zip2 <- "data/covariates/rasters-ORPI-topo.zip"
+  } else {  
+    park_zip <- paste0("data/covariates/rasters-", PARK, ".zip")
+  }
 
   raster_filenames <- c("dist_boundary", "dist_pois", "dist_roads", "dist_trail", 
                         "east", "north", "slope")
@@ -291,9 +301,14 @@ invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
                     paste0(raster_filenames, "_", tolower(PARK), ".tif"))
   park_rasters <- paste0(park_folder, park_rasters)
 
-  # Unzip park folder first, if necessary
+  # Unzip park folder(s) first, if necessary
   if (!all(unlist(lapply(X = park_rasters, FUN = file.exists)))) {
-    unzip(park_zip, overwrite = TRUE)
+    if (PARK == "ORPI") {
+      unzip(park_zip1, overwrite = TRUE)
+      unzip(park_zip2, overwrite = TRUE)
+    } else {
+      unzip(park_zip, overwrite = TRUE)
+    }
   }
 
   raster_objects <- ifelse(str_detect(raster_filenames, "dist"), 
