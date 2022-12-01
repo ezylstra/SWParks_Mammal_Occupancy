@@ -139,10 +139,20 @@ rm(pao_samples)
 
 # Unzip park rasters
 park_folder <- paste0("data/covariates/rasters-", PARK, "/")
-park_zip <- paste0("data/covariates/rasters-", PARK, ".zip")
-if (length(list.files(park_folder)) == 0) {
-  unzip(park_zip)
+if (PARK == "ORPI") {
+  park_zip1 <- paste0("data/covariates/rasters-ORPI-dist.zip") 
+  park_zip2 <- paste0("data/covariates/rasters-ORPI-topo.zip") 
+  if (length(list.files(park_folder)) == 0) {
+    unzip(park_zip1, overwrite = TRUE)
+    unzip(park_zip2, overwrite = TRUE)
+  }  
+} else {
+  park_zip <- paste0("data/covariates/rasters-", PARK, ".zip")
+  if (length(list.files(park_folder)) == 0) {
+    unzip(park_zip)
+  }
 }
+
 # Generate list of available rasters
 park_rasters <- list.files(path = park_folder, 
                            pattern = ".tif", 
