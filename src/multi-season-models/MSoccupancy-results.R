@@ -628,6 +628,10 @@ pao <- samples[subsamples, grep("PAO", colnames(samples))]
 
 # For each MCMC iteration, estimate a linear trend in logit(occupancy)
 # (note: this is a trend for surveyed locations only)
+  # First, adjust estimates near 0 or 1 since they're problematic when 
+  # converting to the logit scale
+  pao[pao > 0.999] <- 0.999
+  pao[pao < 0.001] <- 0.001
 pao_logit <- log(pao / (1 - pao))
 year_trend <- 0:(ncol(pao_logit) - 1)
 trends <- data.frame(iter = 1:nrow(pao_logit), int = NA, slope = NA)
@@ -699,6 +703,9 @@ paos <- paste0("PAO_", yr_labels)
 pao_park <- do.call(cbind, mget(paos))
 
 # For each MCMC iteration, estimate a linear trend in logit(occupancy)
+  # Adjust estimates near 0 or 1
+  pao_park[pao_park > 0.999] <- 0.999
+  pao_park[pao_park < 0.001] <- 0.001
 pao_park_logit <- log(pao_park / (1 - pao_park))
 year_trend <- 0:(ncol(pao_park_logit) - 1)
 trends_park <- data.frame(iter = 1:nrow(pao_park_logit), int = NA, slope = NA)
