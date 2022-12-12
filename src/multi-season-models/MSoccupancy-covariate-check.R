@@ -6,8 +6,8 @@
 # Updated 2022-11-30
 ################################################################################
 
-# Produce error messages if any covariates are quadratic effects of interactions
-# are specified incorrectly
+# Produce error messages if any quadratic effects or interactions are specified 
+# incorrectly
 
   # Initial occupancy probability (PSI)
   if (!all(is.na(PSI_QUADS)) & any(!PSI_QUADS %in% COVARS_PSI)) {
