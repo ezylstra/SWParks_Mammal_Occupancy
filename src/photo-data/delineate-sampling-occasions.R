@@ -1,9 +1,10 @@
 ################################################################################
 # SODN -- Camera trap data, 2016-2022
-# Delineate sampling occasions
+# Delineate sampling occasions and calculate the number of species detections
+# during sampling occasions at each park
 
 # ER Zylstra
-# Updated: 2022-10-20
+# Updated: 2022-12-12
 ################################################################################
 
 library(dplyr)
@@ -21,6 +22,10 @@ source("src/photo-data/format-mammal-data.R")
   #             was deployed or not
   # locs = information about each camera location (park, lat/long, name)
   # species = table with species observed (species code, common name, # of obs)
+
+#------------------------------------------------------------------------------#
+# Delineate sampling occasions
+#------------------------------------------------------------------------------#
 
 # Create a dataframe with information about each day of the study
 # Day number (daynum): day 1 = 01 Jan 2016)
@@ -158,16 +163,152 @@ for (park in parks) {
            start_day = as.numeric(date(start)) - as.numeric(as.Date("2015-12-31")),
            end_day = as.numeric(date(end)) - as.numeric(as.Date("2015-12-31")))
 
-  # Append information about sampling occasions to occasions_allparks
+  # Append information about sampling occasions to occ_all
   if (n == 1) {
-    occasions_allparks <- occasions
+    occ_all <- occasions
   } else {
-    occasions_allparks <- rbind(occasions_allparks, occasions)
+    occ_all <- rbind(occ_all, occasions)
   }
 }
 
 # Export occasions dataframe as csv
-# write.csv(occasions_allparks, 
+# write.csv(occ_all, 
 #           file = "data/occasions/occasions-all-parks.csv",
+#           row.names = FALSE)
+
+#------------------------------------------------------------------------------#
+# Calculate number of species detections
+#------------------------------------------------------------------------------#
+
+n <- 0
+
+for (park in parks) {
+  
+  n <- n + 1
+  
+  # Extract sampling occasion info for selected park and years
+  park_yrs <- park_photos %>%
+    filter(Park == park)
+  occasions <- occ_all %>%
+    filter(Park == park) %>%
+    filter(yr %in% park_yrs$first_yr:park_yrs$last_yr)
+  
+  # Create a list of days included in sampling occasions
+  occ_days <- NULL
+  for (i in 1:nrow(occasions)) {
+    occ_days <- append(occ_days, occasions$start_day[i]:occasions$end_day[i])
+  }
+  
+  # Extract photo observations for park and occasion days
+  # Retain only one species observation per day at a given location
+  obs <- dat %>% 
+    filter(Park == park & o_day %in% occ_days) %>%
+    select(Park, StdLocName, Species_code, yr, o_day) %>%
+    rename(spp = Species_code) %>%
+    distinct
+  
+  # Attach occasion to each row and then distinct again
+  for (i in 1:nrow(obs)) {
+    obs$yr_occ[i] <- occasions$yr_occ[obs$o_day[i] >= occasions$start_day & 
+                                        obs$o_day[i] <= occasions$end_day]
+  }
+  # Remove replicate observations of species at a location during each occasion
+  obs <- obs %>%
+    select(-o_day) %>%
+    distinct() %>%
+    mutate(detect = 1)
+  
+  # Extract rows from events matrix that correspond to locations in selected park
+  locs_park <- locs$StdLocName[locs$UnitCode == park]
+  event_mat_park <- event_mat[rownames(event_mat) %in% locs_park,]
+  
+  # Extract columns from events matrix that correspond to sampling occasions
+  event_mat_park <- event_mat_park[,colnames(event_mat_park) %in% occ_days]
+  
+  # Summarize event data by occasion 
+  event_occ <- matrix(NA, 
+                      nrow = nrow(event_mat_park), 
+                      ncol = nrow(occasions),
+                      dimnames = list(rownames(event_mat_park), occasions$yr_occ))
+  
+  # Create matrix with 1/0 indicating whether camera was operational during that 
+  # occasion
+  for (i in 1:ncol(event_occ)) {
+    multiday <- event_mat_park[,colnames(event_mat_park) %in% 
+                                 occasions$start_day[i]:occasions$end_day[i]]
+    event_occ[,i] <- apply(multiday, 1, sum)
+    event_occ[event_occ > 1] <- 1
+  }
+  # check: 
+  # table(c(event_occ), useNA = "always")
+  
+  # Convert to long form
+  event_occ_long <- event_occ %>%
+    as.data.frame() %>%
+    mutate(StdLocName = rownames(.)) %>%
+    pivot_longer(cols = !last_col(),
+                 names_to = "yr_occ",
+                 values_to = "obs") %>%
+    data.frame()
+  
+  # Merge observation and species detection information
+  detects <- expand.grid(Park = park,
+                         StdLocName = sort(locs_park),
+                         yr_occ = occasions$yr_occ,
+                         spp = unique(obs$spp))
+  detects <- left_join(detects, event_occ_long, by = c("StdLocName", "yr_occ"))
+  detects <- left_join(detects, obs[,c("StdLocName", "spp", "yr_occ", "detect")],
+                       by = c("StdLocName", "spp", "yr_occ"))
+  detects$detect[is.na(detects$detect)] <- 0
+  detects$yr <- as.numeric(str_sub(detects$yr_occ, 1, 4))
+  
+  # Summarize by park, yr, and species
+  # nobs is number of "observations" (location * occasion when camera operational)
+  # ndetects is number of detections of that species (for given year)
+  detects_yr <- detects %>%
+    group_by(Park, yr, spp) %>%
+    summarize(.groups = "keep",
+              nobs = sum(obs),
+              ndetects = sum(detect)) %>%
+    mutate(propdetect = round(ndetects/nobs,2)) %>%
+    data.frame()
+  
+  # Summarize by park and species
+  # nobs is number of "observations" (location * occasion when camera operational)
+  # ndetects is number of detections of that species
+  detects_allyrs <- detects %>%
+    group_by(Park, spp) %>%
+    summarize(.groups = "keep",
+              nobs = sum(obs),
+              ndetects = sum(detect)) %>%
+    mutate(propdetect = round(ndetects/nobs,2)) %>%
+    data.frame()
+  detects_allyrs
+  
+  # Create dataframe with information on species detections at all parks
+  if (n == 1) {
+    spp_detections_yr <- detects_yr
+    spp_detections <- detects_allyrs
+  } else {
+    spp_detections_yr <- rbind(spp_detections_yr, detects_yr)
+    spp_detections <- rbind(spp_detections, detects_allyrs)
+  }  
+}
+
+# Look at species detection rates by park
+spp_detections %>%
+  arrange(spp, Park) %>%
+  pivot_wider(id_cols = spp, 
+              names_from = Park, 
+              names_sort = TRUE,
+              values_from = propdetect) %>%
+  data.frame()
+
+# Export species detections dataframes as csvs
+# write.csv(spp_detections,
+#           file = "output/species-detections-bypark.csv",
+#           row.names = FALSE)
+# write.csv(spp_detections_yr,
+#           file = "output/species-detections-byparkyr.csv",
 #           row.names = FALSE)
 
