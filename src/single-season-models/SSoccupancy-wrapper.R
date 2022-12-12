@@ -44,19 +44,19 @@ YEAR <- 2020
   # Additional options (SAGW): wash, vegclass
   # Additional options (CHIR): burn_severity_2011
   # Set as NA if you don't want any covariates
-  COVARS_PSI <- c("pois", "elev", "slope")
+  COVARS_PSI <- c("pois", "elev", "vegclass")
 
   # If you want to include quadratic effects for any of the elements in 
   # COVARS_PSI, list them by name. If no quadratic effects, PSI_QUADS <- NA
-  PSI_QUADS <- c("elev", "slope")
+  PSI_QUADS <- c("elev")
 
 # Covariates for detection probability (p)
-  # Options (all parks): effort, day, camera_new, deploy_exp, elev, boundary, 
-  # pois, roads, trail, east, north, slope
+  # Options (all parks): effort, day, deploy_exp, elev, boundary, pois, roads, 
+  # trail, east, north, slope
   # Additional options (SAGW): wash, vegclass
   # Additional options (CHIR): burn_severity_2011
   # Set as NA if you don't want any covariates
-  COVARS_P <- c("effort", "day", "camera_new", "deploy_exp")
+  COVARS_P <- c("effort", "day", "deploy_exp")
 
   # If you want to include quadratic effects for any of the elements in 
   # COVARS_P, list them by name. If no quadratic effects, P_QUADS <- NA
