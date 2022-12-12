@@ -21,17 +21,17 @@
 # Check that linear models look as expected:
   
   # Initial occupancy probability (PSI)
-  psi_formula <- COVARS_PSI
+  psi_formula <- ifelse(is.na(COVARS_PSI), 1, COVARS_PSI)
   if (!all(is.na(PSI_QUADS))) {
     psi_formula <- sort(c(psi_formula, paste0(PSI_QUADS, "2")))
   }
   
   # Detection probability (P)
-  p_formula <- COVARS_P
+  p_formula <- ifelse(is.na(COVARS_P), 1, COVARS_P)
   if (!all(is.na(P_QUADS))) {
     p_formula <- sort(c(p_formula, paste0(P_QUADS, "2")))
   }
-
+  
   psi_m <- paste0("psi ~ ", paste(psi_formula, collapse = " + "))
   p_m <- paste0("p ~ ", paste(p_formula, collapse = " + "))
 
