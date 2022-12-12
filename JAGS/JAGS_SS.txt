@@ -1,0 +1,35 @@
+model {
+
+	# Priors
+	
+		mean_psi ~ dunif(0,1)        # Mean occupancy on the probability scale
+		beta_psi0 <- logit(mean_psi) # Mean occupancy on the logit scale
+		
+		mean_p ~ dunif(0, 1)         # Mean detection probability on the probability scale
+		beta_p0 <- logit(mean_p)     # Mean detection probability on the logit scale
+
+	# Likelihood
+	
+		# Ecological model
+		
+		for (i in 1:n_sites) {
+			
+			logit(psi[i]) <- beta_psi0
+			z[i] ~ dbern(psi[i])
+			
+		}
+
+		# Observation model (data in long form)
+  
+    for(w in 1:n_obs){
+      
+			logit(p[w]) <- beta_p0
+			y[w] ~ dbern(z[site[w]]*p[w])
+    
+   } #w
+   
+   # Derived estimate of occupancy at survey locations
+     PAO <- sum(z[1:n_sites])/n_sites
+
+}
+
