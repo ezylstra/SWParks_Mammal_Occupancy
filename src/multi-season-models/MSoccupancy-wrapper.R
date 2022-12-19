@@ -118,6 +118,7 @@ model_filename <- paste0("output/models/",
 obj_to_save <- c("out", "surveys", "spatial_covs", "sitetrans", "occasions",
                  "cov_psi", "cov_p", "cov_eps", "cov_gam",
                  "COVARS_PSI", "COVARS_P", "COVARS_EPS", "COVARS_GAM", 
+                 "model_description", 
                  ls()[str_detect(ls(), "INT")])
 # Remove items from the list if they don't exist
 obj_to_save <- obj_to_save[sapply(obj_to_save, exists)]

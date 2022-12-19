@@ -97,3 +97,11 @@
   message("Check that the models below look correct before proceeding!")
   cat(paste(psi_m, p_m, eps_m, gam_m, sep = "\n")) 
   
+  species_descript <- paste0("Species: ", SPECIES)
+  park_descript <- paste0("Park: ", PARK)
+  yrs_descript <- paste0("Years: ", min(YEARS), ":", max(YEARS))
+  
+  model_description <- paste(species_descript,
+                             park_descript,
+                             yrs_descript,
+                             psi_m, p_m, eps_m, gam_m, sep = "\n") 
