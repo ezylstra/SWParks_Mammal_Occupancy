@@ -31,15 +31,18 @@ output_file <- paste0("output/models/",
 load(output_file)
 
 # Check attributes of model (species, park, years, covariates)
-cat(model_description)
+cat(model_description) 
+# Note: this won't work for the 2022-11-18 example model but should work for 
+# any models run on or after 2022-12-19.
 
 #------------------------------------------------------------------------------#
-# First look at model results 
+# First look at model results, model checks
 #------------------------------------------------------------------------------#
 
 print(out, digits = 2)
+# Look at Rhat values (want values <1.1)
 
-# Trace and density plots
+# View trace and density plots
 # MCMCtrace(out,pdf = FALSE)
 # par(mfrow = c(1,1))
 
