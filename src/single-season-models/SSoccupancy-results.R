@@ -209,8 +209,12 @@ if (exists("cov_psi")) {
 psi_samp <- samples[subsamples, grep("beta_psi", colnames(samples))]
 
 # Convert SpatRaster to a dataframe (one row for each cell, each column = layer)
-# note: this removes cells/rows with NAs
 psi_rasters_df <- as.data.frame(psi_rasters, cell = TRUE)
+# Remove row with any covariates equal to NA
+psi_rasters_df$nNAs <- apply(psi_rasters_df[,-1], 1, function(x) sum(is.na(x)))
+psi_rasters_df <- psi_rasters_df %>%
+  filter(nNAs == 0) %>%
+  select(-nNAs)
 # Do the math (results in predictions on logit scale for each cell [row] and 
 # posterior sample [column])
 occprob <- as.matrix(psi_rasters_df[,-1]) %*% t(psi_samp) 
@@ -218,3 +222,153 @@ occprob <- as.matrix(psi_rasters_df[,-1]) %*% t(psi_samp)
 occprob <- exp(occprob)/(1 + exp(occprob))
 # Re-attach cell numbers
 occprob <- cbind(cell = psi_rasters_df$cell, occprob)
+
+# Draw values of latent occupancy state (z)
+z <- matrix(rbinom(length(occprob[,-1]), 1, occprob[,-1]),
+            nrow = nrow(occprob[,-1]), ncol = ncol(occprob[,-1]))
+
+# Calculate proportion of area occupied (PAO)
+PAO_park <- apply(z, 2, function(x) sum(x)/length(x))
+# PAO_park is a vector that has the estimated proportion of cells occupied
+# for each posterior sample (n = nsamp)
+
+# Create raster with median, SD occupancy probabilities across the park
+# (median and SD)
+occ_stats <- data.frame(cell = occprob[,1], 
+                        median = apply(occprob[,-1], 1, median),
+                        sd = apply(occprob[,-1], 1, sd))
+preds_median <- rast(rast_int)
+preds_median[occ_stats[,1]] <- occ_stats[,2]
+names(preds_median) <- "occupancy_prob_median"
+preds_sd <- rast(rast_int)
+preds_sd[occ_stats[,1]] <- occ_stats[,3]
+names(preds_sd) <- "occupancy_prob_sd"
+
+# Look at estimated occupancy probabilities (and SDs)
+par(mfrow = c(2,1))
+plot(preds_median)
+plot(preds_sd)
+par(mfrow = c(1,1))
+
+# Remove unnecessary objects
+remove <- c("psi_list", "psi_cont", "veg_rast", "psi_rasters", "psi_rasters_df", 
+            "psi_samp", "veg2", "veg3", "z")
+remove <- remove[sapply(remove, exists)]
+rm(list = remove)
+
+#------------------------------------------------------------------------------#
+# Calculate marginal effects for a continuous covariate (example)
+#------------------------------------------------------------------------------#
+
+# Estimate how occupancy varies as a function of distance from some
+# point-of-interest (POI; includes buildings, parking lots)
+
+# Notes: logit is the log of the odds
+# Odds are the probability event happens / probability event doesn't happen
+# So logit(psi[i]) = log(psi[i] / (1-psi[i])) = log(odds)
+# Odds a site is occupied at the mean distance from a POI = exp(beta_psi0)
+# Odds a site is occupied with a 1-SD increase in distance = 
+# exp(beta_psi0 + beta_psi1 * 1) = exp(beta_psi0)*exp(beta_psi1)
+# So the odds will change by a FACTOR of exp(beta_psi1):
+# Odds[dist+1SD] = Odds[mean dist] * exp(beta_psi1)
+
+# For sagw-leca-2020-20221213.Rdata model, pois effect is beta_psi[3]
+# logit(psi[i]) = beta_psi0 + beta_psi[3] * dist[i]
+beta_psi <- samples[,"beta_psi[3]"]
+change <- exp(beta_psi)
+mean(change) # 7.53
+median(change) # 5.36
+quantile(change, probs = c(lcl, ucl)) #1.79, 26.43
+# The odds a site is colonized are estimated to be 7.5 times higher (750% higher) 
+# for each 1-SD increase in distance (95% CI = 1.8 - 26.4 times higher) 
+# [assuming other covariates held constant]
+
+#------------------------------------------------------------------------------#
+# Plot marginal effects for a continuous covariate (example)
+#------------------------------------------------------------------------------#
+
+# Estimate how detection probability changes with day-of-year
+
+# For sagw-leca-2020-20221213.Rdata model, linear and quadratic effect of day
+# are beta_p[1:2]
+# logit(p[i]) = beta_p0 + beta_p[1] * doy[i] + beta_p[2] * doy[i] * doy[i]
+
+# Generate a vector of days that span the range that occurred during study
+day_nums <- seq(min(surveys$day), max(surveys$day), length = 100)
+# Standardize these values (Make sure to grab the mean/SD from the dataframe 
+# where values were standardized in SSoccupancy-generic.R. For day number, this 
+# was in the occasions dataframe)
+day_nums_z <- (day_nums - mean(occasions$mid_yday)) / sd(occasions$mid_yday)
+# Create a matrix of covariate values (including the intercept [1])
+X_p <- cbind(int = 1, doy = day_nums_z, doy2 = day_nums_z *day_nums_z)
+# Create a matrix with posterior samples for the parameters we need
+betas_p <- samples[,c("beta_p0", "beta_p[1]", "beta_p[2]")]
+# Generate a matrix of predicted values on the logit scale
+# Matrix dimensions = 100 x 3000 (3000 predicted values for each day in seq)
+pred_logit_p <- X_p %*% t(betas_p)
+# Backtransform to the probability scale
+pred_prob_p <- exp(pred_logit_p) / (1 + exp(pred_logit_p))
+# Calculate mean, median, and credible interval for each value
+mean_p <- apply(pred_prob_p, 1, mean)
+median_p <- apply(pred_prob_p, 1, median)
+cri_p <- apply(pred_prob_p, 1, quantile, probs = c(lcl, ucl)) 
+# Put objects in dataframe for ggplot
+plot_data <- data.frame(mean = mean_p,
+                        median = median_p,
+                        day_nums = day_nums,
+                        lcl = cri_p[1,],
+                        ucl = cri_p[2,])
+
+# Plot predictions
+# For day-of-year, transform day numbers we want on x-axis to date 
+# (for easier interpretation)
+day_nums_axis <- seq(min(day_nums), max(day_nums), by = 10)
+days_axis <- parse_date_time(paste(2020, as.character(day_nums_axis)), 
+                             orders = "yj")
+
+ggplot() + 
+  geom_ribbon(plot_data,
+              mapping = aes(x = day_nums, ymin = lcl, ymax = ucl), 
+              fill = "gray70") +
+  geom_line(plot_data,
+            mapping = aes(x = day_nums, y = median)) +
+  scale_y_continuous(limits = c(0, 1)) +
+  scale_x_continuous(breaks = day_nums_axis, labels = format(days_axis, "%m-%d")) + 
+  labs(x = "Date", y = "Detection probability") +
+  theme(axis.title.y = element_text(margin = margin(t = 0, r = 10, b = 0, l = 0)))
+
+#------------------------------------------------------------------------------#
+# Calculate marginal effects for a categorical covariate (example)
+#------------------------------------------------------------------------------#
+
+# Estimate how vegetation class affects probabilities of occupancy
+
+# For sagw-leca-2020-20221213.Rdata model, vegclass1 (low gradient desert) is 
+# the reference level, effect of vegclass2 (low hillslope, north-facing) is 
+# beta_psi[4], and effect of vegclass3 (medium-high gradient) is beta_psi[5]
+
+# Probability of occupancy in vegclass1 (at mean values of other covariates)
+beta_psi0 <- samples[,"beta_psi0"]
+vegclass1 <- exp(beta_psi0)/(1 + exp(beta_psi0)) 
+mean(vegclass1) # 0.39
+median(vegclass1) # 0.39
+quantile(vegclass1, probs = c(lcl, ucl)) #0.12, 0.72
+# Probability of occupancy = 0.39 (95% CI = 0.12, 0.72)
+
+# Probability of occupancy in vegclass2 (at mean values of other covariates)
+beta_veg2 <- samples[,"beta_psi[4]"]
+vegclass2L <- beta_psi0 + beta_veg2
+vegclass2 <- exp(vegclass2L)/(1 + exp(vegclass2L)) 
+mean(vegclass2) # 0.55
+median(vegclass2) # 0.56
+quantile(vegclass2, probs = c(lcl, ucl)) #0.15, 0.89
+# Probability of occupancy = 0.56 (95% CI = 0.15, 0.89)
+
+# Probability of occupancy in vegclass3 (at mean values of other covariates)
+beta_veg3 <- samples[,"beta_psi[5]"]
+vegclass3L <- beta_psi0 + beta_veg3
+vegclass3 <- exp(vegclass3L)/(1 + exp(vegclass3L)) 
+mean(vegclass3) # 0.07
+median(vegclass3) # 0.05
+quantile(vegclass3, probs = c(lcl, ucl)) #0.00, 0.27
+# Probability of occupancy = 0.05 (95% CI = 0.00, 0.27)
