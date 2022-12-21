@@ -38,3 +38,12 @@
   message("Check that the models below look correct before proceeding!")
   cat(paste(psi_m, p_m, sep = "\n")) 
   
+  species_descript <- paste0("Species: ", SPECIES)
+  park_descript <- paste0("Park: ", PARK)
+  yr_descript <- paste0("Year: ", YEAR)
+  
+  model_description <- paste(species_descript,
+                             park_descript,
+                             yr_descript,
+                             psi_m, p_m, sep = "\n") 
+  

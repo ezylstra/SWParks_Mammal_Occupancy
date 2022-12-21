@@ -32,6 +32,9 @@ output_file <- paste0("output/models/",
                       DATE,".Rdata")
 load(output_file)
 
+# Check attributes of model (species, park, year, covariates)
+cat(model_description) 
+
 #------------------------------------------------------------------------------#
 # First look at model results 
 #------------------------------------------------------------------------------#
