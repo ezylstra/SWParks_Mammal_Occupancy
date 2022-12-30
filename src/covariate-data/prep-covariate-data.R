@@ -7,6 +7,7 @@
 ################################################################################
 
 library(dplyr)
+library(stringr)
 library(terra)
 library(raster)
 
@@ -424,6 +425,8 @@ unzip(zipfile = weather_zipfile,
 
 # Load precipitation data
 yrs <- 2016:2021
+start_yrs <- yrs[-length(yrs)]
+end_yrs <- start_yrs + 1
 for (yr in yrs) {
   # Create SpatRasters titled "prYYYY"
   assign(paste0("pr", yr), 
@@ -436,20 +439,108 @@ for (yr in yrs) {
 # plot(parks_b, lty = 3, add = TRUE)
 
 # Create annual rasters with cumulative precipitation during monsoon season
-for (yr in yrs) {
-  monsoon_ppt <- get(paste0("pr",yr))
-  startd  <- lubridate::yday(paste0(yr, "-06-15"))
-  endd <- lubridate::yday(paste0(yr, "-09-30"))
-  monsoon_ppt <- monsoon_ppt[[startd:endd]]
-  monsoon_ppt <- app(monsoon_ppt, fun = sum)
-  # New rasters name: monsoon_ppt_YEAR
-  assign(paste0("monsoon_ppt_",yr), monsoon_ppt)
-} 
+  for (yr in yrs) {
+    monsoon_ppt <- get(paste0("pr", yr))
+    startd  <- lubridate::yday(paste0(yr, "-06-15"))
+    endd <- lubridate::yday(paste0(yr, "-09-30"))
+    monsoon_ppt <- monsoon_ppt[[startd:endd]]
+    monsoon_ppt <- app(monsoon_ppt, fun = sum)
+    # New rasters name: monsoon_ppt_YEAR
+    assign(paste0("monsoon_ppt_", yr), monsoon_ppt)
+  } 
+
+# Create annual rasters with cumulative precipitation during winter (Oct-Mar)
+  winter_yrs <- paste0(start_yrs, end_yrs)
+  for (i in 1:length(start_yrs)) {
+    # Create rasters with Oct-Dec precipitation
+    start1d <- lubridate::yday(paste0(start_yrs[i], "-10-01"))
+    end1d <- lubridate::yday(paste0(start_yrs[i], "-12-31"))
+    winter1_ppt <- get(paste0("pr", start_yrs[i]))
+    winter1_ppt <- winter1_ppt[[start1d:end1d]]
+    # Create rasters with Jan-Mar precipitation
+    start2d <- lubridate::yday(paste0(end_yrs[i], "-01-01"))
+    end2d <- lubridate::yday(paste0(end_yrs[i], "-03-31"))
+    winter2_ppt <- get(paste0("pr", end_yrs[i]))
+    winter2_ppt <- winter2_ppt[[start2d:end2d]]  
+    # Merge rasters from two calendar years
+    winter_ppt <- c(winter1_ppt, winter2_ppt)
+    winter_ppt <- app(winter_ppt, fun = sum)
+    # New rasters name: winter_ppt_YEARYEAR
+    assign(paste0("winter_ppt_", winter_yrs[i]), winter_ppt)  
+  }
+
+# Create annual rasters with cumulative precipitation during 10-months prior to 
+# sampling. 
+  # For SAGW, want precip for Mar-Dec (sampling Jan-Feb)
+  for (yr in yrs) {
+    MarDec_ppt <- get(paste0("pr", yr))
+    MarDec_ppt <- terra::crop(x = MarDec_ppt, 
+                              y = subset(parks, parks$UNIT_CODE == "SAGW"),
+                              snap = "out")
+    startd  <- lubridate::yday(paste0(yr, "-03-01"))
+    endd <- lubridate::yday(paste0(yr, "-12-31"))
+    MarDec_ppt <- MarDec_ppt[[startd:endd]]
+    MarDec_ppt <- app(MarDec_ppt, fun = sum)
+    # New rasters name: SAGW_MarDec_ppt_YEAR
+    assign(paste0("SAGW_MarDec_ppt_", yr), MarDec_ppt)
+  } 
+  # For ORPI, want precip for May-Feb (sampling Mar-Apr)
+  both_yrs <- paste0(start_yrs, end_yrs)
+  for (i in 1:length(both_yrs)) {
+    # Create rasters with May-Dec precipitation
+    start1d <- lubridate::yday(paste0(start_yrs[i], "-05-01"))
+    end1d <- lubridate::yday(paste0(start_yrs[i], "-12-31"))
+    ppt1 <- get(paste0("pr", start_yrs[i]))
+    ppt1 <- terra::crop(x = ppt1, 
+                        y = subset(parks, parks$UNIT_CODE == "ORPI"),
+                        snap = "out")
+    ppt1 <- ppt1[[start1d:end1d]]
+    # Create rasters with Jan-Feb precipitation
+    start2d <- lubridate::yday(paste0(end_yrs[i], "-01-01"))
+    end2d <- lubridate::yday(paste0(end_yrs[i], "-03-01")) - 1
+    ppt2 <- get(paste0("pr", end_yrs[i]))
+    ppt2 <- terra::crop(x = ppt2, 
+                        y = subset(parks, parks$UNIT_CODE == "ORPI"),
+                        snap = "out")
+    ppt2 <- ppt2[[start2d:end2d]]  
+    # Merge rasters from two calendar years
+    MayFeb_ppt <- c(ppt1, ppt2)
+    MayFeb_ppt <- app(MayFeb_ppt, fun = sum)
+    # New rasters name: ORPI_MayFeb_ppt_YEARYEAR
+    assign(paste0("ORPI_MayFeb_ppt_", both_yrs[i]), MayFeb_ppt)  
+  }  
+  # For CHIR (2021-), want precip for Jul-Apr (sampling May-Jun)
+  both_yrs_CHIR <- both_yrs[both_yrs > 2020]
+  for (i in 1:length(both_yrs_CHIR)) {
+    # Create rasters with Jul-Dec precipitation
+    start1d <- lubridate::yday(paste0(str_sub(both_yrs_CHIR[i], 1, 4), "-07-01"))
+    end1d <- lubridate::yday(paste0(str_sub(both_yrs_CHIR[i], 1, 4), "-12-31"))
+    ppt1 <- get(paste0("pr", str_sub(both_yrs_CHIR[i], 1, 4)))
+    ppt1 <- terra::crop(x = ppt1, 
+                        y = subset(parks, parks$UNIT_CODE == "CHIR"),
+                        snap = "out")
+    ppt1 <- ppt1[[start1d:end1d]]
+    # Create rasters with Jan-Apr precipitation
+    start2d <- lubridate::yday(paste0(str_sub(both_yrs_CHIR[i], 5, 8), "-01-01"))
+    end2d <- lubridate::yday(paste0(str_sub(both_yrs_CHIR[i], 5, 8), "-04-30"))
+    ppt2 <- get(paste0("pr", str_sub(both_yrs_CHIR[i], 5, 8)))
+    ppt2 <- terra::crop(x = ppt2, 
+                        y = subset(parks, parks$UNIT_CODE == "CHIR"),
+                        snap = "out")
+    ppt2 <- ppt2[[start2d:end2d]]  
+    # Merge rasters from two calendar years
+    JulApr_ppt <- c(ppt1, ppt2)
+    JulApr_ppt <- app(JulApr_ppt, fun = sum)
+    # New rasters name: CHIR_JulApr_ppt_YEARYEAR
+    assign(paste0("CHIR_JulApr_ppt_", both_yrs_CHIR[i]), JulApr_ppt)  
+  }    
 
 # Save rasters to weather-derived folder
 weather_folder <- "data/covariates/weather-derived-rasters/"
-monsoon_rasters <- ls()[grep("monsoon_ppt_", ls())]
-for (object in monsoon_rasters) {
+weather_raster_names <- c("monsoon_ppt_", "winter_ppt_", "SAGW_MarDec_ppt_",
+                          "ORPI_MayFeb_ppt_", "CHIR_JulApr_ppt_")
+weather_rasters <- ls()[grep(paste(weather_raster_names, collapse = "|"), ls())]
+for (object in weather_rasters) {
   writeRaster(get(object), paste0(weather_folder, object, ".tif"))
 }
 
@@ -467,12 +558,6 @@ zip(zipfile = weather_derived_zipfile,
     files = weather_files)
 # Remove weather rasters from local repo
 invisible(file.remove(weather_files))
-
-# TODO: Determine what other precipitation metrics we want
-  # Cold and warm seasons that NPS has used for other projects?
-  # Winter precip? But note that cameras deployed early in the year.
-  # 30-year norms for annual precipitation and/or seasonal precipitation?
-  # (if so, need to download more annual files)
 
 #------------------------------------------------------------------------------#
 # Put all park-specific rasters in zip files
