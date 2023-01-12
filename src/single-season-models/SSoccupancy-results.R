@@ -21,14 +21,14 @@ rm(list = ls())
 #------------------------------------------------------------------------------#
 
 PARK <- "SAGW"
-SPECIES <- "LECA"
-YEAR <- 2020
-DATE <- "2022-12-13"
+SPECIES <- "ODHE"
+YEAR <- 2022
+DATE <- "2023-01-12"
 DATE <- str_remove_all(DATE, "-")
 output_file <- paste0("output/models/",
                       tolower(PARK), "-",
                       tolower(SPECIES), "-", 
-                      YEAR, "-",
+                      YEAR, "-slope-",
                       DATE,".Rdata")
 load(output_file)
 
@@ -154,6 +154,8 @@ if (exists("cov_psi")) {
     raster_covars <- replace(x = psi_covars,
                              list = which(psi_covars == "elev"), 
                              values = "DEM")
+  } else {
+    raster_covars <- psi_covars
   }
   
   # Load rasters into a list
@@ -246,8 +248,8 @@ names(preds_sd) <- "occupancy_prob_sd"
 
 # Look at estimated occupancy probabilities (and SDs)
 par(mfrow = c(2,1))
-plot(preds_median)
-plot(preds_sd)
+plot(preds_median, main = "Median")
+plot(preds_sd, main = "SD")
 par(mfrow = c(1,1))
 
 # Remove unnecessary objects
