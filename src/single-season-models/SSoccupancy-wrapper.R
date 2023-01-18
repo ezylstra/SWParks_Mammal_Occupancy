@@ -1,8 +1,8 @@
 ################################################################################
-# Run a multi-season occupancy analysis
+# Run a single-season occupancy analysis
 
 # ER Zylstra
-# Updated 2022-12-12
+# Updated 2023-01-18
 ################################################################################
 
 library(dplyr)
@@ -39,6 +39,47 @@ SPECIES <- "LECA"
 # Select year of interest
 YEAR <- 2020
 
+# Prep detection and covariate data
+source("src/single-season-models/SSoccupancy-prep-data.R")
+
+#------------------------------------------------------------------------------#
+# Evaluate potential covariates
+#------------------------------------------------------------------------------#
+
+# Brief descriptions of each covariate:
+  # boundary = distance to nearest park boundary (m)
+  # east = eastness (aspect) Ranges from 1 (east-facing) to -1 (west-facing)
+  # elev = elevation (m)
+  # north = northness (aspect) Ranges from 1 (north-facing) to -1 (south-facing)
+  # pois = distance to nearest point of interest (m; incl buildings, lots)
+  # roads = distance to nearest road (m; includes local roads, vehicular trails)
+  # slope = slope (degrees)
+  # trail = distance to nearest trail (m)
+  # wash [SAGW only] = distance to nearest wash (m) 
+  # vegclass [SAGW only] = vegetation class where 1 = low gradient desert with 
+    # high-cover mixed cactus and 2-15% tree cover; 2 = Low hillslope and 
+    # mountain foothills, rocky, often north facing, cooler, wetter; 
+    # 3 = Medium-high gradient, contrasting topography (hilly), often Jojoba 
+    # dominant; 4 = developed (no cameras located in this vegclass)
+  # burn_severity_2011 [CHIR only] = severity of 2011 burn (integer values, 0:4 
+    # with 0 = unburned to 4 = high burn severity)
+  # effort = proportion of days during sampling occasion that camera was running
+  # day = day of the year (1:366)
+  # deploy_exp = experience of crew deploying camera (0 = all novices; 1 = at
+    # least one experience person present; 2 = at least one expert present)
+
+# Look at pairwise correlations among continuous covariates. May want to 
+# avoid including a pair of covariates in a model for occupancy if they are 
+# highly correlated: |r| > 0.6 or 0.7.
+
+message("Identify pairs of covariates are highly correlated. 
+(May want to avoid including pairs with |r| > 0.6 or 0.7 in the same model)")
+cor_df %>% arrange(desc(abs(corr))) %>% filter(abs(corr) >= 0.6)
+
+#------------------------------------------------------------------------------#
+# Specify covariates (objects in all caps)
+#------------------------------------------------------------------------------#
+
 # Covariates for occupancy (psi)
   # Options (all parks): elev, boundary, pois, roads, trail, east, north, slope
   # Additional options (SAGW): wash, vegclass
@@ -65,10 +106,10 @@ YEAR <- 2020
   source("src/single-season-models/SSoccupancy-covariate-check.R")
 
 #------------------------------------------------------------------------------#  
-# Run single-season model and save results
+# Run a single-season model and save results
 #------------------------------------------------------------------------------# 
 
-source("src/single-season-models/SSoccupancy-generic.R")
+source("src/single-season-models/SSoccupancy-run-model.R")  
 
 # Create filename to store results
 # For now, using park, species, yr, and date in filename but could change 

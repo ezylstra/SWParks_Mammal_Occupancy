@@ -3,7 +3,7 @@
 # model specified in MSoccupancy_wrapper.R
 
 # ER Zylstra
-# Updated 2022-11-30
+# Updated 2023-01-18
 ################################################################################
 
 # Produce error messages if any quadratic effects or interactions are specified 
@@ -95,7 +95,7 @@
   gam_m <- paste0("gam ~ ", paste(gam_formula, collapse = " + "))
   
   message("Check that the models below look correct before proceeding!")
-  cat(paste(psi_m, p_m, eps_m, gam_m, sep = "\n")) 
+  cat(paste(psi_m, p_m, eps_m, gam_m, "", sep = "\n")) 
   
   species_descript <- paste0("Species: ", SPECIES)
   park_descript <- paste0("Park: ", PARK)

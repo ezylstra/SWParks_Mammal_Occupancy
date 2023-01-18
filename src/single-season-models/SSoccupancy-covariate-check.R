@@ -3,7 +3,7 @@
 # model specified in SSoccupancy_wrapper.R
 
 # ER Zylstra
-# Updated 2022-12-12
+# Updated 2023-01-18
 ################################################################################
 
 # Produce error messages if any quadratic effects are specified incorrectly
@@ -36,7 +36,7 @@
   p_m <- paste0("p ~ ", paste(p_formula, collapse = " + "))
 
   message("Check that the models below look correct before proceeding!")
-  cat(paste(psi_m, p_m, sep = "\n")) 
+  cat(paste(psi_m, p_m, "", sep = "\n")) 
   
   species_descript <- paste0("Species: ", SPECIES)
   park_descript <- paste0("Park: ", PARK)
