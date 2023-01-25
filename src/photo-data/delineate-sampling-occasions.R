@@ -172,9 +172,9 @@ for (park in parks) {
 }
 
 # Export occasions dataframe as csv
-# write.csv(occ_all, 
-#           file = "data/occasions/occasions-all-parks.csv",
-#           row.names = FALSE)
+write.csv(occ_all,
+          file = "data/occasions/occasions-all-parks.csv",
+          row.names = FALSE)
 
 #------------------------------------------------------------------------------#
 # Calculate number of species detections
@@ -305,10 +305,10 @@ spp_detections %>%
   data.frame()
 
 # Export species detections dataframes as csvs
-# write.csv(spp_detections,
-#           file = "output/species-detections-bypark.csv",
-#           row.names = FALSE)
-# write.csv(spp_detections_yr,
-#           file = "output/species-detections-byparkyr.csv",
-#           row.names = FALSE)
+write.csv(spp_detections,
+          file = "output/species-detections-bypark.csv",
+          row.names = FALSE)
+write.csv(spp_detections_yr,
+          file = "output/species-detections-byparkyr.csv",
+          row.names = FALSE)
 
