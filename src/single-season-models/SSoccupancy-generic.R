@@ -1,10 +1,10 @@
 ################################################################################
-# Season-season occupancy analysis for species, park, year, and covariates 
+# Single-season occupancy analysis for species, park, year, and covariates 
 # specified in SSoccupancy-wrapper.R
 
 # ER Zylstra
 # Updated 2022-12-12
-###############################################################################
+################################################################################
 
 #------------------------------------------------------------------------------#
 # Create detection histories for selected park, species, and year
