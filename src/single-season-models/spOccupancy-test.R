@@ -140,9 +140,13 @@ for (i in 1:ncol(dh)) {
   effort[,i] <- apply(multiday, 1, propNA)
 }
 
+# Change values in effort matrix to NA wherever there are NA values in detection
+# history matrix (effort values should be 0 in these instances)
+effort[which(is.na(dh))] <- NA
+
 # Create standardized version of effort variable
-effort_mn <- mean(effort)
-effort_sd <- sd(effort)
+effort_mn <- mean(effort, na.rm = TRUE)
+effort_sd <- sd(effort, na.rm = TRUE)
 effort_z <- (effort - effort_mn)/effort_sd
 
 #------------------------------------------------------------------------------#
@@ -198,6 +202,10 @@ for (i in 1:nrow(deploy_exp)) {
   }
 }
 
+# Make sure that values in deploy_exp matrix are NA wherever there are NA values 
+# in detection history matrix (this should already be true, but just in case)
+deploy_exp[which(is.na(dh))] <- NA
+
 #------------------------------------------------------------------------------#
 # Create day-of-year variable (using midpoint of each occasion)
 #------------------------------------------------------------------------------#
@@ -212,9 +220,13 @@ day <- matrix(occasions$mid_yday,
               ncol = ncol(dh), 
               byrow = TRUE)
 
+# Change values in day matrix to NA wherever there are NA values in detection
+# history matrix
+day[which(is.na(dh))] <- NA
+
 # Create standardized value of day variable
-day_mn <- mean(day)
-day_sd <- sd(day)
+day_mn <- mean(day, na.rm = TRUE)
+day_sd <- sd(day, na.rm = TRUE)
 day_z <- (day - day_mn)/day_sd
 
 #------------------------------------------------------------------------------#
@@ -391,8 +403,4 @@ for (i in 1:length(occ_formula_list)) {
 }
 summary(out_list[[1]])
 
-
-# NEED TO FIX IN COVARIATE OBJECTS ##################################
-# There are missing values in data$y with corresponding non-missing values in data$det.covs.
-# Removing these site/replicate combinations for fitting the model.
   
