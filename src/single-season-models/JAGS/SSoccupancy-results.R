@@ -25,7 +25,7 @@ SPECIES <- "ODHE"
 YEAR <- 2022
 DATE <- "2023-01-12"
 DATE <- str_remove_all(DATE, "-")
-output_file <- paste0("output/models/",
+output_file <- paste0("output/models-JAGS/",
                       tolower(PARK), "-",
                       tolower(SPECIES), "-", 
                       YEAR, "-slope-",

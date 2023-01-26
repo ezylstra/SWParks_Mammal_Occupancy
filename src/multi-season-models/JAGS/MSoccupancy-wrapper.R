@@ -42,7 +42,7 @@ SPECIES <- "LECA"
 YEARS <- 2017:2022
 
 # Prep detection and covariate data
-source("src/multi-season-models/MSoccupancy-prep-data.R")
+source("src/multi-season-models/JAGS/MSoccupancy-prep-data.R")
 
 #------------------------------------------------------------------------------#
 # Evaluate potential covariates
@@ -138,19 +138,19 @@ cor_df %>% arrange(desc(abs(corr))) %>% filter(abs(corr) >= 0.6)
   N_GAM_INTERACTS <- 1
   GAM_INT1 <- c("elev", "monsoon_ppt")
 
-  source("src/multi-season-models/MSoccupancy-covariate-check.R")
+  source("src/multi-season-models/JAGS/MSoccupancy-covariate-check.R")
 
 #------------------------------------------------------------------------------#  
 # Run a multi-season model and save results
 #------------------------------------------------------------------------------# 
 
-source("src/multi-season-models/MSoccupancy-run-model.R")
+source("src/multi-season-models/JAGS/MSoccupancy-run-model.R")
 
 # Create filename to store results
 # For now, using park, species, and date in filename but could add more 
 # descriptors if needed (e.g., something about covariates):
 date <- Sys.Date()
-model_filename <- paste0("output/models/",
+model_filename <- paste0("output/models-JAGS/",
                          tolower(PARK), "-",
                          tolower(SPECIES), "-MS-",
                          date,

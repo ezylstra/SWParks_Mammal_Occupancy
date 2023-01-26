@@ -23,7 +23,7 @@ rm(list = ls())
 PARK <- "SAGW"
 SPECIES <- "LECA"
 DATE <- "2022-11-18"
-output_file <- paste0("output/models/",
+output_file <- paste0("output/models-JAGS/",
                       tolower(PARK), "-",
                       tolower(SPECIES), "-MS-",
                       DATE,

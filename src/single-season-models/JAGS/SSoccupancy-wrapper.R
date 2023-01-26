@@ -40,7 +40,7 @@ SPECIES <- "LECA"
 YEAR <- 2020
 
 # Prep detection and covariate data
-source("src/single-season-models/SSoccupancy-prep-data.R")
+source("src/single-season-models/JAGS/SSoccupancy-prep-data.R")
 
 #------------------------------------------------------------------------------#
 # Evaluate potential covariates
@@ -103,19 +103,19 @@ cor_df %>% arrange(desc(abs(corr))) %>% filter(abs(corr) >= 0.6)
   # COVARS_P, list them by name. If no quadratic effects, P_QUADS <- NA
   P_QUADS <- c("day")
 
-  source("src/single-season-models/SSoccupancy-covariate-check.R")
+  source("src/single-season-models/JAGS/SSoccupancy-covariate-check.R")
 
 #------------------------------------------------------------------------------#  
 # Run a single-season model and save results
 #------------------------------------------------------------------------------# 
 
-source("src/single-season-models/SSoccupancy-run-model.R")  
+source("src/single-season-models/JAGS/SSoccupancy-run-model.R")  
 
 # Create filename to store results
 # For now, using park, species, yr, and date in filename but could change 
 # descriptors if needed (e.g., something about covariates):
 date <- str_remove_all(Sys.Date(), "-")
-model_filename <- paste0("output/models/",
+model_filename <- paste0("output/models-JAGS/",
                          tolower(PARK), "-",
                          tolower(SPECIES), "-",
                          YEAR, "-", date, ".Rdata")
