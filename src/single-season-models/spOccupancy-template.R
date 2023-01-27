@@ -2,14 +2,13 @@
 # Template to run and evaluate a suite of single-season occupancy models for 
 # a given park, year, and species (using the spOccupancy package)
 
-# Objects that need to be specified to run models for a particular park,
-# year, and species 
-# (ie, to create src/single-season-model/YEAR/spOccupancy-PARK-SPECIES-YEAR.R)
-  # PARK, YEAR, SPECIES (lines 38, 41, 55)
+# Objects that need to be specified to run models (ie, to create 
+# src/single-season-model/YEAR/spOccupancy-PARK-SPECIES-YEAR.R)
+  # PARK, YEAR, SPECIES (lines 39, 42, 56)
   # OCC_MODELS, DET_MODELS (starting on line 119)
 
 # ER Zylstra
-# Updated 2023-01-26
+# Updated 2023-01-27
 ################################################################################
 
 library(dplyr)
@@ -114,7 +113,7 @@ effort <- "effort_z"
 # formulas (specifications for covariates in the detection part of the model)
 
 # Create a vector with every combination of covariates you'd like in the
-# occurrence part of the model. 
+# occurrence part of candidate models. 
   # Use the following syntax when you'd like to include more than one covariate 
   # (or covariate group): paste(c(variable1, variable2), collapse = " + ")
 OCC_MODELS <- c(boundary,
@@ -128,14 +127,14 @@ OCC_MODELS <- c(boundary,
                 paste(c(veg, wash, roads), collapse = " + ")) 
 
 # Create a vector with every combination of covariates you'd like in the
-# detection part of the model. 
+# detection part of candidate models. 
   # Use the following syntax when you'd like to include more than one covariate 
   # (or covariate group): paste(c(variable1, variable2), collapse = " + ")
 DET_MODELS <- c(effort, 
                 paste(c(day2, deploy, effort), collapse = " + ")) 
 
-# Create a matrix that contains all combinations for models for occurrence and
-# detection
+# Create a matrix that contains all combinations of occurrence and detection 
+# covariates for candidate models
 model_specs <- as.matrix(expand.grid(occ = OCC_MODELS, 
                                      det = DET_MODELS,
                                      KEEP.OUT.ATTRS = FALSE))
@@ -161,6 +160,7 @@ n_chains <- 3
   # Not specifying initial values -- by default they come from priors
   # Running chains sequentially (n.omp.threads = 1) because vignette states
   # this only speeds things up in spatial models
+set.seed(2023)
 out_list <- list()
 for (i in 1:nrow(model_specs)) {
   out <- PGOcc(occ.formula = occ_formulas[[i]],
@@ -176,18 +176,20 @@ for (i in 1:nrow(model_specs)) {
                n.thin = n_thin, 
                n.chains = n_chains,
                k.fold = 4,
-               k.fold.threads = 4) 
+               k.fold.threads = 4,
+               k.fold.seed = 2023) 
   out_list <- c(out_list, list(out))
 }
 
 # Gather results from models (occ/det formulas, Bayesian p-values from posterior 
 # predictive checks, WAIC, deviance stat from 4-fold CV)
 source("src/single-season-models/spOccupancy-model-stats.R")
+  # Takes a minute to run with posterior predictive checks (PPCs)
 
-# View summary table, with top-ranked WAIC model at top
+# View summary table, ranked by WAIC
 model_stats %>%
   arrange(waic)
-# View summary table, with top-ranked k-fold deviation model at top
+# View summary table, ranked by deviation statistic from k-fold CV
 model_stats %>%
   arrange(k.fold.dev)
 
@@ -201,6 +203,10 @@ stat <- "WAIC"
 best_index <- model_stats$model_no[model_stats$waic == min(model_stats$waic)] 
 best <- out_list[[best_index]]
 
+# View covariate structure
+message("psi ",model_specs[best_index, 1])
+message("p ",model_specs[best_index, 2])
+
 # Parameter estimates
 summary(best)
 # Trace plots
@@ -208,7 +214,7 @@ plot(best$beta.samples, density = FALSE)
 plot(best$alpha.samples, density = FALSE)
 par(mfrow = c(1,1))
 
-# Posterior predictive checks
+# Posterior predictive checks (want Bayesian p-values between 0.1 and 0.9)
 ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
 ppc.rep <- as.numeric(model_stats$ppc.reps[model_stats$model_no == best_index])
 if (ppc.site < 0.1 | ppc.site > 0.9) {
