@@ -209,6 +209,9 @@ message("p ",model_specs[best_index, 2])
 
 # Parameter estimates
 summary(best)
+# Note: this is good for viewing, but will want to use other means to create
+# a table for reports/publications
+
 # Trace plots
 plot(best$beta.samples, density = FALSE)
 plot(best$alpha.samples, density = FALSE)
@@ -243,8 +246,27 @@ prob_sites <- which(abs(diff_fit) > 0.4)
 plot(lat~long, data = spatial_covs, las = 1) # all camera locs
 points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
 
+#------------------------------------------------------------------------------#
+# Calculate predicted probability of occupancy, across park
+#------------------------------------------------------------------------------#
+# Everything in this section can probably be moved to source script
+
+# extract layers from spat_raster for covariates in best model
+psi_covs_z <- model_specs[15,2] %>%
+  str_remove(pattern = "~") %>% 
+  str_remove_all(pattern = "I[(]") %>%
+  str_remove_all(pattern = "[)]") %>%
+  str_remove_all(pattern = "\\^2") %>%
+  str_split_1(pattern = " [+] ")
+psi_covs <- psi_covs_z %>%
+  str_remove_all(pattern = "_z")
+############## Pick up here ########################################
+
+# standardize layers where needed
+# add intercept (1s) as first layer
+
+
 # TODO #########################################################
-# Create a source script to produce maps with predicted occupancy
 # Create a template or source script(s) to create figures with marginal
   # covariate effects
 # Think about whether we want to save model output to file?  (maybe not if
