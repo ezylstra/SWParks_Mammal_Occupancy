@@ -94,7 +94,7 @@ for (PARK in parks) {
   }
   names(raster_list) <- raster_names
 
-  # For vegclasses, create a layers for two dummy variables (classes 2 and 3)
+  # For vegclasses, create layers for two dummy variables (classes 2 and 3)
   # [for now, this is just SAGW, but hopefully other parks soon]
   if (PARK == "SAGW") {
     veg_rast <- raster_list[["vegclasses"]]
