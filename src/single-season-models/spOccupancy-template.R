@@ -279,24 +279,246 @@ points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
 #------------------------------------------------------------------------------#
 # Everything in this section can probably be moved to source script
 
-# extract layers from spat_raster for covariates in best model
-psi_covs_z <- model_specs[15,2] %>%
-  str_remove(pattern = "~") %>% 
+# Extract layers from spat_raster for covariates in best model
+psi_covs_z <- best_psi_model %>%
+  str_remove(pattern = "~ ") %>% 
   str_remove_all(pattern = "I[(]") %>%
   str_remove_all(pattern = "[)]") %>%
   str_remove_all(pattern = "\\^2") %>%
   str_split_1(pattern = " [+] ")
 psi_covs <- psi_covs_z %>%
   str_remove_all(pattern = "_z")
-############## Pick up here ########################################
 
-# standardize layers where needed
-# add intercept (1s) as first layer
+psi_rasters <- spat_raster[[psi_covs]]
 
+# Standardize values, where needed
+zs <- which(str_detect(psi_covs_z, "_z"))
+for (z in zs) {
+  var_name <- psi_covs[z]
+  var_mn <- mean(spatial_covs[, var_name])
+  var_sd <- sd(spatial_covs[, var_name])
+  psi_rasters[[z]] <- (psi_rasters[[z]] - var_mn) / var_sd
+}
+# Create quadratics, where needed
+quads <- which(duplicated(psi_covs))
+for (q in quads) {
+  psi_rasters[[q]] <- psi_rasters[[q]] * psi_rasters[[q]]
+  names(psi_rasters[[q]]) <- paste0(names(psi_rasters[[q]]), "2")
+}
+# Add layer for intercept
+rast_int <- rast(psi_rasters[[1]])
+rast_int <- rast(rast_int, vals = 1)
+names(rast_int) <- "int"
+psi_rasters <- c(rast_int, psi_rasters)
 
-# TODO #########################################################
-# Create a template or source script(s) to create figures with marginal
-  # covariate effects
-# Think about whether we want to save model output to file?  (maybe not if
-  # these SS models don't take long to run?)
+# Crop and mask by park boundary
+park_boundaries <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
+park_boundary <- subset(park_boundaries, park_boundaries$UNIT_CODE == PARK)
+psi_rasters <- crop(psi_rasters, park_boundary)
+psi_rasters <- mask(psi_rasters, park_boundary)
 
+# Convert to a dataframe (one row for each cell, each column = layer)
+psi_rasters_df <- as.data.frame(psi_rasters, cell = TRUE)
+# Remove row with any covariates equal to NA
+psi_rasters_df$nNAs <- apply(psi_rasters_df[, -1], 1, function(x) sum(is.na(x)))
+psi_rasters_df <- psi_rasters_df %>%
+  dplyr::filter(nNAs == 0) %>%
+  select(-nNAs)
+
+# Make predictions with predict.PGOcc() 
+# Note: this can take a couple minutes, but is still faster than doing math
+best_pred <- predict(best, as.matrix(psi_rasters_df[, -1]))
+
+# Plot predicted occupancy probability (can also take a couple minutes)
+plot_dat <- data.frame(cell = psi_rasters_df$cell,
+                       mean_psi = apply(best_pred$psi.0.samples, 2, mean),
+                       sd_psi = apply(best_pred$psi.0.samples, 2, sd))
+
+preds_mn <- rast(psi_rasters[[1]])
+preds_mn[plot_dat[,1]] <- plot_dat[,2]
+names(preds_mn) <- "mean"
+preds_sd <- rast(psi_rasters[[1]])
+preds_sd[plot_dat[,1]] <- plot_dat[,3]
+names(preds_sd) <- "sd"
+
+# Could use default plot
+# plot(preds_mn)
+
+# Or use tidyterra to plot using ggplot syntax
+ggplot() + 
+  geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) + 
+  scale_fill_viridis_c(na.value = 'transparent') +
+  labs(fill = '', title = 'Mean occurrence probability') +
+  theme_bw()
+
+ggplot() + 
+  geom_spatraster(data = preds_sd, mapping = aes(fill = sd)) + 
+  scale_fill_viridis_c(na.value = 'transparent') +
+  labs(fill = '', title = 'SD occurrence probability') +
+  theme_bw()
+
+#------------------------------------------------------------------------------#
+# Create figures depicting marginal effects of covariates on occurrence 
+# probability (predicted covariate effects assuming all other covariates held
+# constant)
+#------------------------------------------------------------------------------#
+
+# Identify continuous covariates in occurrence part of the best model
+psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
+psi_cont_unique <- unique(psi_continuous)
+psi_n_cont <- length(psi_cont_unique)
+
+if (psi_n_cont > 0) {
+  # Loop through each covariate
+  for (cov in psi_cont_unique) {
+    cols <- str_subset(colnames(best$beta.samples), pattern = cov)
+    beta_samples <- best$beta.samples[,c("(Intercept)", cols)]
+    X_cov <- seq(from = min(data_list$occ.covs[, cov]), 
+                 to = max(data_list$occ.covs[, cov]),
+                 length = 100)
+    X_cov <- cbind(1, X_cov)
+        
+    # If there are quadratic effects, add column in X_cov
+    if (ncol(beta_samples) == 3) {
+      X_cov <- cbind(X_cov, X_cov[,2]^2)
+    } 
+     
+    preds <-  X_cov %*% t(beta_samples)
+    preds <- exp(preds)/(1 + exp(preds))
+    preds_mn <- apply(preds, 1, mean)
+    preds_lcl <- apply(preds, 1, quantile, 0.025)
+    preds_ucl <- apply(preds, 1, quantile, 0.975)
+
+    # Identify covariate values for x-axis (on original scale)
+    if (str_detect(cov, "_z")) {
+      cov_mn <- mean(data_list$occ.covs[,str_remove(cov, "_z")])
+      cov_sd <- sd(data_list$occ.covs[,str_remove(cov, "_z")])
+      cov_plot <- X_cov[,2] * cov_sd + cov_mn
+    } else {
+      cov_plot <- X_cov[,2] 
+    }
+    
+    # Create and save plots for later viewing
+    data_plot <- data.frame(x = cov_plot,
+                            mn = preds_mn,
+                            lcl = preds_lcl,
+                            ucl = preds_ucl)
+    cov_name <- str_remove(cov, "_z")
+    assign(paste0("marginal_plot_psi_", cov_name),
+           ggplot(data = data_plot, aes(x = x)) + 
+             geom_line(aes(y = mn), col = "forestgreen") +
+             geom_ribbon(aes(ymin = lcl, ymax = ucl), alpha = 0.2) +
+             labs(x = covariates$axis_label[covariates$short_name == cov_name], 
+                  y = "Predicted occupancy probability (95% CI)") +
+             theme_classic())
+  }
+}
+
+# Can now view these plots, calling them by name. Available plots listed here:
+str_subset(ls(), "marginal_plot_psi_")
+# eg, if elevation was in the occurrence part of the model: 
+# marginal_plot_psi_elev
+
+# Extract mean occupancy probability for different vegetation classes, if 
+# included as covariates in the best model
+if (sum(str_detect(psi_covs, "veg")) > 0) {
+  # Create table to hold results
+  occprobs_veg <- data.frame(vegclass = 1:3,
+                             mean_prob = NA,
+                             sd_prob = NA,
+                             ci_min = NA,
+                             ci_max = NA)
+  betas <- best$beta.samples  
+  # Probability of occupancy in vegclass1 (reference level)
+  vegclass1 <- exp(betas[,"(Intercept)"])/(1 + exp(betas[,"(Intercept)"])) 
+  occprobs_veg$mean_prob[1] <- mean(vegclass1)
+  occprobs_veg$sd_prob[1] <- sd(vegclass1)
+  occprobs_veg$ci_min[1] <- quantile(vegclass1, 0.025)
+  occprobs_veg$ci_max[1] <- quantile(vegclass1, 0.975)
+  # Probability of occupancy in vegclass2
+  vegclass2 <- betas[,"(Intercept)"] + betas[,"vegclass2"]
+  vegclass2 <- exp(vegclass2)/(1 + exp(vegclass2)) 
+  occprobs_veg$mean_prob[2] <- mean(vegclass2)
+  occprobs_veg$sd_prob[2] <- sd(vegclass2)
+  occprobs_veg$ci_min[2] <- quantile(vegclass2, 0.025)
+  occprobs_veg$ci_max[2] <- quantile(vegclass2, 0.975)
+  # Probability of occupancy in vegclass3
+  vegclass3 <- betas[,"(Intercept)"] + betas[,"vegclass3"]
+  vegclass3 <- exp(vegclass3)/(1 + exp(vegclass3)) 
+  occprobs_veg$mean_prob[3] <- mean(vegclass3)
+  occprobs_veg$sd_prob[3] <- sd(vegclass3)
+  occprobs_veg$ci_min[3] <- quantile(vegclass3, 0.025)
+  occprobs_veg$ci_max[3] <- quantile(vegclass3, 0.975)
+  occprobs_veg
+}
+
+#------------------------------------------------------------------------------#
+# Create figures depicting marginal effects of covariates on detection 
+# probability (predicted covariate effects assuming all other covariates held
+# constant)
+#------------------------------------------------------------------------------#
+
+p_covs_z <- best_p_model %>%
+  str_remove(pattern = "~ ") %>% 
+  str_remove_all(pattern = "I[(]") %>%
+  str_remove_all(pattern = "[)]") %>%
+  str_remove_all(pattern = "\\^2") %>%
+  str_split_1(pattern = " [+] ")
+p_covs <- p_covs_z %>%
+  str_remove_all(pattern = "_z")
+
+# Identify continuous covariates in occurrence part of the best model
+p_continuous <- p_covs_z[p_covs_z != "1"]
+p_cont_unique <- unique(p_continuous)
+p_n_cont <- length(p_cont_unique)
+
+if (p_n_cont > 0) {
+  # Loop through each covariate
+  for (cov in p_cont_unique) {
+    cols <- str_subset(colnames(best$alpha.samples), pattern = cov)
+    alpha_samples <- best$alpha.samples[,c("(Intercept)", cols)]
+    X_cov <- seq(from = min(data_list$det.covs[[cov]], na.rm = TRUE), 
+                 to = max(data_list$det.covs[[cov]], na.rm = TRUE),
+                 length = 100)
+    X_cov <- cbind(1, X_cov)
+    
+    # If there are quadratic effects, add column in X_cov
+    if (ncol(alpha_samples) == 3) {
+      X_cov <- cbind(X_cov, X_cov[,2]^2)
+    } 
+    
+    preds <-  X_cov %*% t(alpha_samples)
+    preds <- exp(preds)/(1 + exp(preds))
+    preds_mn <- apply(preds, 1, mean)
+    preds_lcl <- apply(preds, 1, quantile, 0.025)
+    preds_ucl <- apply(preds, 1, quantile, 0.975)
+    
+    # Identify covariate values for x-axis (on original scale)
+    if (str_detect(cov, "_z")) {
+      if (str_remove(cov, "_z") %in% colnames(data_list$occ.covs)) {
+        cov_mn <- mean(data_list$occ.covs[,str_remove(cov, "_z")])
+        cov_sd <- sd(data_list$occ.covs[,str_remove(cov, "_z")])
+      } else {
+        cov_mn <- mean(data_list$det.covs[[str_remove(cov, "_z")]], na.rm = TRUE)
+        cov_sd <- sd(data_list$det.covs[[str_remove(cov, "_z")]], na.rm = TRUE)
+      }
+      cov_plot <- X_cov[,2] * cov_sd + cov_mn
+    } else {
+      cov_plot <- X_cov[,2] 
+    }
+    
+    # Create and save plots for later viewing
+    data_plot <- data.frame(x = cov_plot,
+                            mn = preds_mn,
+                            lcl = preds_lcl,
+                            ucl = preds_ucl)
+    cov_name <- str_remove(cov, "_z")
+    assign(paste0("marginal_plot_p_", cov_name),
+           ggplot(data = data_plot, aes(x = x)) + 
+             geom_line(aes(y = mn), col = "forestgreen") +
+             geom_ribbon(aes(ymin = lcl, ymax = ucl), alpha = 0.2) +
+             labs(x = covariates$axis_label[covariates$short_name == cov_name], 
+                  y = "Predicted detection probability (95% CI)") +
+             theme_classic())
+  }
+}
