@@ -1,0 +1,19 @@
+parameter,park,short_name,formula,axis_label
+either,all,boundary,boundary_z,Distance to park boundary (m)
+either,all,aspect,east_z + north_z,NA
+either,all,east,east_z,Eastness
+either,all,north,north_z,Northness
+either,all,elev,elev_z,Elevation (m)
+either,all,elev2,elev_z + I(elev_z^2),Elevation (m)
+either,all,pois,pois_z,Distance to nearest point of interest (m)
+either,all,roads,roads_z,Distance to nearest road (m)
+either,all,slope,slope_z,Slope (degrees)
+either,all,slope2,slope_z + I(slope_z^2),Slope (degrees)
+either,all,trail,trail_z,Distance to nearest trail (m)
+either,CHIR,burn,burn_severity,Burn severity
+either,SAGW,wash,wash_z,Distance to nearest wash (m)
+either,SAGW,veg,vegclass2 + vegclass3,NA
+detection,all,day,day_z,Day of the year
+detection,all,day2,day_z + I(day_z^2),Day of the year
+detection,all,deploy,deploy_exp,Deployment personnel experience
+detection,all,effort,effort_z,Proportion of days camera was operational
