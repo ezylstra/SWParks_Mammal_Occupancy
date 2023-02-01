@@ -4,11 +4,13 @@
 
 # Objects that need to be specified to run models (ie, to create 
 # src/single-season-model/YEAR/spOccupancy-PARK-SPECIES-YEAR.R)
-  # PARK, YEAR, SPECIES (lines 39, 42, 56)
-  # OCC_MODELS, DET_MODELS (starting on line 119)
+  # PARK, YEAR, SPECIES (lines 41, 44, 58)
+  # Specifications for occurrence models: OCC_NULL, OCC_MODELS1, OCC_MODELS2
+  # Specifications for detection models: DET_NULL, DET_MODELS1, DET_MODELS2
+  # Statistic used to select a "best" model for inferences: STAT
 
 # ER Zylstra
-# Updated 2023-01-27
+# Updated 2023-02-01
 ################################################################################
 
 library(dplyr)
@@ -17,6 +19,8 @@ library(stringr)
 library(tidyr)
 library(terra)
 library(spOccupancy)
+library(ggplot2)
+library(tidyterra)
 
 #------------------------------------------------------------------------------#
 # Load all photo, location, events, species data 
@@ -44,12 +48,12 @@ YEAR <- 2017
 # Look at detection data for various species
 detects <- read.csv("output/species-detections-byparkyr.csv", header = TRUE)
 detects <- detects %>%
-  filter(Park == PARK & yr == YEAR) %>%
+  dplyr::filter(Park == PARK & yr == YEAR) %>%
   arrange(desc(propdetect))
 # View just those species with a detection rate of 5% 
 # (n = camera location * sampling occasion)
 detects %>% 
-  filter(propdetect >= 0.05) %>%
+  dplyr::filter(propdetect >= 0.05) %>%
   select(c(spp, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
@@ -79,66 +83,85 @@ source("src/single-season-models/spOccupancy-data-prep.R")
 # (to help inform occupancy models below)
 cor_df %>%
   arrange(desc(corr)) %>%
-  filter(abs(corr) > 0.5)
+  dplyr::filter(abs(corr) > 0.5)
 
-# Create names of spatial covariates or covariate groups
-# (This helps us avoid having to include "_z" in the variable names, and 
-# groups certain variables that will always appear together in a model)
-boundary <- "boundary_z"
-aspect <- "east_z + north_z"
-elevation <- "elev_z"
-elevation2 <- "elev_z + I(elev_z ^ 2)"
-pois <- "pois_z"
-roads <- "roads_z"
-slope <- "slope_z"
-slope2 <- "slope_z + I(slope_z ^ 2)"
-trail <- "trail_z"
-if (PARK == "CHIR") {
-  burn <- "burn_severity"
-}
-if (PARK == "SAGW") {
-  wash <- "wash_z"
-  veg <- "vegclass2 + vegclass3"
-}
+# Logicals indicating whether null models (for occurrence or detection) should
+# be included in candidate model sets
+OCC_NULL <- TRUE
+DET_NULL <- TRUE
 
-# Create names of survey covariates
-day <- "day_z"
-day2 <- "day_z + I(day_z^2)"
-deploy <- "deploy_exp"
-effort <- "effort_z"
+# Load dataframe with information about covariates:
+covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
 
-# We're going to run multiple models and store the output in a list.
-# To make this easy, we'll create a list of occupancy formulas (specifications
-# for covariates in the occurrence part of a model) and a list of detection
-# formulas (specifications for covariates in the detection part of the model)
+# Identify covariates to include in the occurrence part of candidate models
 
-# Create a vector with every combination of covariates you'd like in the
-# occurrence part of candidate models. 
-  # Use the following syntax when you'd like to include more than one covariate 
-  # (or covariate group): paste(c(variable1, variable2), collapse = " + ")
-OCC_MODELS <- c(boundary,
-                aspect,
-                roads,
-                slope,
-                wash,
-                veg,
-                paste(c(veg, boundary), collapse = " + "),
-                paste(c(veg, roads), collapse = " + "), 
-                paste(c(veg, wash, roads), collapse = " + ")) 
+  # See what covariates are available
+  covariates %>%
+    dplyr::filter(parameter %in% c("either", "occupancy")) %>%
+    dplyr::filter(park %in% c(PARK, "all")) %>%
+    select(-c(parameter, park))
+  
+  # Pick covariates to include in simple candidate models via the short_name 
+  # column in the covariates dataframe
+  OCC_MODELS1 <- c("aspect", "elev2", "slope", "veg")
+  
+  # To combine covariates in a single candidate model, provide a vector of 
+  # short_names e.g., c("aspect", "boundary") would create the following model
+  # for occurrence: psi ~ east + north + boundary
+  OCC_MODELS2 <- list(c("veg", "boundary"),
+                      c("veg", "wash", "roads"))
+  
+  occm1 <- covariates$formula[covariates$short_name %in% OCC_MODELS1]
+  occm2 <- list()
+  for (i in 1:length(OCC_MODELS2)) {
+    occm2[[i]] <- paste(covariates$formula[covariates$short_name %in% OCC_MODELS2[[i]]],
+                        collapse = " + ")
+  }
+  occ_specs <- c(occm1, unlist(occm2))
+  if (OCC_NULL) {
+   occ_specs <- c("1", occ_specs) 
+  }
+  occ_specs <- paste0("~ ", occ_specs) 
+  message("Check that these are the candidate models of interest for occurrence.")
+  occ_specs
 
-# Create a vector with every combination of covariates you'd like in the
-# detection part of candidate models. 
-  # Use the following syntax when you'd like to include more than one covariate 
-  # (or covariate group): paste(c(variable1, variable2), collapse = " + ")
-DET_MODELS <- c(effort, 
-                paste(c(day2, deploy, effort), collapse = " + ")) 
+# Logical indicating whether a null model should be included in a candidate set
+  DET_NULL <- TRUE
+
+# Identify covariates to include in the detection part of candidate models
+    
+  # See what covariates are available
+  covariates %>%
+    dplyr::filter(parameter %in% c("either", "detection")) %>%
+    dplyr::filter(park %in% c(PARK, "all")) %>%
+    select(-c(parameter, park))
+  
+  # Pick covariates to include in simple candidate models via the short_name 
+  # column in the covariates dataframe
+  DET_MODELS1 <- c("effort")
+  # To combine different covariates in a candidate model, provide a vector of 
+  # short_names
+  DET_MODELS2 <- list(c("day2", "deploy", "effort"))
+  
+  detm1 <- covariates$formula[covariates$short_name %in% DET_MODELS1]
+  detm2 <- list()
+  for (i in 1:length(DET_MODELS2)) {
+    detm2[[i]] <- paste(covariates$formula[covariates$short_name %in% DET_MODELS2[[i]]],
+                        collapse = " + ")
+  }
+  det_specs <- c(detm1, unlist(detm2))
+  if (DET_NULL) {
+    det_specs <- c("1", det_specs) 
+  }
+  det_specs <- paste0("~ ", det_specs) 
+  message("Check that these are the candidate models of interest for detection.")
+  det_specs
 
 # Create a matrix that contains all combinations of occurrence and detection 
 # covariates for candidate models
-model_specs <- as.matrix(expand.grid(occ = OCC_MODELS, 
-                                     det = DET_MODELS,
+model_specs <- as.matrix(expand.grid(occ = occ_specs, 
+                                     det = det_specs,
                                      KEEP.OUT.ATTRS = FALSE))
-model_specs <- apply(model_specs, 1:2, function(x) paste0("~", x))
 
 # Create model formulas with R syntax
 as.formula.vect <- Vectorize(as.formula)
@@ -163,6 +186,7 @@ n_chains <- 3
 set.seed(2023)
 out_list <- list()
 for (i in 1:nrow(model_specs)) {
+  message("Running model ", i, " (of ", nrow(model_specs), ").")
   out <- PGOcc(occ.formula = occ_formulas[[i]],
                det.formula = det_formulas[[i]], 
                data = data_list, 
@@ -199,13 +223,17 @@ model_stats %>%
 
 # Identify statistic to use for selecting the best model 
 # Either WAIC (waic) or deviance from k-fold CV (k.fold.dev)
-stat <- "WAIC"
-best_index <- model_stats$model_no[model_stats$waic == min(model_stats$waic)] 
+# STAT <- "waic"
+STAT <- "k.fold.dev"
+min_stat <- min(model_stats[,stat])
+best_index <- model_stats$model_no[model_stats[,stat] == min_stat] 
 best <- out_list[[best_index]]
 
 # View covariate structure
-message("psi ",model_specs[best_index, 1])
-message("p ",model_specs[best_index, 2])
+best_psi_model <- model_specs[best_index, 1]
+best_p_model <- model_specs[best_index, 2]
+message("psi ", best_psi_model)
+message("p ", best_p_model)
 
 # Parameter estimates
 summary(best)
