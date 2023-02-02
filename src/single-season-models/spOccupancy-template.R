@@ -14,6 +14,10 @@
 # Updated 2023-02-02
 ################################################################################
 
+#------------------------------------------------------------------------------#
+# Load packages and functions
+#------------------------------------------------------------------------------#
+
 library(dplyr)
 library(lubridate)
 library(stringr)
@@ -22,6 +26,8 @@ library(terra)
 library(spOccupancy)
 library(ggplot2)
 library(tidyterra)
+
+source("src/function.R")
 
 #------------------------------------------------------------------------------#
 # Load all photo, location, events, species data 
@@ -186,34 +192,18 @@ if (STAT == "model_no") {
   best_index <- model_stats$model_no[model_stats[,stat] == min_stat] 
 }
 
-# Extract output from "best" model
+# Extract output and formulas from best model
 best <- out_list[[best_index]]
-
-# View covariate structure
 best_psi_model <- model_specs[best_index, 1]
 best_p_model <- model_specs[best_index, 2]
-message("psi ", best_psi_model)
-message("p ", best_p_model)
 
-# Extract list of occurrence and detection covariates in best model
-psi_covs_z <- best_psi_model %>%
-  str_remove(pattern = "~ ") %>% 
-  str_remove_all(pattern = "I[(]") %>%
-  str_remove_all(pattern = "[)]") %>%
-  str_remove_all(pattern = "\\^2") %>%
-  str_split_1(pattern = " [+] ")
-psi_covs <- psi_covs_z %>%
-  str_remove_all(pattern = "_z")
-p_covs_z <- best_p_model %>%
-  str_remove(pattern = "~ ") %>% 
-  str_remove_all(pattern = "I[(]") %>%
-  str_remove_all(pattern = "[)]") %>%
-  str_remove_all(pattern = "\\^2") %>%
-  str_split_1(pattern = " [+] ")
-p_covs <- p_covs_z %>%
-  str_remove_all(pattern = "_z")
+# Extract covariate names (with and without "_z" subscripts) from best model
+psi_covs_z <- create_cov_list(best_psi_model)
+p_covs_z <- create_cov_list(best_p_model)
+psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
+p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
 
-# Parameter estimates
+# View parameter estimates
 summary(best)
 # Note: this is good for viewing, but will want to use other means to create
 # a table for reports/publications
