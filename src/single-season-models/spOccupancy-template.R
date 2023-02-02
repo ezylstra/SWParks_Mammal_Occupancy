@@ -149,11 +149,8 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
 # View summary table, ranked by WAIC
 model_stats %>%
   arrange(waic)
-# View summary table, ranked by deviation statistic from k-fold CV
-model_stats %>%
-  arrange(k.fold.dev)
 
-# Description of table columns:
+# Description of columns in summary table:
   # psi: formula for occurrence part of model
   # det: formula for detection part of model
   # max.rhat: maximum value of R-hat across model parameters (want value < 1.05)
@@ -179,11 +176,11 @@ model_stats %>%
 # the "best_index" directly.
 
 # Specify STAT as either: waic, k.fold.dev, or model_no
-STAT <- "k.fold.dev"   
+STAT <- "model_no"   
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 1  
+  best_index <- 20  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,stat] == min_stat] 
@@ -206,7 +203,6 @@ summary(best)
 # Trace plots
 plot(best$beta.samples, density = FALSE)
 plot(best$alpha.samples, density = FALSE)
-par(mfrow = c(1,1))
 
 # Posterior predictive checks (want Bayesian p-values between 0.1 and 0.9)
 ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
@@ -231,6 +227,7 @@ if (ppc.rep < 0.1 | ppc.site > 0.9) {
 # lack of fit).
 best_ppcs <- ppc.sites[[best_index]]
 diff_fit <- best_ppcs$fit.y.rep.group.quants[3, ] - best_ppcs$fit.y.group.quants[3, ]
+par(mfrow = c(1,1))
 plot(diff_fit, pch = 19, xlab = 'Site ID', ylab = "Replicate - True Discrepancy") 
 prob_sites <- which(abs(diff_fit) > 0.4)
 # Plot on map
@@ -240,85 +237,22 @@ points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
 #------------------------------------------------------------------------------#
 # Calculate predicted probability of occupancy, across park
 #------------------------------------------------------------------------------#
-# Everything in this section can probably be moved to source script
 
-# Extract layers from spat_raster for covariates in best model
-psi_covs_z <- best_psi_model %>%
-  str_remove(pattern = "~ ") %>% 
-  str_remove_all(pattern = "I[(]") %>%
-  str_remove_all(pattern = "[)]") %>%
-  str_remove_all(pattern = "\\^2") %>%
-  str_split_1(pattern = " [+] ")
-psi_covs <- psi_covs_z %>%
-  str_remove_all(pattern = "_z")
+source("src/single-season-models/spOccupancy-predictions.R")
+  # Note: this can take several minutes to run.
 
-psi_rasters <- spat_raster[[psi_covs]]
+# This script creates:
+  # best_pred: a list with predictions for each raster cell, MCMC sample
+  # preds_mn: a raster with mean values in each cell (across MCMC samples)
+  # preds_sd: a raster with SDs in each cell (across MCMC samples)
+  # plot_preds_mn: a ggplot object with predicted mean values across park
+  # plot_preds_sd: a ggplot object with predcited sd values across park
 
-# Standardize values, where needed
-zs <- which(str_detect(psi_covs_z, "_z"))
-for (z in zs) {
-  var_name <- psi_covs[z]
-  var_mn <- mean(spatial_covs[, var_name])
-  var_sd <- sd(spatial_covs[, var_name])
-  psi_rasters[[z]] <- (psi_rasters[[z]] - var_mn) / var_sd
-}
-# Create quadratics, where needed
-quads <- which(duplicated(psi_covs))
-for (q in quads) {
-  psi_rasters[[q]] <- psi_rasters[[q]] * psi_rasters[[q]]
-  names(psi_rasters[[q]]) <- paste0(names(psi_rasters[[q]]), "2")
-}
-# Add layer for intercept
-rast_int <- rast(psi_rasters[[1]])
-rast_int <- rast(rast_int, vals = 1)
-names(rast_int) <- "int"
-psi_rasters <- c(rast_int, psi_rasters)
+# Plot predicted means
+plot_preds_mn 
 
-# Crop and mask by park boundary
-park_boundaries <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
-park_boundary <- subset(park_boundaries, park_boundaries$UNIT_CODE == PARK)
-psi_rasters <- crop(psi_rasters, park_boundary)
-psi_rasters <- mask(psi_rasters, park_boundary)
-
-# Convert to a dataframe (one row for each cell, each column = layer)
-psi_rasters_df <- as.data.frame(psi_rasters, cell = TRUE)
-# Remove row with any covariates equal to NA
-psi_rasters_df$nNAs <- apply(psi_rasters_df[, -1], 1, function(x) sum(is.na(x)))
-psi_rasters_df <- psi_rasters_df %>%
-  dplyr::filter(nNAs == 0) %>%
-  select(-nNAs)
-
-# Make predictions with predict.PGOcc() 
-# Note: this can take a couple minutes, but is still faster than doing math
-best_pred <- predict(best, as.matrix(psi_rasters_df[, -1]))
-
-# Plot predicted occupancy probability (can also take a couple minutes)
-plot_dat <- data.frame(cell = psi_rasters_df$cell,
-                       mean_psi = apply(best_pred$psi.0.samples, 2, mean),
-                       sd_psi = apply(best_pred$psi.0.samples, 2, sd))
-
-preds_mn <- rast(psi_rasters[[1]])
-preds_mn[plot_dat[,1]] <- plot_dat[,2]
-names(preds_mn) <- "mean"
-preds_sd <- rast(psi_rasters[[1]])
-preds_sd[plot_dat[,1]] <- plot_dat[,3]
-names(preds_sd) <- "sd"
-
-# Could use default plot
-# plot(preds_mn)
-
-# Or use tidyterra to plot using ggplot syntax
-ggplot() + 
-  geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) + 
-  scale_fill_viridis_c(na.value = 'transparent') +
-  labs(fill = '', title = 'Mean occurrence probability') +
-  theme_bw()
-
-ggplot() + 
-  geom_spatraster(data = preds_sd, mapping = aes(fill = sd)) + 
-  scale_fill_viridis_c(na.value = 'transparent') +
-  labs(fill = '', title = 'SD occurrence probability') +
-  theme_bw()
+# Plot predicted sds
+plot_preds_sd
 
 #------------------------------------------------------------------------------#
 # Create figures depicting marginal effects of covariates on occurrence 
