@@ -195,6 +195,24 @@ best_p_model <- model_specs[best_index, 2]
 message("psi ", best_psi_model)
 message("p ", best_p_model)
 
+# Extract list of occurrence and detection covariates in best model
+psi_covs_z <- best_psi_model %>%
+  str_remove(pattern = "~ ") %>% 
+  str_remove_all(pattern = "I[(]") %>%
+  str_remove_all(pattern = "[)]") %>%
+  str_remove_all(pattern = "\\^2") %>%
+  str_split_1(pattern = " [+] ")
+psi_covs <- psi_covs_z %>%
+  str_remove_all(pattern = "_z")
+p_covs_z <- best_p_model %>%
+  str_remove(pattern = "~ ") %>% 
+  str_remove_all(pattern = "I[(]") %>%
+  str_remove_all(pattern = "[)]") %>%
+  str_remove_all(pattern = "\\^2") %>%
+  str_split_1(pattern = " [+] ")
+p_covs <- p_covs_z %>%
+  str_remove_all(pattern = "_z")
+
 # Parameter estimates
 summary(best)
 # Note: this is good for viewing, but will want to use other means to create
@@ -222,17 +240,22 @@ if (ppc.rep < 0.1 | ppc.site > 0.9) {
                  "variation in detection."))
 }
 
-# Plot the difference in the discrepancy measure between the replicate 
-# and actual data across each of the sites (identify sites that are causing a 
-# lack of fit).
-best_ppcs <- ppc.sites[[best_index]]
-diff_fit <- best_ppcs$fit.y.rep.group.quants[3, ] - best_ppcs$fit.y.group.quants[3, ]
-par(mfrow = c(1,1))
-plot(diff_fit, pch = 19, xlab = 'Site ID', ylab = "Replicate - True Discrepancy") 
-prob_sites <- which(abs(diff_fit) > 0.4)
-# Plot on map
-plot(lat~long, data = spatial_covs, las = 1) # all camera locs
-points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
+# If there's evidence that spatial variation isn't well explained, plot the 
+# difference in the discrepancy measure between the replicate and actual data 
+# across each of the sites (identify sites that are causing a lack of fit).
+if (ppc.site < 0.1 | ppc.site > 0.9) {
+  best_ppcs <- ppc.sites[[best_index]]
+  diff_fit <- best_ppcs$fit.y.rep.group.quants[3, ] - best_ppcs$fit.y.group.quants[3, ]
+  
+  # Plot differences
+  par(mfrow = c(1,1))
+  plot(diff_fit, pch = 19, xlab = 'Site ID', ylab = "Replicate - True Discrepancy") 
+  
+  # Identify sites on a map
+  prob_sites <- which(abs(diff_fit) > 0.4)
+  plot(lat~long, data = spatial_covs, las = 1) # all camera locs
+  points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
+}
 
 #------------------------------------------------------------------------------#
 # Calculate predicted probability of occupancy, across park
@@ -255,9 +278,9 @@ plot_preds_mn
 plot_preds_sd
 
 #------------------------------------------------------------------------------#
-# Create figures depicting marginal effects of covariates on occurrence 
-# probability (predicted covariate effects assuming all other covariates held
-# constant)
+# Calculate and create figures depicting marginal effects of covariates on 
+# occurrence probability (predicted covariate effects assuming all other 
+# covariates held constant)
 #------------------------------------------------------------------------------#
 
 # Identify continuous covariates in occurrence part of the best model

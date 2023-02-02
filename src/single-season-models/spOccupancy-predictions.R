@@ -18,15 +18,6 @@
 #------------------------------------------------------------------------------#
 
 # Extract layers from spat_raster for covariates in best model
-psi_covs_z <- best_psi_model %>%
-  str_remove(pattern = "~ ") %>% 
-  str_remove_all(pattern = "I[(]") %>%
-  str_remove_all(pattern = "[)]") %>%
-  str_remove_all(pattern = "\\^2") %>%
-  str_split_1(pattern = " [+] ")
-psi_covs <- psi_covs_z %>%
-  str_remove_all(pattern = "_z")
-
 psi_rasters <- spat_raster[[psi_covs]]
 
 # Standardize values, where needed
