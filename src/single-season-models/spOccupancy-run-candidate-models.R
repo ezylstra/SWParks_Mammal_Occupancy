@@ -1,15 +1,49 @@
 ################################################################################
-# Gather model diagnostic metrics and statistics for model comparisons
+# Run candidate single-season models (with spOccupancy) and gather model 
+# diagnostics and statistics for comparisons
 
 # In most instances, this will be called from another script (something like:
 # src/single-seasons/models/YEAR/spOccupancy-PARK-SPECIES_YEAR.R)
 
 # ER Zylstra
-# Updated 2023-01-26
+# Updated 2023-02-02
 ################################################################################
 
-# This script assumes output from multiple spOccupancy models are stored in 
-# out_list
+# Output from candidate models will be stored in a list (out_list)
+# Model summaries/diagnostics will be stored in a dataframe (model_stats)
+
+#------------------------------------------------------------------------------#
+# Run models
+#------------------------------------------------------------------------------#
+
+# Running candidate models (specified in model_specs). Notes:
+  # Doing 4-fold cross validation for each model
+  # Not specifying priors, but using defaults which are N(0, var = 2.72)
+  # Not specifying initial values -- by default they come from priors
+  # Running chains sequentially (n.omp.threads = 1) because vignette states
+  # this only speeds things up in spatial models
+
+set.seed(2023)
+out_list <- list()
+for (i in 1:nrow(model_specs)) {
+  message("Running model ", i, " (of ", nrow(model_specs), ").")
+  out <- PGOcc(occ.formula = occ_formulas[[i]],
+               det.formula = det_formulas[[i]], 
+               data = data_list, 
+               # inits = inits, 
+               # priors = priors, 
+               n.samples = N_SAMPLES, 
+               n.omp.threads = 1, 
+               verbose = TRUE, 
+               n.report = 1000, 
+               n.burn = N_BURN, 
+               n.thin = N_THIN, 
+               n.chains = N_CHAINS,
+               k.fold = 4,
+               k.fold.threads = 4,
+               k.fold.seed = 2023) 
+  out_list <- c(out_list, list(out))
+}
 
 #------------------------------------------------------------------------------#
 # Extract a few model diagnostics

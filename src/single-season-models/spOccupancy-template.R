@@ -7,10 +7,11 @@
   # PARK, YEAR, SPECIES (lines 41, 44, 58)
   # Specifications for occurrence models: OCC_NULL, OCC_MODELS1, OCC_MODELS2
   # Specifications for detection models: DET_NULL, DET_MODELS1, DET_MODELS2
+  # MCMC parameters: N_SAMPLES, N_BURN, N_THIN, N_CHAINS
   # Statistic used to select a "best" model for inferences: STAT
 
 # ER Zylstra
-# Updated 2023-02-01
+# Updated 2023-02-02
 ################################################################################
 
 library(dplyr)
@@ -111,23 +112,6 @@ covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
   OCC_MODELS2 <- list(c("veg", "boundary"),
                       c("veg", "wash", "roads"))
   
-  occm1 <- covariates$formula[covariates$short_name %in% OCC_MODELS1]
-  occm2 <- list()
-  for (i in 1:length(OCC_MODELS2)) {
-    occm2[[i]] <- paste(covariates$formula[covariates$short_name %in% OCC_MODELS2[[i]]],
-                        collapse = " + ")
-  }
-  occ_specs <- c(occm1, unlist(occm2))
-  if (OCC_NULL) {
-   occ_specs <- c("1", occ_specs) 
-  }
-  occ_specs <- paste0("~ ", occ_specs) 
-  message("Check that these are the candidate models of interest for occurrence.")
-  occ_specs
-
-# Logical indicating whether a null model should be included in a candidate set
-  DET_NULL <- TRUE
-
 # Identify covariates to include in the detection part of candidate models
     
   # See what covariates are available
@@ -142,73 +126,25 @@ covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
   # To combine different covariates in a candidate model, provide a vector of 
   # short_names
   DET_MODELS2 <- list(c("day2", "deploy", "effort"))
-  
-  detm1 <- covariates$formula[covariates$short_name %in% DET_MODELS1]
-  detm2 <- list()
-  for (i in 1:length(DET_MODELS2)) {
-    detm2[[i]] <- paste(covariates$formula[covariates$short_name %in% DET_MODELS2[[i]]],
-                        collapse = " + ")
-  }
-  det_specs <- c(detm1, unlist(detm2))
-  if (DET_NULL) {
-    det_specs <- c("1", det_specs) 
-  }
-  det_specs <- paste0("~ ", det_specs) 
-  message("Check that these are the candidate models of interest for detection.")
-  det_specs
 
-# Create a matrix that contains all combinations of occurrence and detection 
-# covariates for candidate models
-model_specs <- as.matrix(expand.grid(occ = occ_specs, 
-                                     det = det_specs,
-                                     KEEP.OUT.ATTRS = FALSE))
-
-# Create model formulas with R syntax
-as.formula.vect <- Vectorize(as.formula)
-occ_formulas <- as.formula.vect(model_specs[,1])
-det_formulas <- as.formula.vect(model_specs[,2])
+  # Use OCC and DET objects to create formulas for candidate models:
+  source("src/single-season-models/spOccupancy-create-model-formulas.R")
+    
+  message("Check candidate models:", sep = "\n")
+  model_specs
 
 #------------------------------------------------------------------------------#
 # Run models and compare fit
 #------------------------------------------------------------------------------#
 
 # Set MCMC parameters
-n_samples <- 5000
-n_burn <- 3000
-n_thin <- 1
-n_chains <- 3
+N_SAMPLES <- 5000
+N_BURN <- 3000
+N_THIN <- 1
+N_CHAINS <- 3
 
-# Running a list of models, doing 4-fold cross validation for each model
-  # Not specifying priors, but using defaults which are N(0, var = 2.72)
-  # Not specifying initial values -- by default they come from priors
-  # Running chains sequentially (n.omp.threads = 1) because vignette states
-  # this only speeds things up in spatial models
-set.seed(2023)
-out_list <- list()
-for (i in 1:nrow(model_specs)) {
-  message("Running model ", i, " (of ", nrow(model_specs), ").")
-  out <- PGOcc(occ.formula = occ_formulas[[i]],
-               det.formula = det_formulas[[i]], 
-               data = data_list, 
-               # inits = inits, 
-               # priors = priors, 
-               n.samples = n_samples, 
-               n.omp.threads = 1, 
-               verbose = TRUE, 
-               n.report = 1000, 
-               n.burn = n_burn, 
-               n.thin = n_thin, 
-               n.chains = n_chains,
-               k.fold = 4,
-               k.fold.threads = 4,
-               k.fold.seed = 2023) 
-  out_list <- c(out_list, list(out))
-}
-
-# Gather results from models (occ/det formulas, Bayesian p-values from posterior 
-# predictive checks, WAIC, deviance stat from 4-fold CV)
-source("src/single-season-models/spOccupancy-model-stats.R")
-  # Takes a minute to run with posterior predictive checks (PPCs)
+source("src/single-season-models/spOccupancy-run-candidate-models.R")
+  # Note: this will often take several minutes to run
 
 # View summary table, ranked by WAIC
 model_stats %>%
@@ -217,16 +153,43 @@ model_stats %>%
 model_stats %>%
   arrange(k.fold.dev)
 
+# Description of table columns:
+  # psi: formula for occurrence part of model
+  # det: formula for detection part of model
+  # max.rhat: maximum value of R-hat across model parameters (want value < 1.05)
+  # min.ESS: minimum value of ESS (effective sample size) across model
+    # parameters (want value > 400)
+  # ppc.sites: posterior predictive checks when binning the data across sites. 
+    # P-values < 0.1 or > 0.9 can indicate that model fails to adequately
+    # represent variation in occurrence or detection across space.
+  # ppc.reps: posterior predictive checks when binning the data across
+    # replicates. P-values < 0.1 or > 0.9 can indicate that model fails to 
+    # adequately represent variation in detection over time.
+  # waic: WAIC (Widely Applicable Information Criterion) for comparing models
+    # (lower is better)
+  # k.fold.dev: Deviance from k-fold cross validation for comparing models 
+    # (lower is better)
+
 #------------------------------------------------------------------------------#
 # Look at results and predictions from "best" model
 #------------------------------------------------------------------------------#
 
-# Identify statistic to use for selecting the best model 
-# Either WAIC (waic) or deviance from k-fold CV (k.fold.dev)
-# STAT <- "waic"
-STAT <- "k.fold.dev"
-min_stat <- min(model_stats[,stat])
-best_index <- model_stats$model_no[model_stats[,stat] == min_stat] 
+# Identify a model to use for inferences.  Can base this on WAIC or deviance 
+# from k-fold CV.  Alternatively, can select another model by specifying 
+# the "best_index" directly.
+
+# Specify STAT as either: waic, k.fold.dev, or model_no
+STAT <- "k.fold.dev"   
+
+if (STAT == "model_no") {
+  # If STAT == "model_no", specify model of interest by model number in table
+  best_index <- 1  
+} else {
+  min_stat <- min(model_stats[,STAT])
+  best_index <- model_stats$model_no[model_stats[,stat] == min_stat] 
+}
+
+# Extract output from "best" model
 best <- out_list[[best_index]]
 
 # View covariate structure
