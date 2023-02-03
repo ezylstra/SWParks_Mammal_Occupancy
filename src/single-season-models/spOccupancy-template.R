@@ -197,7 +197,7 @@ if (STAT == "model_no") {
   best_index <- 20  
 } else {
   min_stat <- min(model_stats[,STAT])
-  best_index <- model_stats$model_no[model_stats[,stat] == min_stat] 
+  best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
 }
 
 # Extract output and formulas from best model
