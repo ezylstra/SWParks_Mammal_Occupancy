@@ -27,7 +27,7 @@ library(spOccupancy)
 library(ggplot2)
 library(tidyterra)
 
-source("src/function.R")
+source("src/functions.R")
 
 #------------------------------------------------------------------------------#
 # Load all photo, location, events, species data 
@@ -153,8 +153,8 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
   # Note: this will often take several minutes to run
 
 # View summary table, ranked by WAIC
-model_stats %>%
-  arrange(waic)
+  model_stats %>%
+    arrange(waic)
 
 # Description of columns in summary table:
   # psi: formula for occurrence part of model
@@ -248,7 +248,7 @@ if (ppc.site < 0.1 | ppc.site > 0.9) {
 }
 
 #------------------------------------------------------------------------------#
-# Calculate predicted probability of occupancy, across park
+# Calculate and visualize predicted probabilities of occupancy, across park
 #------------------------------------------------------------------------------#
 
 source("src/single-season-models/spOccupancy-predictions.R")
@@ -262,10 +262,10 @@ source("src/single-season-models/spOccupancy-predictions.R")
   # plot_preds_sd: a ggplot object with predcited sd values across park
 
 # Plot predicted means
-plot_preds_mn 
+  plot_preds_mn 
 
 # Plot predicted sds
-plot_preds_sd
+  plot_preds_sd
 
 #------------------------------------------------------------------------------#
 # Calculate and create figures depicting marginal effects of covariates on 
@@ -274,93 +274,37 @@ plot_preds_sd
 #------------------------------------------------------------------------------#
 
 # Identify continuous covariates in occurrence part of the best model
-psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
-psi_cont_unique <- unique(psi_continuous)
-psi_n_cont <- length(psi_cont_unique)
+  psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
+  psi_cont_unique <- unique(psi_continuous)
+  psi_n_cont <- length(psi_cont_unique)
 
-if (psi_n_cont > 0) {
-  # Loop through each covariate
-  for (cov in psi_cont_unique) {
-    cols <- str_subset(colnames(best$beta.samples), pattern = cov)
-    beta_samples <- best$beta.samples[,c("(Intercept)", cols)]
-    X_cov <- seq(from = min(data_list$occ.covs[, cov]), 
-                 to = max(data_list$occ.covs[, cov]),
-                 length = 100)
-    X_cov <- cbind(1, X_cov)
-        
-    # If there are quadratic effects, add column in X_cov
-    if (ncol(beta_samples) == 3) {
-      X_cov <- cbind(X_cov, X_cov[,2]^2)
+# If there are any continuous covariates, create a figure for each:
+  if (psi_n_cont > 0) {
+    # Loop through each covariate
+    for (cov in psi_cont_unique) {
+      # Create name of plot:
+      plotname <- paste0("marginal_psi_", str_remove(cov, "_z"))
+      # Create plot
+      assign(plotname, 
+             marginal_plot_occ(covariate = cov, 
+                               model = best, 
+                               data_list = data_list,
+                               covariate_table = covariates))
     } 
-     
-    preds <-  X_cov %*% t(beta_samples)
-    preds <- exp(preds)/(1 + exp(preds))
-    preds_mn <- apply(preds, 1, mean)
-    preds_lcl <- apply(preds, 1, quantile, 0.025)
-    preds_ucl <- apply(preds, 1, quantile, 0.975)
-
-    # Identify covariate values for x-axis (on original scale)
-    if (str_detect(cov, "_z")) {
-      cov_mn <- mean(data_list$occ.covs[,str_remove(cov, "_z")])
-      cov_sd <- sd(data_list$occ.covs[,str_remove(cov, "_z")])
-      cov_plot <- X_cov[,2] * cov_sd + cov_mn
-    } else {
-      cov_plot <- X_cov[,2] 
-    }
-    
-    # Create and save plots for later viewing
-    data_plot <- data.frame(x = cov_plot,
-                            mn = preds_mn,
-                            lcl = preds_lcl,
-                            ucl = preds_ucl)
-    cov_name <- str_remove(cov, "_z")
-    assign(paste0("marginal_plot_psi_", cov_name),
-           ggplot(data = data_plot, aes(x = x)) + 
-             geom_line(aes(y = mn), col = "forestgreen") +
-             geom_ribbon(aes(ymin = lcl, ymax = ucl), alpha = 0.2) +
-             labs(x = covariates$axis_label[covariates$short_name == cov_name], 
-                  y = "Predicted occupancy probability (95% CI)") +
-             theme_classic())
   }
-}
 
 # Can now view these plots, calling them by name. Available plots listed here:
-str_subset(ls(), "marginal_plot_psi_")
-# eg, if elevation was in the occurrence part of the model: 
-# marginal_plot_psi_elev
+  str_subset(ls(), "marginal_psi_")
+  # eg, if elevation was in the occurrence part of the model: 
+  # marginal_psi_elev
 
-# Extract mean occupancy probability for different vegetation classes, if 
-# included as covariates in the best model
-if (sum(str_detect(psi_covs, "veg")) > 0) {
-  # Create table to hold results
-  occprobs_veg <- data.frame(vegclass = 1:3,
-                             mean_prob = NA,
-                             sd_prob = NA,
-                             ci_min = NA,
-                             ci_max = NA)
-  betas <- best$beta.samples  
-  # Probability of occupancy in vegclass1 (reference level)
-  vegclass1 <- exp(betas[,"(Intercept)"])/(1 + exp(betas[,"(Intercept)"])) 
-  occprobs_veg$mean_prob[1] <- mean(vegclass1)
-  occprobs_veg$sd_prob[1] <- sd(vegclass1)
-  occprobs_veg$ci_min[1] <- quantile(vegclass1, 0.025)
-  occprobs_veg$ci_max[1] <- quantile(vegclass1, 0.975)
-  # Probability of occupancy in vegclass2
-  vegclass2 <- betas[,"(Intercept)"] + betas[,"vegclass2"]
-  vegclass2 <- exp(vegclass2)/(1 + exp(vegclass2)) 
-  occprobs_veg$mean_prob[2] <- mean(vegclass2)
-  occprobs_veg$sd_prob[2] <- sd(vegclass2)
-  occprobs_veg$ci_min[2] <- quantile(vegclass2, 0.025)
-  occprobs_veg$ci_max[2] <- quantile(vegclass2, 0.975)
-  # Probability of occupancy in vegclass3
-  vegclass3 <- betas[,"(Intercept)"] + betas[,"vegclass3"]
-  vegclass3 <- exp(vegclass3)/(1 + exp(vegclass3)) 
-  occprobs_veg$mean_prob[3] <- mean(vegclass3)
-  occprobs_veg$sd_prob[3] <- sd(vegclass3)
-  occprobs_veg$ci_min[3] <- quantile(vegclass3, 0.025)
-  occprobs_veg$ci_max[3] <- quantile(vegclass3, 0.975)
-  occprobs_veg
-}
+# If vegetation classes were included as covariates in the model, extract
+# occupancy probabilities for each class
+  if (sum(str_detect(psi_covs, "veg")) > 0) {
+    occprobs_veg <- vegclass_estimates(model = best, 
+                                       parameter = "occ")
+    print(occprobs_veg)
+  }
 
 #------------------------------------------------------------------------------#
 # Create figures depicting marginal effects of covariates on detection 
@@ -368,19 +312,30 @@ if (sum(str_detect(psi_covs, "veg")) > 0) {
 # constant)
 #------------------------------------------------------------------------------#
 
-p_covs_z <- best_p_model %>%
-  str_remove(pattern = "~ ") %>% 
-  str_remove_all(pattern = "I[(]") %>%
-  str_remove_all(pattern = "[)]") %>%
-  str_remove_all(pattern = "\\^2") %>%
-  str_split_1(pattern = " [+] ")
-p_covs <- p_covs_z %>%
-  str_remove_all(pattern = "_z")
-
 # Identify continuous covariates in occurrence part of the best model
 p_continuous <- p_covs_z[p_covs_z != "1"]
 p_cont_unique <- unique(p_continuous)
 p_n_cont <- length(p_cont_unique)
+
+############## Pick up here ############################################
+
+# If there are any continuous covariates, create a figure for each:
+if (psi_n_cont > 0) {
+  # Loop through each covariate
+  for (cov in psi_cont_unique) {
+    # Create name of plot:
+    plotname <- paste0("marginal_psi_", str_remove(cov, "_z"))
+    # Create plot
+    assign(plotname, 
+           marginal_plot_occ(covariate = cov, 
+                             model = best, 
+                             data_list = data_list,
+                             covariate_table = covariates))
+  } 
+}
+
+
+
 
 if (p_n_cont > 0) {
   # Loop through each covariate
@@ -432,3 +387,11 @@ if (p_n_cont > 0) {
              theme_classic())
   }
 }
+
+# If vegetation classes were included as covariates in the model, extract
+# detection probabilities for each class
+  if (sum(str_detect(p_covs, "veg")) > 0) {
+    detprobs_veg <- vegclass_estimates(model = best, 
+                                       parameter = "det")
+    print(detprobs_veg)
+  }
