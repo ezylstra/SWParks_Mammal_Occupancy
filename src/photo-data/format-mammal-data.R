@@ -378,4 +378,6 @@ summary(dat$locdate %in% eventvec)
 # Remove objects that are no longer needed
 #-----------------------------------------------------------------------------------# 
 
-rm(list = setdiff(ls(), c("dat", "locs", "events", "event_mat", "species")))
+# Note: need to include lsf.str() to ensure that functions aren't removed.
+rm(list = setdiff(ls(all.names=TRUE), 
+                  c(lsf.str(), "dat", "locs", "events", "event_mat", "species")))
