@@ -4,14 +4,14 @@
 
 # Objects that need to be specified to run models (ie, to create 
 # src/single-season-model/YEAR/spOccupancy-PARK-SPECIES-YEAR.R)
-  # PARK, YEAR, SPECIES (lines 41, 44, 58)
+  # PARK, YEAR, SPECIES (lines 50, 53, 67)
   # Specifications for occurrence models: OCC_NULL, OCC_MODELS1, OCC_MODELS2
   # Specifications for detection models: DET_NULL, DET_MODELS1, DET_MODELS2
   # MCMC parameters: N_SAMPLES, N_BURN, N_THIN, N_CHAINS
-  # Statistic used to select a "best" model for inferences: STAT
+  # Method used to select a "best" model for inferences: STAT
 
 # ER Zylstra
-# Updated 2023-02-02
+# Updated 2023-02-03
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -82,62 +82,69 @@ source("src/single-season-models/spOccupancy-data-prep.R")
   # with "_z" are standardized)
 
 #------------------------------------------------------------------------------#
-# Identify covariates to be included in the occurrence and detection portions 
-# of candidate models
+# Specify the occurrence portion of candidate models
 #------------------------------------------------------------------------------#
-
-# First, view those pairs of continuous covariates that are highly correlated
-# (to help inform occupancy models below)
-cor_df %>%
-  arrange(desc(corr)) %>%
-  dplyr::filter(abs(corr) > 0.5)
-
-# Logicals indicating whether null models (for occurrence or detection) should
-# be included in candidate model sets
-OCC_NULL <- TRUE
-DET_NULL <- TRUE
 
 # Load dataframe with information about covariates:
 covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
 
-# Identify covariates to include in the occurrence part of candidate models
+# View those pairs of continuous covariates that are highly correlated
+cor_df %>%
+  arrange(desc(corr)) %>%
+  dplyr::filter(abs(corr) > 0.5)
 
-  # See what covariates are available
-  covariates %>%
-    dplyr::filter(parameter %in% c("either", "occupancy")) %>%
-    dplyr::filter(park %in% c(PARK, "all")) %>%
-    select(-c(parameter, park))
-  
-  # Pick covariates to include in simple candidate models via the short_name 
-  # column in the covariates dataframe
-  OCC_MODELS1 <- c("aspect", "elev2", "slope", "veg")
-  
-  # To combine covariates in a single candidate model, provide a vector of 
-  # short_names e.g., c("aspect", "boundary") would create the following model
-  # for occurrence: psi ~ east + north + boundary
-  OCC_MODELS2 <- list(c("veg", "boundary"),
-                      c("veg", "wash", "roads"))
-  
-# Identify covariates to include in the detection part of candidate models
-    
-  # See what covariates are available
-  covariates %>%
-    dplyr::filter(parameter %in% c("either", "detection")) %>%
-    dplyr::filter(park %in% c(PARK, "all")) %>%
-    select(-c(parameter, park))
-  
-  # Pick covariates to include in simple candidate models via the short_name 
-  # column in the covariates dataframe
-  DET_MODELS1 <- c("effort")
-  # To combine different covariates in a candidate model, provide a vector of 
-  # short_names
-  DET_MODELS2 <- list(c("day2", "deploy", "effort"))
+# See what covariates are available for occurrence part of model
+covariates %>%
+  dplyr::filter(parameter %in% c("either", "occupancy")) %>%
+  dplyr::filter(park %in% c(PARK, "all")) %>%
+  select(-c(parameter, park))
 
-  # Use OCC and DET objects to create formulas for candidate models:
-  source("src/single-season-models/spOccupancy-create-model-formulas.R")
+# Logical indicating whether a null model for occurrence should be included in 
+# the candidate model set
+OCC_NULL <- TRUE
+
+# Pick covariates to include in simple candidate models via the short_name 
+# column in the covariates dataframe
+OCC_MODELS1 <- c("aspect", "elev2", "slope", "veg")
+
+# To combine covariates in a single candidate model, provide a vector of 
+# short_names 
+# e.g., c("aspect", "boundary") would create the following model for occurrence: 
+# psi ~ east + north + boundary
+OCC_MODELS2 <- list(c("veg", "boundary"),
+                    c("veg", "wash", "roads"))
+
+#------------------------------------------------------------------------------#
+# Specify the detection portion of candidate models
+#------------------------------------------------------------------------------#
+
+# See what covariates are available for detection part of model
+covariates %>%
+  dplyr::filter(parameter %in% c("either", "detection")) %>%
+  dplyr::filter(park %in% c(PARK, "all")) %>%
+  select(-c(parameter, park))
+  
+# Logical indicating whether a null model for detection should be included in 
+# the candidate model set
+DET_NULL <- TRUE
+
+# Pick covariates to include in simple candidate models via the short_name 
+# column in the covariates dataframe
+DET_MODELS1 <- c("effort")
+
+# To combine different covariates in a candidate model, provide a vector of 
+# short_names
+DET_MODELS2 <- list(c("day2", "deploy", "effort"))
+
+#------------------------------------------------------------------------------#
+# Create (and check) formulas for candidate models
+#------------------------------------------------------------------------------#
+
+# Use OCC and DET objects to create formulas for candidate models:
+source("src/single-season-models/spOccupancy-create-model-formulas.R")
     
-  message("Check candidate models:", sep = "\n")
-  model_specs
+message("Check candidate models:", sep = "\n")
+model_specs
 
 #------------------------------------------------------------------------------#
 # Run models and compare fit
@@ -146,9 +153,10 @@ covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
 # Set MCMC parameters
 N_SAMPLES <- 5000
 N_BURN <- 3000
-N_THIN <- 1
+N_THIN <- 2
 N_CHAINS <- 3
 
+# Run candidate models using spOccupancy package
 source("src/single-season-models/spOccupancy-run-candidate-models.R")
   # Note: this will often take several minutes to run
 
@@ -289,14 +297,18 @@ source("src/single-season-models/spOccupancy-predictions.R")
              marginal_plot_occ(covariate = cov, 
                                model = best, 
                                data_list = data_list,
-                               covariate_table = covariates))
+                               covariate_table = covariates,
+                               central_meas = mean))
     } 
   }
 
-# Can now view these plots, calling them by name. Available plots listed here:
+# Can view these plots, calling them by name. Available plots listed here:
   str_subset(ls(), "marginal_psi_")
-  # eg, if elevation was in the occurrence part of the model: 
-  # marginal_psi_elev
+  
+  # Or print all to plot window:
+  for (fig in str_subset(ls(), "marginal_psi_")) {
+    print(get(fig))
+  }
 
 # If vegetation classes were included as covariates in the model, extract
 # occupancy probabilities for each class
@@ -317,76 +329,27 @@ p_continuous <- p_covs_z[p_covs_z != "1"]
 p_cont_unique <- unique(p_continuous)
 p_n_cont <- length(p_cont_unique)
 
-############## Pick up here ############################################
-
 # If there are any continuous covariates, create a figure for each:
-if (psi_n_cont > 0) {
-  # Loop through each covariate
-  for (cov in psi_cont_unique) {
-    # Create name of plot:
-    plotname <- paste0("marginal_psi_", str_remove(cov, "_z"))
-    # Create plot
-    assign(plotname, 
-           marginal_plot_occ(covariate = cov, 
-                             model = best, 
-                             data_list = data_list,
-                             covariate_table = covariates))
-  } 
-}
-
-
-
-
-if (p_n_cont > 0) {
-  # Loop through each covariate
-  for (cov in p_cont_unique) {
-    cols <- str_subset(colnames(best$alpha.samples), pattern = cov)
-    alpha_samples <- best$alpha.samples[,c("(Intercept)", cols)]
-    X_cov <- seq(from = min(data_list$det.covs[[cov]], na.rm = TRUE), 
-                 to = max(data_list$det.covs[[cov]], na.rm = TRUE),
-                 length = 100)
-    X_cov <- cbind(1, X_cov)
-    
-    # If there are quadratic effects, add column in X_cov
-    if (ncol(alpha_samples) == 3) {
-      X_cov <- cbind(X_cov, X_cov[,2]^2)
+  if (p_n_cont > 0) {
+    # Loop through each covariate
+    for (cov in p_cont_unique) {
+      # Create name of plot:
+      plotname <- paste0("marginal_p_", str_remove(cov, "_z"))
+      # Create plot
+      assign(plotname, 
+             marginal_plot_det(covariate = cov, 
+                               model = best, 
+                               data_list = data_list,
+                               covariate_table = covariates))
     } 
-    
-    preds <-  X_cov %*% t(alpha_samples)
-    preds <- exp(preds)/(1 + exp(preds))
-    preds_mn <- apply(preds, 1, mean)
-    preds_lcl <- apply(preds, 1, quantile, 0.025)
-    preds_ucl <- apply(preds, 1, quantile, 0.975)
-    
-    # Identify covariate values for x-axis (on original scale)
-    if (str_detect(cov, "_z")) {
-      if (str_remove(cov, "_z") %in% colnames(data_list$occ.covs)) {
-        cov_mn <- mean(data_list$occ.covs[,str_remove(cov, "_z")])
-        cov_sd <- sd(data_list$occ.covs[,str_remove(cov, "_z")])
-      } else {
-        cov_mn <- mean(data_list$det.covs[[str_remove(cov, "_z")]], na.rm = TRUE)
-        cov_sd <- sd(data_list$det.covs[[str_remove(cov, "_z")]], na.rm = TRUE)
-      }
-      cov_plot <- X_cov[,2] * cov_sd + cov_mn
-    } else {
-      cov_plot <- X_cov[,2] 
-    }
-    
-    # Create and save plots for later viewing
-    data_plot <- data.frame(x = cov_plot,
-                            mn = preds_mn,
-                            lcl = preds_lcl,
-                            ucl = preds_ucl)
-    cov_name <- str_remove(cov, "_z")
-    assign(paste0("marginal_plot_p_", cov_name),
-           ggplot(data = data_plot, aes(x = x)) + 
-             geom_line(aes(y = mn), col = "forestgreen") +
-             geom_ribbon(aes(ymin = lcl, ymax = ucl), alpha = 0.2) +
-             labs(x = covariates$axis_label[covariates$short_name == cov_name], 
-                  y = "Predicted detection probability (95% CI)") +
-             theme_classic())
   }
-}
+# Can view these plots, calling them by name. Available plots listed here:
+  str_subset(ls(), "marginal_p_")
+  
+  # Or print all to plot window:
+  for (fig in str_subset(ls(), "marginal_p_")) {
+    print(get(fig))
+  }
 
 # If vegetation classes were included as covariates in the model, extract
 # detection probabilities for each class
