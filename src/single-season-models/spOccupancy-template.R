@@ -305,10 +305,19 @@ source("src/single-season-models/spOccupancy-predictions.R")
 # Can view these plots, calling them by name. Available plots listed here:
   str_subset(ls(), "marginal_psi_")
   
-  # Or print all to plot window:
+  # Can print all to plot window in Rstudio:
   for (fig in str_subset(ls(), "marginal_psi_")) {
     print(get(fig))
   }
+  
+  # Or save any of the plots to file (example below):
+  # ggsave(filename = "C:/Users/erin/Desktop/marg_plot_example.jpg",
+  #        plot = marginal_psi_boundary,
+  #        device = "jpeg",
+  #        width = 4,
+  #        height = 4,
+  #        units = "in",
+  #        dpi = 600)
 
 # If vegetation classes were included as covariates in the model, extract
 # occupancy probabilities for each class
