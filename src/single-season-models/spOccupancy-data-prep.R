@@ -69,21 +69,6 @@ for (i in 1:nrow(obs)) {
 # sum(ddh == 1, na.rm = TRUE)
 # sum(obs$o_day %in% occ_days)
 
-# Create a function to aggregate daily detection data during each occasion
-# NA if camera wasn't operational throughout entire occasion (all values = NA)
-# 1 if species was detected one or more times (even if there are NAs)
-# 0 if species was never detected
-paNA <- function(x) {
-  if (sum(is.na(x)) == length(x)) {NA} else 
-    if (sum(x, na.rm = TRUE) == 0) {0} else {1} 
-}
-
-# Create a function to calculate the proportion of a sampling period a camera
-# was operational
-propNA <- function(x) {
-  (occasions$duration[1] - sum(is.na(x))) / occasions$duration[1]
-}
-
 # Summarize detection data (dh) and effort during each occasion 
 dh <- effort <- matrix(NA, 
                        nrow = nrow(ddh), 
