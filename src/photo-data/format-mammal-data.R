@@ -8,11 +8,9 @@
 
 # Need to load these packages if not calling this script via source()
 
-library(dplyr)
-library(lubridate)
-library(stringr)
-
-rm(list = ls())
+# library(dplyr)
+# library(lubridate)
+# library(stringr)
 
 #------------------------------------------------------------------------------#
 # Import data
