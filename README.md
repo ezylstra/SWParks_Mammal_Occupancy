@@ -35,6 +35,8 @@ The first step is to organize and format raw photo observation, events, and
 location data. However, the scripts should only need to be modified once per 
 year after all the photos are processed.  
 
+**To run a single-season model (NEED TO ADD THIS)**
+
 **To run a multi-season (dynamic) model** and estimate occupancy, detection 
 probability, and dynamic parameters (colonization, extinction), you'll need to
 run scripts in the src/multi-season-models folder. These files will call
@@ -74,16 +76,66 @@ scripts in other folders (e.g., src/photo-data, JAGS) as needed.
    publicly available_)
    + occasions: information about sampling occasions in each park and year 
    (created in  delineate-sampling-occasions.R)
-+ JAGS: JAGS model files (.txt files)
-+ output: (note: some files may not be under version control, but directory 
-  structure is)
-   + models: R workspaces with model output (jagsUI objects) and other dataframes
-+ src: R scripts to process/format data and to run occupancy models in JAGS and 
-  interpret/visualize the results.
++ src: 
+  + photo-data: R scripts used to organize and format photo and location data.
+  + covariate-data: R scripts used to obtain and format covariate data.
+  + single-season-models: R scripts used to run process/format data, run 
+  single-season occupancy models, and interpret/visualize results.
+    + 2022: scripts used to run occupancy models for select species in various
+    parks in 2022. 
+    + JAGS: scripts used to run the models in JAGS (current not part of the 
+    workflow).
+  + functions.R: an R script that defines functions to be used in any script.    
+  + map-detection-data: R scripts used to map detection data.
+  + multi-season-models: R scripts used to run multi-season models in JAGS 
+  (_need to work on this_)
++ output: Figures and tables summarizing survey effort and species detection
+data (_some files may not be under version control, but directory 
+structure is_).
+   + models: R workspaces or objects with output from models run in JAGS
++ JAGS: JAGS model files (.txt files).
 
 ## Scripts
 
-Scripts used to create detection histories and run occupancy models
+Scripts used to organize and format photo and location data -- found in the 
+src/photo-data folder (should only need to be modified once per year)
+   
+1. [format-mammal-data.R](src/photo-data/format-mammal-data.R): Import, 
+   organize, and clean up photo observation data, events data, and location data 
+   (for all sites, years, species). 
+   
+2. [delineate-sampling-occasions.R](src/photo-data/delineate-sampling-occasions.R): 
+   Create a table summarizing sampling occasions (start and end dates, duration) 
+   at each park throughout the duration of the study. (this script calls 
+   format-mammal-data.R)
+
+3. [summarize-deployments-photos.R](src/photo-data/summarize-deployements-photos.R): 
+   Summarize (and create plots to visualize) when and where cameras were 
+   deployed. Create tables with the number of observations of each species, each 
+   year (this script calls format-mammal-data.R)
+
+Scripts used to obtain and format covariate data -- found in the 
+src/covariate-data folder (should only need to be modified if new covariate
+data are available or if running multi-season models)
+
+1. [get-roads-trails-pois-data.R](src/covariate-data/get-roads-trails-pois-data.R): 
+   Download feature data from NPS or other federal websites.
+
+2. [prep-spatial-covariate-data.R](src/covariate-data/prep-covaraite-data.R): 
+   Process spatial (time-invariant) data to generate rasters for each park.
+   
+3. [create-multi-layer-rasters.R](src/covariate-data/create-multi-layer-rasters.R):
+   Create a multi-layer raster for each park that contains all the spatial
+   (time-invariant) covariate data at the same resolution and extent.
+
+4. [get-and-prep-climate-data.R](src/covariate-data/get-climate-data.R): 
+   Download gridMET climate data and create rasters.
+
+Scripts used to create detection histories and run single-season occupancy models
+(**working on this**)
+ 
+Scripts used to create detection histories and run multi-season occupancy models
+(**need to review**)
 
 1. [MSoccupancy-wrapper.R](src/multi-season-models/MSoccupancy-wrapper.R): Used
    to specify and run a multi-season occupancy model. Specifiable parameters
@@ -108,40 +160,8 @@ Scripts used to create detection histories and run occupancy models
    since it is now more efficient to specify a model for jackrabbits in SAGW 
    using the MSoccupancy-wrapper.R script._
 
-5. [SSoccupancy-sagw-leca-2017.R](src/single-season-models/SSoccupancy-sagw-leca-2017.R): 
-   Example of a single-season occupancy analysis, using data for black-tailed 
-   jackrabbits at Saguaro National Park in 2017.
-
-Scripts used to organize and format photo and location data (should only need to 
-be modified once per year)
-   
-1. [format-mammal-data.R](src/photo-data/format-mammal-data.R): Import, 
-   organize, and clean up photo observation data, events data, and location data 
-   (for all sites, years, species). 
-   
-2. [delineate-sampling-occasions.R](src/photo-data/delineate-sampling-occasions.R): 
-   Create a table summarizing sampling occasions (start and end dates, duration) 
-   at each park throughout the duration of the study. (this script calls 
-   format-mammal-data.R)
-
-3. [summarize-deployments-photos.R](src/photo-data/summarize-deployements-photos.R): 
-   Summarize (and create plots to visualize) when and where cameras were 
-   deployed. Create tables with the number of observations of each species, each 
-   year (this script calls format-mammal-data.R)
-
-Scripts used to obtain and format covariate data 
-
-1. [get-climate-data.R](src/covariate-data/get-climate-data.R): Download gridMET 
-   climate data
-
-2. [get-roads-trails-pois-data.R](src/covariate-data/get-roads-trails-pois-data.R): 
-   Download feature data from NPS or other federal websites.
-
-3. [prep-covariate-data.R](src/covariate-data/prep-covaraite-data.R): Process 
-   data to generate rasters from which we can extract covariate values for 
-   camera or other locations.
-
 Scripts used to map detection data
+(**need to review**)
 
 1. [map-detection-data.R](src/map-detection-data/map-detection-data.R): Explore 
    how to create maps visualizing where species were detected in a park and 
@@ -150,4 +170,3 @@ Scripts used to map detection data
 2. [map-detection-multiseason.R](src/map-detection-data/map-detection-multiseason.R): 
    Explore how to create maps visualizing where species were detected in a park 
    in all years.
-   
