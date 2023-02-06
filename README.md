@@ -5,27 +5,29 @@ Using camera trap data to assess occupancy of mammals in Southwestern National P
 
 ## Dependencies
 
-JAGS 4.3.1 (At least at the moment, we're using JAGS to run Bayesian occupancy 
-models. This version of JAGS is needed if running R 4.2.x)
-
-The project also uses the following R packages:
-
-+ coda (optional)
 + downloader
 + dplyr
++ geojsonsf
 + ggplot2
 + gridExtra
-+ jagsUI
++ httr
 + leaflet (mapping spatial data)
 + lubridate
-+ MCMCvis (optional)
++ raster
 + sf
++ spOccupancy
 + stringr
 + terra
 + tidyr
++ tidyterra
 + tigris (for downloading TIGER road files)
 + tmap (mapping spatial data)
 + unmarked (optional)
+
+We're not currently using JAGS 4.3.1 to run single-season occupancy models, so 
+we don't need to load the jagsUI, coda, or MCMCvis packages to run these 
+analyses. Scripts that use JAGS (to run single-season or multi-season models) 
+can be found in JAGS-labeled folders, but are not currently part of workflows. 
 
 ## General workflow
 
