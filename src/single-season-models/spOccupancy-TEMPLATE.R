@@ -343,12 +343,14 @@ source("src/single-season-models/spOccupancy-predictions.R")
 
 # If there are no covariates in the model (ie, a null model), print overall 
 # occurrence probability
-  if (psi_n_cont == 0 & psi_covs == "1") {
-    overall_occ <- mean_estimate(model = best, 
-                                 parameter = "occ",
-                                 lower_ci = 0.025,
-                                 upper_ci = 0.975)
-    print(overall_occ)
+  if (psi_n_cont == 0 & length(psi_covs) == 1) {
+    if (psi_covs == "1") {
+      overall_occ <- mean_estimate(model = best, 
+                                   parameter = "occ",
+                                   lower_ci = 0.025,
+                                   upper_ci = 0.975)
+      print(overall_occ)
+    }
   }  
   
 #------------------------------------------------------------------------------#
@@ -395,10 +397,12 @@ p_n_cont <- length(p_cont_unique)
 
 # If there are no covariates in the model (a null model), print overall 
 # detection probability
-  if (p_n_cont == 0 & p_covs == "1") {
-    overall_det <- mean_estimate(model = best, 
-                                 parameter = "det",
-                                 lower_ci = 0.025,
-                                 upper_ci = 0.975)
-    print(overall_det)
-  }
+  if (p_n_cont == 0 & length(p_covs) == 1) {
+    if (p_covs == "1") {
+      overall_det <- mean_estimate(model = best, 
+                                   parameter = "det",
+                                   lower_ci = 0.025,
+                                   upper_ci = 0.975)
+      print(overall_det)
+    }
+  }  
