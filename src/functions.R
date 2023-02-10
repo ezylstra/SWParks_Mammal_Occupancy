@@ -74,7 +74,70 @@ create_cov_list <- function(object) {
 
     return(z_list)
 }
+
+#------------------------------------------------------------------------------#
+# parameter_estimates: Create a table with parameter estimates on logit scale 
+# from occurrence or detection part of model
+#------------------------------------------------------------------------------#
+
+# INPUTS
+# model: output from spOccupancy single-season model
+# parameter: character indicating whether to extract estimates for parameters in
+  # the occurrence or detection part of the model
+# lower_ci: quantile for lower bound of credible interval (0.025 for 95% CI)
+# upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
+
+# RETURNS
+# est_table: a dataframe with mean, median, SD, credible interval, Rhat values,
+  # and ESS for each parameter in occurrence or detection part of a model
+
+parameter_estimates <- function(model, 
+                                parameter = c("occ", "det"),
+                                lower_ci = 0.025,
+                                upper_ci = 0.975) {
   
+  parameter <- match.arg(arg = parameter)
+  
+  if (parameter == "occ") {
+    samples <- model$beta.samples
+    submodel <- "occupancy"
+    index <- 1
+  } else {
+    samples <- model$alpha.samples
+    submodel <- "detection"
+    index <- 2
+  }
+  
+  # Create table to hold results
+  est_table <- data.frame(Parameter = colnames(samples),
+                          Mean = NA,
+                          SD = NA,
+                          Lower = NA,
+                          Median = NA,
+                          Upper = NA,
+                          Rhat = round(model$rhat[[index]], 3),
+                          ESS = round(model$ESS[[index]]),
+                          f = NA,
+                          exclude0 = NA,
+                          row.names = NULL)
+  
+  est_table$Mean <- round(apply(samples, 2, mean), 3)
+  est_table$SD <- round(apply(samples, 2, sd), 3)
+  est_table$Lower <- round(apply(samples, 2, quantile, lower_ci), 3)
+  est_table$Median <- round(apply(samples, 2, median), 3)
+  est_table$Upper <- round(apply(samples, 2, quantile, upper_ci), 3)
+  est_table$f <- round(apply(samples, 2, 
+                             function (x) if_else(mean(x) > 0, 
+                                                  sum(x > 0) / length(x),
+                                                  sum(x < 0) / length(x))), 3)
+  est_table$exclude0 <- ifelse(est_table$Lower * est_table$Upper > 0, "yes", "no")
+  ci_name <- (upper_ci - lower_ci) * 100
+  names(est_table)[names(est_table) == "Lower"] <- paste0("Lower", ci_name, "%")
+  names(est_table)[names(est_table) == "Upper"] <- paste0("Upper", ci_name, "%")
+  
+  return(est_table)
+}
+
 #------------------------------------------------------------------------------#
 # vegclass_estimates: Create a table with occupancy or detection probabilities 
 # in each vegetation class
@@ -145,20 +208,20 @@ vegclass_estimates <- function(model,
 }
 
 #------------------------------------------------------------------------------#
-# mean_estimate: Calculate mean occurrence or detection probability (or 
-# value when all other covariates set to 0 [mean, for standardized covariates])
+# mean_estimate: Calculate mean occurrence or detection probability (or  
+# probability when all other covariates set to 0 [mean, for standardized covs])
 #------------------------------------------------------------------------------#
 
 # INPUTS
 # model: output from spOccupancy single-season model
-# parameter: character indicating whether to calculate occupancy or detection 
-# probabilities 
+# parameter: character indicating whether to calculate occurrence or detection 
+  # probabilities 
 # lower_ci: quantile for lower bound of credible interval (0.025 for 95% CI)
 # upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
 
 # RETURNS
 # est_table: a dataframe with mean, SD, and 95% CI for occupancy/detection
-# probability
+  # probability
 
 mean_estimate <- function(model, 
                           parameter = c("occ", "det"),
