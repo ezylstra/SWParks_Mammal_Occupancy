@@ -212,8 +212,22 @@ p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
 
 # View parameter estimates
 summary(best)
-# Note: this is good for viewing, but will want to use other means to create
-# a table for reports/publications
+# Create table with summary stats that can be saved to file
+occ_estimates <- parameter_estimates(model = best, 
+                                     parameter = "occ",
+                                     lower_ci = 0.025,
+                                     upper_ci = 0.975)
+det_estimates <- parameter_estimates(model = best, 
+                                     parameter = "det",
+                                     lower_ci = 0.025,
+                                     upper_ci = 0.975)
+# Can save these tables to file with code like that commented out below
+# write.csv(occ_estimates,
+#           file = "C:/Users/erin/Desktop/occupancy_estimates.csv",
+#           row.names = FALSE)
+# write.csv(det_estimates,
+#           file = "C:/Users/erin/Desktop/detection_estimates.csv",
+#           row.names = FALSE)
 
 # Trace plots
 plot(best$beta.samples, density = FALSE)
