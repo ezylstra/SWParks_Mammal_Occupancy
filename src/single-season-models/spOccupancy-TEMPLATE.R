@@ -161,8 +161,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
   # Note: this will often take several minutes to run
 
 # View summary table, ranked by WAIC
-  model_stats %>%
-    arrange(waic)
+  model_stats %>% arrange(waic)
 
 # Description of columns in summary table:
   # psi: formula for occurrence part of model
@@ -275,6 +274,15 @@ source("src/single-season-models/spOccupancy-predictions.R")
 # Plot predicted sds
   plot_preds_sd
 
+# Can save either of the plots to file (example below):
+# ggsave(filename = "C:/Users/erin/Desktop/SPECIES_MeanOccupancy.jpg",
+#        plot = plot_preds_mn,
+#        device = "jpeg",
+#        width = 4,
+#        height = 4,
+#        units = "in",
+#        dpi = 600)  
+  
 #------------------------------------------------------------------------------#
 # Calculate and create figures depicting marginal effects of covariates on 
 # occurrence probability (predicted covariate effects assuming all other 
@@ -309,24 +317,26 @@ source("src/single-season-models/spOccupancy-predictions.R")
   for (fig in str_subset(ls(), "marginal_psi_")) {
     print(get(fig))
   }
-  
-  # Or save any of the plots to file (example below):
-  # ggsave(filename = "C:/Users/erin/Desktop/marg_plot_example.jpg",
-  #        plot = marginal_psi_boundary,
-  #        device = "jpeg",
-  #        width = 4,
-  #        height = 4,
-  #        units = "in",
-  #        dpi = 600)
+  # Could also save any of the plots to file using ggsave()
 
 # If vegetation classes were included as covariates in the model, extract
-# occupancy probabilities for each class
+# occurrence probabilities for each class
   if (sum(str_detect(psi_covs, "veg")) > 0) {
     occprobs_veg <- vegclass_estimates(model = best, 
                                        parameter = "occ")
     print(occprobs_veg)
   }
 
+# If there are no covariates in the model (ie, a null model), print overall 
+# occurrence probability
+  if (psi_n_cont == 0 & psi_covs == "1") {
+    overall_occ <- mean_estimate(model = best, 
+                                 parameter = "occ",
+                                 lower_ci = 0.025,
+                                 upper_ci = 0.975)
+    print(overall_occ)
+  }  
+  
 #------------------------------------------------------------------------------#
 # Create figures depicting marginal effects of covariates on detection 
 # probability (predicted covariate effects assuming all other covariates held
@@ -359,11 +369,22 @@ p_n_cont <- length(p_cont_unique)
   for (fig in str_subset(ls(), "marginal_p_")) {
     print(get(fig))
   }
-
+  # Could also save any of the plots to file using ggsave()
+  
 # If vegetation classes were included as covariates in the model, extract
 # detection probabilities for each class
   if (sum(str_detect(p_covs, "veg")) > 0) {
     detprobs_veg <- vegclass_estimates(model = best, 
                                        parameter = "det")
     print(detprobs_veg)
+  }
+
+# If there are no covariates in the model (a null model), print overall 
+# detection probability
+  if (p_n_cont == 0 & p_covs == "1") {
+    overall_det <- mean_estimate(model = best, 
+                                 parameter = "det",
+                                 lower_ci = 0.025,
+                                 upper_ci = 0.975)
+    print(overall_det)
   }
