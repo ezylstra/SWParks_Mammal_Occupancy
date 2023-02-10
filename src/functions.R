@@ -2,12 +2,13 @@
 # Functions to be used in any script in SWParks_Mammal_Occupancy repo
 
 # ER Zylstra
-# Updated 2023-02-02
+# Updated 2023-02-10
 ################################################################################
 
 # List of functions included:
   # create_cov_list()
   # vegclass_estimates()
+  # mean_estimate()
   # marginal_plot_occ()
   # marginal_plot_det()
   # paNA() 
@@ -88,7 +89,7 @@ create_cov_list <- function(object) {
 # upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
 
 # RETURNS
-# vegclass_table: a table with mean, SD, and 95% CI for occupancy/detection
+# vegclass_table: a dataframe with mean, SD, and 95% CI for occupancy/detection
   # probabilities in each vegetation class
 
 vegclass_estimates <- function(model, 
@@ -141,6 +142,54 @@ vegclass_estimates <- function(model,
   vegclass_table$ci_upper[3] <- quantile(vegclass3, upper_ci)
   
   return(vegclass_table)
+}
+
+#------------------------------------------------------------------------------#
+# mean_estimate: Calculate mean occurrence or detection probability (or 
+# value when all other covariates set to 0 [mean, for standardized covariates])
+#------------------------------------------------------------------------------#
+
+# INPUTS
+# model: output from spOccupancy single-season model
+# parameter: character indicating whether to calculate occupancy or detection 
+# probabilities 
+# lower_ci: quantile for lower bound of credible interval (0.025 for 95% CI)
+# upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
+
+# RETURNS
+# est_table: a dataframe with mean, SD, and 95% CI for occupancy/detection
+# probability
+
+mean_estimate <- function(model, 
+                          parameter = c("occ", "det"),
+                          lower_ci = 0.025,
+                          upper_ci = 0.975) {
+  
+  parameter <- match.arg(arg = parameter)
+  
+  if (parameter == "occ") {
+    samples <- model$beta.samples
+    submodel <- "occupancy"
+  } else {
+    samples <- model$alpha.samples
+    submodel <- "detection"
+  }
+  
+  # Create table to hold results
+  est_table <- data.frame(parameter = submodel,
+                          mean_prob = NA,
+                          sd_prob = NA,
+                          ci_lower = NA,
+                          ci_upper = NA)
+  
+  # Probability of occupancy/detection 
+  probs <- exp(samples[,"(Intercept)"])/(1 + exp(samples[,"(Intercept)"])) 
+  est_table$mean_prob[1] <- mean(probs)
+  est_table$sd_prob[1] <- sd(probs)
+  est_table$ci_lower[1] <- quantile(probs, lower_ci)
+  est_table$ci_upper[1] <- quantile(probs, upper_ci)
+  
+  return(est_table)
 }
 
 #------------------------------------------------------------------------------#
