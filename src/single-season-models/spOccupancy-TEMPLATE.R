@@ -50,21 +50,21 @@ source("src/photo-data/format-mammal-data.R")
 PARK <- "SAGW"
 
 # Select year of interest
-YEAR <- 2017
+YEAR <- 2022
 
 # Look at detection data for various species
 detects <- read.csv("output/species-detections-byparkyr.csv", header = TRUE)
 detects <- detects %>%
   dplyr::filter(Park == PARK & yr == YEAR) %>%
   arrange(desc(propdetect))
-# View just those species with a detection rate of 5% 
-# (n = camera location * sampling occasion)
+# View just those species with a detection rate of 5% (propdetect = proportion 
+# of nobs [camera locations * sampling occasion] with species detection)
 detects %>% 
   dplyr::filter(propdetect >= 0.05) %>%
-  select(c(spp, propdetect))
+  select(c(spp, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "LECA"
+SPECIES <- "CALA"
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
