@@ -15,7 +15,7 @@
 ################################################################################
 
 #------------------------------------------------------------------------------#
-# Load packages and functions
+# Load packages and custom functions
 #------------------------------------------------------------------------------#
 
 library(dplyr)
@@ -185,8 +185,8 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
 #------------------------------------------------------------------------------#
 
 # Identify a model to use for inferences.  Can base this on WAIC or deviance 
-# from k-fold CV.  Alternatively, can select another model by specifying 
-# the "best_index" directly.
+# from k-fold CV.  Alternatively, can select another model by setting STAT equal
+# "model_no" and specifying the "best_index" directly.
 
 # Specify STAT as either: waic, k.fold.dev, or model_no
 STAT <- "model_no"   
@@ -221,7 +221,7 @@ det_estimates <- parameter_estimates(model = best,
                                      parameter = "det",
                                      lower_ci = 0.025,
                                      upper_ci = 0.975)
-# Can save these tables to file with code like that commented out below
+# Can save these tables to file with code below
 # write.csv(occ_estimates,
 #           file = "C:/Users/erin/Desktop/occupancy_estimates.csv",
 #           row.names = FALSE)
@@ -280,7 +280,7 @@ source("src/single-season-models/spOccupancy-predictions.R")
   # preds_mn: a raster with mean values in each cell (across MCMC samples)
   # preds_sd: a raster with SDs in each cell (across MCMC samples)
   # plot_preds_mn: a ggplot object with predicted mean values across park
-  # plot_preds_sd: a ggplot object with predcited sd values across park
+  # plot_preds_sd: a ggplot object with predicted sd values across park
 
 # Plot predicted means
   plot_preds_mn 
