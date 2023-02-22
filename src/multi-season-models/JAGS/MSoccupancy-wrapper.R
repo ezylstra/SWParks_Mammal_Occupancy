@@ -2,7 +2,7 @@
 # Run a multi-season occupancy analysis
 
 # ER Zylstra
-# Updated 2023-01-18
+# Updated 2023-02-22
 ################################################################################
 
 library(dplyr)
@@ -31,10 +31,10 @@ source("src/photo-data/format-mammal-data.R")
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "ORPI"
+PARK <- "SAGW"
 
 # Select species of interest (select option from species$Species_code)
-SPECIES <- "LECA"
+SPECIES <- "PETA"
 
 # Specify years to include (earliest possible year = 2016 for ORPI, 2017 
 # other parks; but note that sampling occasions at ORPI in 2016 occurred later
@@ -92,7 +92,7 @@ cor_df %>% arrange(desc(abs(corr))) %>% filter(abs(corr) >= 0.6)
 
   # If you want to include quadratic effects for any of the elements in 
   # COVARS_PSI, list them by name. If no quadratic effects, PSI_QUADS <- NA
-  PSI_QUADS <- c("slope")
+  PSI_QUADS <- NA
 
 # Covariates for detection probability (p)
   # Options (all parks): effort, day, camera_new, deploy_exp, elev, boundary, 

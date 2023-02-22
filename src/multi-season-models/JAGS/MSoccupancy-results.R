@@ -2,7 +2,7 @@
 # Process results from a multi-season occupancy analysis
 
 # ER Zylstra
-# Updated 2022-11-30
+# Updated 2023-02-22
 ################################################################################
 
 library(dplyr)
@@ -14,15 +14,13 @@ library(jagsUI)
 library(MCMCvis)
 library(ggplot2)
 
-rm(list = ls())
-
 #------------------------------------------------------------------------------#
 # Load the workspace that contains the JAGS model
 #------------------------------------------------------------------------------#
 
 PARK <- "SAGW"
-SPECIES <- "LECA"
-DATE <- "2022-11-18"
+SPECIES <- "PETA"
+DATE <- "2023-02-22"
 output_file <- paste0("output/models-JAGS/",
                       tolower(PARK), "-",
                       tolower(SPECIES), "-MS-",
@@ -181,6 +179,8 @@ if (exists("cov_psi")) {
     raster_covars <- replace(x = psi_covars,
                              list = which(psi_covars == "elev"), 
                              values = "DEM")
+  } else {
+    raster_covars <- psi_covars
   }
   
   # Load rasters into a list
