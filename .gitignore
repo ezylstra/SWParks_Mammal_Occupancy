@@ -24,9 +24,9 @@ data/covariates/rasters-SAGW/*
 !data/covariates/rasters-SAGW/.gitkeep
 
 # Output
-output/models/*
-!output/models/.gitkeep
-!output/models/sagw-leca-MS-2022-10-19.Rdata
-!output/models/sagw-leca-MS-2022-11-18.Rdata
-!output/models/sagw-leca-2020-20221213.Rdata
+output/models-JAGS/*
+!output/models-JAGS/.gitkeep
+!output/models-JAGS/sagw-leca-MS-2022-10-19.Rdata
+!output/models-JAGS/sagw-leca-MS-2022-11-18.Rdata
+!output/models-JAGS/sagw-leca-2020-20221213.Rdata
 
