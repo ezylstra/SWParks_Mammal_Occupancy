@@ -16,7 +16,7 @@ Using camera trap data to assess occupancy of mammals in Southwestern National P
 + raster
 + sf
 + spOccupancy
-+ stringr
++ stringr (v 1.5.0 or higher)
 + terra
 + tidyr
 + tidyterra
