@@ -58,7 +58,8 @@ detects <- detects %>%
 # of nobs [camera locations * sampling occasion] with species detection)
 detects %>% 
   dplyr::filter(propdetect >= 0.05) %>%
-  select(c(spp, nobs, propdetect))
+  left_join(species, by = c("spp" = "Species_code")) %>%
+  select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
 SPECIES <- "PETA"
