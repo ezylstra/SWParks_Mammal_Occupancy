@@ -3,7 +3,7 @@
 # models (run using the spOccupancy package)
 
 # In most instances, this will be called from another script (something like:
-# src/multi-seasons/models/PARK/spOccupancy-PARK-SPECIES_YEARS.R)
+# src/multi-season-models/PARK/spOccupancy-PARK-SPECIES_YEARS.R)
 
 # ER Zylstra
 # Updated 2023-02-24
@@ -45,7 +45,8 @@ events_park <- events %>%
 locs_park <- locs %>%
   filter(StdLocName %in% events_park$StdLocName) %>%
   select(StdLocName, POINT_X, POINT_Y) %>%
-  rename(loc = StdLocName, long = POINT_X, lat = POINT_Y)
+  rename(loc = StdLocName, long = POINT_X, lat = POINT_Y) %>%
+  arrange(loc)
 
 # Extract rows from events matrix that correspond to locations in selected park
 event_mat <- event_mat[rownames(event_mat) %in% locs_park$loc,]
@@ -111,7 +112,6 @@ for (i in 1:nrow(occ_matrix)) {
 events_park <- cbind(events_park, occ_matrix)
 # Remove rows in the dataframe that aren't associated with any sampling occasion
 events_park <- events_park %>%
-  # mutate(n_occ = rowSums(select(., paste0(YEAR, "_", 1:ncol(occ_matrix))))) %>%
   mutate(n_occ = rowSums(select(., occasions$yr_occ))) %>%
   filter(n_occ > 0) %>%
   arrange(StdLocName, d_date)
@@ -121,10 +121,8 @@ events_park <- events_park %>%
 # If so, use the deployment experience value from the 2nd deployment
 redeploys <- events_park %>%
   group_by(StdLocName) %>%
-  # summarize(across(starts_with(paste0(YEAR, "_")), sum)) %>%
   summarize(across(occasions$yr_occ, sum)) %>%
   as.data.frame()
-
 for (i in 1:nrow(redeploys)) {
   for (j in 2:ncol(redeploys)) {
     if (redeploys[i, j] > 1) {
@@ -138,7 +136,6 @@ for (i in 1:nrow(redeploys)) {
 # Create an array with deployment experience values [most experienced person in 
 # group] (0 = novice; 1 = experienced; 2 = expert)
 deploy_exp <- array(NA, dim = dim(dh), dimnames = dimnames(dh))
-
 for (t in 1:length(YEARS)) {
   YR <- YEARS[t]
   occyr <- occasions[occasions$yr == YR,]
@@ -148,8 +145,9 @@ for (t in 1:length(YEARS)) {
     columnname <- paste0(YR, "_", j)
     for (i in 1:dim(dh)[1]) {
       if (is.na(dh[i,j,t])) next
-      deploy_exp[i,j,t] <- events_park$deploy_exp[events_park$StdLocName == rownames(deploy_exp)[i] &
-                                                    events_park[,columnname] == 1]
+      deploy_exp[i,j,t] <- 
+        events_park$deploy_exp[events_park$StdLocName == rownames(deploy_exp)[i] & 
+                                 events_park[,columnname] == 1]
     }
   }
 }
@@ -157,11 +155,6 @@ for (t in 1:length(YEARS)) {
 # Make sure that values in deploy_exp matrix are NA wherever there are NA values 
 # in detection history matrix (this should already be true, but just in case)
 deploy_exp[which(is.na(dh))] <- NA
-
-
-#################################### START HERE ###################################################
-
-
 
 #------------------------------------------------------------------------------#
 # Create day-of-year variable (using midpoint of each occasion)
@@ -172,35 +165,145 @@ occasions <- occasions %>%
          end_yday = yday(end),
          mid_yday = round((start_yday + end_yday)/2))
 
-day <- matrix(occasions$mid_yday, 
-              nrow = nrow(dh), 
-              ncol = ncol(dh), 
-              byrow = TRUE)
-
+day <- array(NA, dim = dim(dh), dimnames = dimnames(dh))
+for (t in 1:length(YEARS)) {
+  occyr <- occasions[occasions$yr == YEARS[t],]
+  if (nrow(occyr) == 0) next
+  impute <- matrix(rep(occyr$mid_yday, nrow(day)), 
+                   ncol = nrow(occyr),
+                   byrow = TRUE)
+  day[,1:ncol(impute),t] <- impute
+}
+  
 # Change values in day matrix to NA wherever there are NA values in detection
 # history matrix
 day[which(is.na(dh))] <- NA
 
-# Create standardized value of day variable
-day_mn <- mean(day, na.rm = TRUE)
-day_sd <- sd(day, na.rm = TRUE)
-day_z <- (day - day_mn)/day_sd
+#------------------------------------------------------------------------------#
+# Format arrays with detection data and survey covariate values for spOccupancy
+#------------------------------------------------------------------------------#
 
-
-
-x  <- array(1:24, 2:4)
-dim(x) #2, 3, 4
-
-xt <- aperm(x, c(1, 3, 2))
-dim(xt) #2, 4, 3
-
+# Transpose dimensions:
+# Currently, all arrays have dims = sites * occasions * years
+# For spOccupancy, we want dims = sites * years * occasions
+dh <- aperm(dh, c(1, 3, 2))
+effort <- aperm(effort, c(1, 3, 2))
+deploy_exp <- aperm(deploy_exp, c(1, 3, 2))
+day <- aperm(day, c(1, 3, 2))
 
 # Create standardized version of effort variable
 effort_mn <- mean(effort, na.rm = TRUE)
 effort_sd <- sd(effort, na.rm = TRUE)
 effort_z <- (effort - effort_mn)/effort_sd
 
+# Create standardized value of day variable
+day_mn <- mean(day, na.rm = TRUE)
+day_sd <- sd(day, na.rm = TRUE)
+day_z <- (day - day_mn)/day_sd
 
+#------------------------------------------------------------------------------#
+# Annual covariates
+#------------------------------------------------------------------------------#
+
+# Year (to be used for trend models)
+years <- matrix(YEARS, 
+                nrow = dim(dh)[1],
+                ncol = dim(dh)[2],
+                byrow = TRUE)
+# Standardized year
+years_mn <- mean(years)
+years_sd <- sd(years)
+years_z <- (years - years_mn)/years_sd
+
+# For now we just have weather covariates
+
+# Create a matrix that can be filled with seasonal covariate data
+seas <- matrix(NA, 
+               nrow = dim(dh)[1], 
+               ncol = dim(dh)[2], 
+               dimnames = dimnames(dh)[1])
+# Check that site names in matrix are in same order as locs_park
+all.equal(rownames(seas), locs_park$loc)
+
+# Load rasters with seasonal weather data (that also varies over space)
+# Create lists of folder and file names 
+weather_folder <- "data/covariates/weather-derived-rasters/"
+weather_zip <- "data/covariates/weather-derived.zip"
+
+# Unzip weather folder first, if necessary
+if (length(list.files(weather_folder)) == 0) {
+  unzip(weather_zip, overwrite = TRUE)
+}
+
+# List files in weather folder
+weather_files <- list.files(weather_folder, full.names = TRUE)
+
+# Put lat/longs for camera locations in matrix
+loc_matrix <- as.matrix(locs_park[,c("long", "lat")])
+
+# Extract and compile monsoon precipitation data
+  monsoon_files <- weather_files[str_detect(weather_files, "monsoon_ppt")]
+  # Remove monsoon rasters associated with periods outside the years of interest
+  # (monsoon rainfall in year x could explain occupancy in year x + 1 since 
+  # surveys are done in the first half of the year)
+  monsoon_yrs <- paste0(as.character(YEARS - 1), collapse = "|")
+  monsoon_files <- monsoon_files[str_detect(monsoon_files, monsoon_yrs)]
+
+  # Load each raster and compile into a list
+  monsoon_list <- list()
+  for (i in 1:length(monsoon_files)) {
+    monsoon_list[[i]] <- rast(monsoon_files[i])
+    names(monsoon_list[[i]]) <- "monsoon_ppt"
+  }  
+  
+  # Extract values 
+  monsoon_ppt <- seas
+  for (i in 1:length(monsoon_list)) {
+    monsoon_ppt[,i] <- terra::extract(x = monsoon_list[[i]],
+                             y = locs_park[,c("long", "lat")],
+                             ID = FALSE)[, "monsoon_ppt"]
+  }
+
+  # Standardize values
+  monsoon_ppt_mn <- mean(monsoon_ppt)
+  monsoon_ppt_sd <- sd(monsoon_ppt)
+  monsoon_ppt_z <- (monsoon_ppt - monsoon_ppt_mn)/monsoon_ppt_sd 
+  
+# Extract and compile 10-month precipitation data (10-months prior to survey
+# season in each park) [Don't have this set up for CHIR yet since there are only
+# a couple years when sampling was done in May-June]
+  if (PARK == "ORPI") {
+    ppt10_files <- weather_files[str_detect(weather_files, "ORPI_MayFeb")]
+    ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS)]
+  }
+  if (PARK == "SAGW") {
+    ppt10_files <- weather_files[str_detect(weather_files, "SAGW_MarDec")]
+    ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS-1)]    
+  }
+
+  # Load each raster and compile into a list
+  ppt10_list <- list()
+  for (i in 1:length(ppt10_files)) {
+    ppt10_list[[i]] <- rast(ppt10_files[i])
+    names(ppt10_list[[i]]) <- "ppt10"
+  }  
+  
+  # Extract values 
+  ppt10 <- seas
+  for (i in 1:length(ppt10_list)) {
+    ppt10[,i] <- terra::extract(x = ppt10_list[[i]],
+                                y = locs_park[,c("long", "lat")],
+                                ID = FALSE)[, "ppt10"]
+  } 
+  
+  # Standardize values
+  ppt10_mn <- mean(ppt10)
+  ppt10_sd <- sd(ppt10)
+  ppt10_z <- (ppt10 - ppt10_mn)/ppt10_sd 
+
+# Remove raster lists from workspace, and remove rasters from local repo
+rm(monsoon_list, ppt10_list)
+invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
 
 #------------------------------------------------------------------------------#
 # Spatial covariates (time invariant)
@@ -231,6 +334,11 @@ for (i in covs_cont) {
   spatial_covs[,paste0(i, "_z")] <- (spatial_covs[,i] - meani) / sdi
 }
 
+# Add a column with an index for each site (to use as a non-spatial random 
+# effect in our models as a simple way to account for the non-independence
+# of data that come from the same site over multiple years). 
+spatial_covs$site_effect <- 1:nrow(spatial_covs)
+
 # Create table with pairwise correlations between continuous covariates
 correl <- round(cor(spatial_covs[,covs_cont]), 2)
 cor_df <- as.data.frame(as.table(correl), stringsAsFactors = FALSE)
@@ -243,15 +351,51 @@ cor_df <- cor_df %>%
   arrange(variable1, variable2) %>%
   rename(corr = Freq)
 # View those pairs with high correlations
-cor_df %>%
-  arrange(desc(corr)) %>%
-  filter(abs(corr) > 0.5)
+# cor_df %>%
+#   arrange(desc(corr)) %>%
+#   filter(abs(corr) > 0.5)
 
 #------------------------------------------------------------------------------#
 # Create data object for spOccupancy package
 #------------------------------------------------------------------------------#
 
-# First put covariates that could be used in the detection model in a list
+# First, put covariates that could be used in the occurrence part of the model 
+# in a list. Elements can be vectors of length n_sites (for spatial covariates) 
+# or they can be n_sites * n_years matrices (for annual varying covariates that
+# may or may not vary spatially)
+occ_covs <- list(east_z = spatial_covs$east_z,
+                 elev_z = spatial_covs$elev_z,
+                 north_z = spatial_covs$north_z,
+                 pois_z = spatial_covs$pois_z,
+                 roads_z = spatial_covs$roads_z,
+                 slope_z = spatial_covs$slope_z,
+                 trail_z = spatial_covs$trail_z,
+                 site_effect = spatial_covs$site_effect,
+                 years_z = years_z,
+                 monsoon_ppt_z = monsoon_ppt_z)
+if (PARK == "CHIR") {
+  occ_covs <- c(occ_covs, 
+                list(burn_severity = spatial_covs$burn_severity_2011))
+}
+if (PARK == "ORPI") {
+  occ_covs <- c(occ_covs,
+                list(ppt10_z = ppt10_z))
+}
+if (PARK == "SAGW") {
+  occ_covs <- c(occ_covs,
+                list(wash_z = spatial_covs$wash_z,
+                     vegclass2 = spatial_covs$vegclass2,
+                     vegclass3 = spatial_covs$vegclass3,
+                     ppt10_z = ppt10_z))
+}
+
+# Then, put covariates that could be used in the detection part of the model in 
+# a list.
+
+################################## PICK UP HERE ####################################
+
+
+
 # Elements can be n_sites * n_occasions matrices (for survey covariates)
 # or vectors of length n_sites (for spatial covariates)
 det_covs <- list(day = day,
