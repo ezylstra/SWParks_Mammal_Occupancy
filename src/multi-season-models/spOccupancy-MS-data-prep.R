@@ -6,10 +6,8 @@
 # src/multi-season-models/PARK/spOccupancy-PARK-SPECIES_YEARS.R)
 
 # ER Zylstra
-# Updated 2023-02-24
+# Updated 2023-02-27
 ################################################################################
-
-#### WORK IN PROGRESS ####
 
 #------------------------------------------------------------------------------#
 # Create detection histories for selected park, species, and year
@@ -210,20 +208,20 @@ years <- matrix(YEARS,
                 nrow = dim(dh)[1],
                 ncol = dim(dh)[2],
                 byrow = TRUE)
-# Standardized year
+# Standardize year
 years_mn <- mean(years)
 years_sd <- sd(years)
 years_z <- (years - years_mn)/years_sd
 
-# For now we just have weather covariates
+# Indicator for 2022, when different types of cameras were used 
+# (will need to revisit this covariate after 2023 season)
+camera_2022 <- matrix(rep(c(0, 1, 0), 
+                          times = c(sum(YEARS < 2022), 1, sum(YEARS > 2022))),
+                      nrow = dim(dh)[1],
+                      ncol = dim(dh)[2],
+                      byrow = TRUE)
 
-# Create a matrix that can be filled with seasonal covariate data
-seas <- matrix(NA, 
-               nrow = dim(dh)[1], 
-               ncol = dim(dh)[2], 
-               dimnames = dimnames(dh)[1])
-# Check that site names in matrix are in same order as locs_park
-all.equal(rownames(seas), locs_park$loc)
+# Only other annual covariates are weather related
 
 # Load rasters with seasonal weather data (that also varies over space)
 # Create lists of folder and file names 
@@ -257,7 +255,13 @@ loc_matrix <- as.matrix(locs_park[,c("long", "lat")])
   }  
   
   # Extract values 
-  monsoon_ppt <- seas
+  monsoon_ppt <- matrix(NA, 
+                        nrow = dim(dh)[1], 
+                        ncol = dim(dh)[2], 
+                        dimnames = dimnames(dh)[1])
+  # Check that site names in matrix are in same order as locs_park
+  # all.equal(rownames(monsoon_ppt), locs_park$loc)
+  
   for (i in 1:length(monsoon_list)) {
     monsoon_ppt[,i] <- terra::extract(x = monsoon_list[[i]],
                              y = locs_park[,c("long", "lat")],
@@ -289,7 +293,10 @@ loc_matrix <- as.matrix(locs_park[,c("long", "lat")])
   }  
   
   # Extract values 
-  ppt10 <- seas
+  ppt10 <- matrix(NA, 
+                  nrow = dim(dh)[1], 
+                  ncol = dim(dh)[2], 
+                  dimnames = dimnames(dh)[1])
   for (i in 1:length(ppt10_list)) {
     ppt10[,i] <- terra::extract(x = ppt10_list[[i]],
                                 y = locs_park[,c("long", "lat")],
@@ -360,10 +367,11 @@ cor_df <- cor_df %>%
 #------------------------------------------------------------------------------#
 
 # First, put covariates that could be used in the occurrence part of the model 
-# in a list. Elements can be vectors of length n_sites (for spatial covariates) 
-# or they can be n_sites * n_years matrices (for annual varying covariates that
-# may or may not vary spatially)
-occ_covs <- list(east_z = spatial_covs$east_z,
+# in a list. Elements can be vectors with length equal to the number of sites 
+# (for spatial covariates), or they can be n_sites * n_years matrices (for 
+# annual varying covariates that may or may not vary spatially)
+occ_covs <- list(boundary_z = spatial_covs$boundary_z, 
+                 east_z = spatial_covs$east_z,
                  elev_z = spatial_covs$elev_z,
                  north_z = spatial_covs$north_z,
                  pois_z = spatial_covs$pois_z,
@@ -390,40 +398,42 @@ if (PARK == "SAGW") {
 }
 
 # Then, put covariates that could be used in the detection part of the model in 
-# a list.
-
-################################## PICK UP HERE ####################################
-
-
-
-# Elements can be n_sites * n_occasions matrices (for survey covariates)
-# or vectors of length n_sites (for spatial covariates)
-det_covs <- list(day = day,
-                 deploy_exp = deploy_exp,
-                 effort = effort,
-                 day_z = day_z,
-                 deploy_exp = deploy_exp,
-                 effort_z = effort_z,
-                 boundary_z = spatial_covs$boundary_z,
+# a list. Elements can be vectors with length equal to the number of sites 
+# (for spatial covariates), can be n_sites * n_years matrices (for 
+# annual varying covariates that may or may not vary spatially), or can be 
+# observation-level covariates that vary over sites, years, and occasions.
+det_covs <- list(boundary_z = spatial_covs$boundary_z, 
                  east_z = spatial_covs$east_z,
                  elev_z = spatial_covs$elev_z,
                  north_z = spatial_covs$north_z,
                  pois_z = spatial_covs$pois_z,
                  roads_z = spatial_covs$roads_z,
                  slope_z = spatial_covs$slope_z,
-                 trail_z = spatial_covs$trail_z)
+                 trail_z = spatial_covs$trail_z,
+                 camera_2022 = camera_2022,
+                 years_z = years_z,
+                 day_z = day_z,
+                 deploy_exp = deploy_exp,
+                 effort_z = effort_z)
 if (PARK == "CHIR") {
   det_covs <- c(det_covs, 
                 list(burn_severity = spatial_covs$burn_severity_2011))
 }
 if (PARK == "SAGW") {
-  det_covs <- c(det_covs, 
-                list(vegclass2 = spatial_covs$vegclass2),
-                list(vegclass3 = spatial_covs$vegclass3),
-                list(wash_z = spatial_covs$wash_z))
+  det_covs <- c(det_covs,
+                list(wash_z = spatial_covs$wash_z,
+                     vegclass2 = spatial_covs$vegclass2,
+                     vegclass3 = spatial_covs$vegclass3))
 }
+
+# spOccupancy can't take lat/long, so we'll need to reproject coordinates to 
+# WGS 84, Zone 12 = epsg:32612 (should work for all parks)
+loc_utms <- terra::project(loc_matrix,
+                           from = "epsg:4269",
+                           to = "epsg:32612")
 
 # Create data object (also a list)
 data_list <- list(y = dh,
-                  occ.covs = spatial_covs,
-                  det.covs = det_covs)
+                  occ.covs = occ_covs,
+                  det.covs = det_covs,
+                  coords = loc_utms)

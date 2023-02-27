@@ -6,10 +6,8 @@
 # src/single-season-model/PARK/spOccupancy-PARK-SPECIES-YEARS.R)
 
 # ER Zylstra
-# Updated 2023-02-24
+# Updated 2023-02-27
 ################################################################################
-
-#### WORK IN PROGRESS ####
 
 #------------------------------------------------------------------------------#
 # Load packages and custom functions
@@ -68,18 +66,16 @@ SPECIES <- "PETA"
 # Prepare detection and covariate data to run occupancy models with spOccupancy
 #------------------------------------------------------------------------------#
 
-#################################### START HERE ###################################################
-
 source("src/multi-season-models/spOccupancy-MS-data-prep.R")
 
 # This outputs data_list, which contains:
 # y: a array with detection histories (sites * years * occasions)
-# occ.covs: a dataframe with covariate values for each camera location (columns
-  # whose names end with "_z" are standardized [z-scores])
-# det.covs: a list of all covariates that could be used as covariates for
-  # detection. Spatial covariates are vectors (length = no. sites). Survey
-  # covariates are matrices (no. sites * no. occasions). Named objects that end
-  # with "_z" are standardized)
+# occ.covs: a list of all covariates that could be used in the occurrence part 
+  # of the model. Can vary among sites and/or years.
+# det.covs: a list of all covariates that could be used in the detection part of
+  # the model. Can vary among sites, years, and/or occasions
+# coords: a matrix with UTM coordinates for each camera location (in WGS 84, 
+  # Zone 12)
 
 #------------------------------------------------------------------------------#
 # Specify the occurrence portion of candidate models
