@@ -6,7 +6,7 @@
 # src/single-season-model/PARK/spOccupancy-PARK-SPECIES-YEARS.R)
 
 # ER Zylstra
-# Updated 2023-02-27
+# Updated 2023-03-01
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -82,7 +82,7 @@ source("src/multi-season-models/spOccupancy-MS-data-prep.R")
 #------------------------------------------------------------------------------#
 
 # Load dataframe with information about covariates:
-covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
+covariates <- read.csv("data/covariates/covariates-MS.csv", header = TRUE)
 
 # View those pairs of continuous covariates that are highly correlated
 cor_df %>%
@@ -98,6 +98,8 @@ covariates %>%
 # Logical indicating whether a null model for occurrence should be included in 
 # the candidate model set
 OCC_NULL <- TRUE
+
+############## Pick up here ###################################################
 
 # Pick covariates to include in simple candidate models via the short_name 
 # column in the covariates dataframe
