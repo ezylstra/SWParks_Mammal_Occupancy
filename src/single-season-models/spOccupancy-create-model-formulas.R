@@ -5,39 +5,55 @@
 # src/single-seasons/models/YEAR/spOccupancy-PARK-SPECIES_YEAR.R)
 
 # ER Zylstra
-# Updated 2023-02-02
+# Updated 2023-03-02
 ################################################################################
 
 #------------------------------------------------------------------------------#
 # Create formulas for occurrence part of candidate models
 #------------------------------------------------------------------------------#
 
-occm1 <- covariates$formula[covariates$short_name %in% OCC_MODELS1]
-occm2 <- list()
-for (i in 1:length(OCC_MODELS2)) {
-  occm2[[i]] <- paste(covariates$formula[covariates$short_name %in% OCC_MODELS2[[i]]],
-                      collapse = " + ")
+if (exists("OCC_MODELS1")) {
+  occm1 <- covariates$formula[covariates$short_name %in% OCC_MODELS1]
+} else {
+  occm1 <- NA
 }
-occ_specs <- c(occm1, unlist(occm2))
-if (OCC_NULL) {
-  occ_specs <- c("1", occ_specs) 
+if (exists("OCC_MODELS2")) {
+  occm2 <- list()
+  for (i in 1:length(OCC_MODELS2)) {
+    occm2[[i]] <- paste(covariates$formula[covariates$short_name %in% OCC_MODELS2[[i]]],
+                        collapse = " + ")
+  }
+  occm2 <- unlist(occm2)
+} else {
+  occm2 <- NA
 }
+occ_specs <- c(occm1, occm2)
+if (OCC_NULL) {occ_specs <- c("1", occ_specs)}
+occ_specs <- occ_specs[!is.na(occ_specs)]
 occ_specs <- paste0("~ ", occ_specs) 
 
 #------------------------------------------------------------------------------#
 # Create formulas for detection part of candidate models
 #------------------------------------------------------------------------------#
 
-detm1 <- covariates$formula[covariates$short_name %in% DET_MODELS1]
-detm2 <- list()
-for (i in 1:length(DET_MODELS2)) {
-  detm2[[i]] <- paste(covariates$formula[covariates$short_name %in% DET_MODELS2[[i]]],
-                      collapse = " + ")
+if (exists("DET_MODELS1")) {
+  detm1 <- covariates$formula[covariates$short_name %in% DET_MODELS1]
+} else {
+  detm1 <- NA
 }
-det_specs <- c(detm1, unlist(detm2))
-if (DET_NULL) {
-  det_specs <- c("1", det_specs) 
+if (exists("DET_MODELS2")) {
+  detm2 <- list()
+  for (i in 1:length(DET_MODELS2)) {
+    detm2[[i]] <- paste(covariates$formula[covariates$short_name %in% DET_MODELS2[[i]]],
+                        collapse = " + ")
+  }
+  detm2 <- unlist(detm2)
+} else {
+  detm2 <- NA
 }
+det_specs <- c(detm1, detm2)
+if (DET_NULL) {det_specs <- c("1", det_specs)}
+det_specs <- det_specs[!is.na(det_specs)]
 det_specs <- paste0("~ ", det_specs) 
 
 #------------------------------------------------------------------------------#
