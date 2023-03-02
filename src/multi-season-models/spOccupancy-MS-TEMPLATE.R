@@ -3,10 +3,10 @@
 # a given park, set of years, and species (using the spOccupancy package)
 
 # Objects that need to be specified to run models (ie, to create 
-# src/single-season-model/PARK/spOccupancy-PARK-SPECIES-YEARS.R)
+# src/multi-season-model/PARK/spOccupancy-PARK-SPECIES-YEARS.R)
 
 # ER Zylstra
-# Updated 2023-03-01
+# Updated 2023-03-02
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -99,18 +99,19 @@ covariates %>%
 # the candidate model set
 OCC_NULL <- TRUE
 
-############## Pick up here ###################################################
-
 # Pick covariates to include in simple candidate models via the short_name 
-# column in the covariates dataframe
-OCC_MODELS1 <- c("aspect", "elev2", "slope", "veg")
+# column in the covariates dataframe. Note that including "years" as a covariate
+# creates a trend model (logit-linear trend in occurrence probability)
+# OCC_MODELS1 <- c("elev2", "veg", "years")
+OCC_MODELS1 <- c("elev2")
 
 # To combine covariates in a single candidate model, provide a vector of 
-# short_names 
+# short_names. Compile these vectors into a list.
 # e.g., c("aspect", "boundary") would create the following model for occurrence: 
 # psi ~ east + north + boundary
-OCC_MODELS2 <- list(c("veg", "boundary"),
-                    c("veg", "wash", "roads"))
+# OCC_MODELS2 <- list(c("veg", "years"),
+#                     c("veg", "wash", "years"))
+OCC_MODELS2 <- list(c("veg", "years"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -132,15 +133,35 @@ DET_MODELS1 <- c("effort")
 
 # To combine different covariates in a candidate model, provide a vector of 
 # short_names
-DET_MODELS2 <- list(c("day2", "deploy", "effort"))
+DET_MODELS2 <- list(c("day2", "deploy", "effort", "camera_2022"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models
 #------------------------------------------------------------------------------#
 
-# Use OCC and DET objects to create formulas for candidate models:
-source("src/single-season-models/spOccupancy-create-model-formulas.R")
-    
+# Use OCC and DET objects to create formulas for candidate models
+
+# Random effects
+  # Note: for this stage of the analysis, it's worth considering whether we 
+  # include unstructured random effects for both site and time. 
+  # Site REs make sense in these implicit dynamic models because we want to 
+  # account for non-independence of data from sites over years. 
+  # A yearly RE could also make sense because we don't have many covariates that 
+  # can explain annual variation in occupancy (or variation beyond that 
+  # explained by a linear trend). However, we could run into problems with 
+  # convergence with spatial and temporal random effects. 
+
+  # For now, we can start with an unstructured site effect in all candidate 
+  # models, and then evaluate random effect structures at a later stage. To add 
+  # an unstructured site RE, we need to add (1 | site) to each formula for the 
+  # occurrence part of the model. 
+  
+  # Specify TIME_RE and SITE_RE as either "none" or "unstructured"
+  TIME_RE <- "none" 
+  SITE_RE <- "unstructured"
+
+source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
+
 message("Check candidate models:", sep = "\n")
 model_specs
 
@@ -149,14 +170,29 @@ model_specs
 #------------------------------------------------------------------------------#
 
 # Set MCMC parameters
-N_SAMPLES <- 5000
-N_BURN <- 3000
-N_THIN <- 2
+
 N_CHAINS <- 3
+N_BURN <- 2500
+N_THIN <- 15
+
+# Instead of specifying the total number of samples (like we did for single-
+# season models), we'll split the samples into a set of N_BATCH batches, each
+# comprised of BATCH_LENGTH samples to improve mixing for the adaptive 
+# algorithm. See documentation for the spOccupancy package for more info.
+
+N_BATCH <- 300
+BATCH_LENGTH <- 25
+
+n_samples <- N_BATCH * BATCH_LENGTH
+message("MCMC specifications will result in a total of ",
+        (n_samples - N_BURN) * N_CHAINS / N_THIN, 
+        " posterior samples for each parameter.")
+
+################# START HERE AFTER FIGURING OUT PPC CHECKS #####################
 
 # Run candidate models using spOccupancy package
-source("src/single-season-models/spOccupancy-run-candidate-models.R")
-  # Note: this will often take several minutes to run
+source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
+  # Note: each model can take 1-2 minutes to run.
 
 # View summary table, ranked by WAIC
   model_stats %>% arrange(waic)
@@ -175,9 +211,10 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
     # adequately represent variation in detection over time.
   # waic: WAIC (Widely Applicable Information Criterion) for comparing models
     # (lower is better)
-  # k.fold.dev: Deviance from k-fold cross validation for comparing models 
-    # (lower is better)
 
+# Check that r-hat values and ESS look okay for most models.  If not, may 
+# need to re-run after increasing N_BATCH or removing site REs.  
+  
 #------------------------------------------------------------------------------#
 # Look at results and predictions from "best" model
 #------------------------------------------------------------------------------#
