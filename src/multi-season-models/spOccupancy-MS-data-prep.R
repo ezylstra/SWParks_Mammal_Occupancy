@@ -344,7 +344,7 @@ for (i in covs_cont) {
 # Add a column with an index for each site (to use as a non-spatial random 
 # effect in our models as a simple way to account for the non-independence
 # of data that come from the same site over multiple years). 
-spatial_covs$site_effect <- 1:nrow(spatial_covs)
+spatial_covs$site <- 1:nrow(spatial_covs)
 
 # Create table with pairwise correlations between continuous covariates
 correl <- round(cor(spatial_covs[,covs_cont]), 2)
@@ -378,7 +378,8 @@ occ_covs <- list(boundary_z = spatial_covs$boundary_z,
                  roads_z = spatial_covs$roads_z,
                  slope_z = spatial_covs$slope_z,
                  trail_z = spatial_covs$trail_z,
-                 site_effect = spatial_covs$site_effect,
+                 site = spatial_covs$site,
+                 years = years,
                  years_z = years_z,
                  monsoon_ppt_z = monsoon_ppt_z)
 if (PARK == "CHIR") {
@@ -410,7 +411,9 @@ det_covs <- list(boundary_z = spatial_covs$boundary_z,
                  roads_z = spatial_covs$roads_z,
                  slope_z = spatial_covs$slope_z,
                  trail_z = spatial_covs$trail_z,
+                 site = spatial_covs$site,
                  camera_2022 = camera_2022,
+                 years = years,
                  years_z = years_z,
                  day_z = day_z,
                  deploy_exp = deploy_exp,
