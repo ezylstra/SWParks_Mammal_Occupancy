@@ -13,6 +13,7 @@ either,all,none,trail,trail_z,Distance to nearest trail (m)
 either,CHIR,none,burn,burn_severity,Burn severity
 either,SAGW,none,wash,wash_z,Distance to nearest wash (m)
 either,SAGW,none,veg,vegclass2 + vegclass3,NA
+either,all,annual,years,years_z,Year
 either,all,annual,monsoon_ppt,monsoon_ppt_z,Precipitation during previous monsoon (mm)
 either,SAGW,annual,ppt10,ppt10_z,Precipitation during previous 10 months (Mar-Dec; mm)
 either,ORPI,annual,ppt10,ppt10_z,Precipitation during previous 10 months (May-Feb; mm)
