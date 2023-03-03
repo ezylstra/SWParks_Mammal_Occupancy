@@ -194,8 +194,6 @@ message("MCMC specifications will result in a total of ",
         (n_samples - N_BURN) * N_CHAINS / N_THIN, 
         " posterior samples for each parameter.")
 
-################# START HERE AFTER FIGURING OUT PPC CHECKS #####################
-
 # Run candidate models using spOccupancy package
 source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
   # Note: each model can take 1-2 minutes to run.
@@ -209,32 +207,33 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
   # max.rhat: maximum value of R-hat across model parameters (want value < 1.05)
   # min.ESS: minimum value of ESS (effective sample size) across model
     # parameters (want value > 400)
-  # ppc.sites: posterior predictive checks when binning the data across sites. 
-    # P-values < 0.1 or > 0.9 can indicate that model fails to adequately
-    # represent variation in occurrence or detection across space.
-  # ppc.reps: posterior predictive checks when binning the data across
-    # replicates. P-values < 0.1 or > 0.9 can indicate that model fails to 
-    # adequately represent variation in detection over time.
+  # [NOT IN THERE YET] ppc.sites: posterior predictive checks when binning the 
+    # data across sites. P-values < 0.1 or > 0.9 can indicate that model fails 
+    # to adequately represent variation in occurrence or detection across space.
+  # [NOT IN THERE YET] ppc.reps: posterior predictive checks when binning the 
+    # data across replicates. P-values < 0.1 or > 0.9 can indicate that model 
+    # fails to adequately represent variation in detection over time.
   # waic: WAIC (Widely Applicable Information Criterion) for comparing models
     # (lower is better)
 
 # Check that r-hat values and ESS look okay for most models.  If not, may 
-# need to re-run after increasing N_BATCH or removing site REs.  
+# need to re-run after increasing N_BATCH or removing site REs, or may need
+# remove some covariate combinations from consideration.
   
 #------------------------------------------------------------------------------#
 # Look at results and predictions from "best" model
 #------------------------------------------------------------------------------#
 
-# Identify a model to use for inferences.  Can base this on WAIC or deviance 
-# from k-fold CV.  Alternatively, can select another model by setting STAT equal
-# "model_no" and specifying the "best_index" directly.
+# Identify a model to use for inferences.  Can base this on WAIC or can select 
+# any model by setting STAT equal to "model_no" and specifying the "best_index" 
+# directly.
 
-# Specify STAT as either: waic, k.fold.dev, or model_no
-STAT <- "model_no"   
+# Specify STAT as either: waic or model_no
+STAT <- "waic"   
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 20  
+  best_index <- 8  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -244,6 +243,9 @@ if (STAT == "model_no") {
 best <- out_list[[best_index]]
 best_psi_model <- model_specs[best_index, 1]
 best_p_model <- model_specs[best_index, 2]
+
+
+##################### PICK UP HERE ############################################
 
 # Extract covariate names (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(best_psi_model)
