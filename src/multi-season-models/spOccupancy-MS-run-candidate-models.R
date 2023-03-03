@@ -6,7 +6,7 @@
 # src/multi-season-models/PARK/spOccupancy-PARK-SPECIES_YEARS.R)
 
 # ER Zylstra
-# Updated 2023-03-02
+# Updated 2023-03-03
 ################################################################################
 
 # Output from candidate models will be stored in a list (out_list)
@@ -23,14 +23,15 @@
   # Not specifying priors, but using defaults which are N(0, var = 2.72)
   # Not specifying initial values -- by default they come from priors
 
-ar1 <- ifelse(TIME_RE == "AR1", TRUE, FALSE)
+ar1 <- ifelse(TIME_RE_OCC == "AR1", TRUE, FALSE)
 
 set.seed(2023)
 out_list <- list()
 for (i in 1:nrow(model_specs)) {
   message("Running model ", i, " (of ", nrow(model_specs), ").")
-  if (SITE_RE == "spatial") {
-    out <- stPGOcc()
+  
+  if (SITE_RE_OCC == "spatial") {
+    
     # set n.omp.threads to something > 1 
     num_cores <- parallel::detectCores() - 2
     if (num_cores > 8) {
@@ -38,23 +39,49 @@ for (i in 1:nrow(model_specs)) {
     }
     n.omp.threads <- num_cores
     
+    out_list[[i]] <- 
+      tryCatch(
+        {
+        stPGOcc()
+        },
+        error = function(e){
+          message("An error occurred attempting to run model ", i, ":\n", e)
+          return(e)
+        }
+      )
+
   } else {
-    out <- tPGOcc(occ.formula = occ_formulas[[i]],
-                  det.formula = det_formulas[[i]], 
-                  data = data_list, 
-                  # inits = inits, 
-                  # priors = priors, 
-                  n.batch = N_BATCH,
-                  batch.length = BATCH_LENGTH,
-                  ar1 = ar1,
-                  n.omp.threads = 1, 
-                  verbose = TRUE, 
-                  n.burn = N_BURN, 
-                  n.thin = N_THIN, 
-                  n.chains = N_CHAINS,
-                  n.report = 50) 
+  
+    out_list[[i]] <- 
+      tryCatch(
+        {
+        tPGOcc(occ.formula = occ_formulas[[i]],
+                     det.formula = det_formulas[[i]], 
+                     data = data_list, 
+                     n.batch = N_BATCH,
+                     batch.length = BATCH_LENGTH,
+                     ar1 = ar1,
+                     n.omp.threads = 1, 
+                     verbose = TRUE, 
+                     n.burn = N_BURN, 
+                     n.thin = N_THIN, 
+                     n.chains = N_CHAINS,
+                     n.report = 50)
+        },
+        error = function(e){
+          message("An error occurred attempting to run model ", i, ":\n", e)
+          return(e)
+        }
+      )
   }
-  out_list <- c(out_list, list(out))
+}
+
+# Print error messages if any models didn't run (can identify problematic 
+# models because they're just a list with 2 elements [message, call])
+for (i in 1:length(out_list)) {
+  if (length(out_list[[i]]) == 2) {
+    message("An error occurred attempting to run model ", i, ": ", out_list[[i]][1])
+  }
 }
 
 #------------------------------------------------------------------------------#
@@ -63,11 +90,13 @@ for (i in 1:nrow(model_specs)) {
 
 # Assess convergence with Rhat value (maximum across all parameters)
 # (would like to see a value <1.05)
-max_rhat <- lapply(out_list, function(x) max(c(x$rhat$beta, x$rhat$alpha)))
+max_rhat <- lapply(out_list, function(x) 
+  if(length(x) == 2) NA else max(c(x$rhat$beta, x$rhat$alpha)))
 
 # Assess effective sample sizes (ESS; minimum across all parameters)
 # (would like to see a value > 400)
-min_ESS <- lapply(out_list, function(x) min(c(x$ESS$beta, x$ESS$alpha)))
+min_ESS <- lapply(out_list, function(x) 
+  if(length(x) == 2) NA else min(c(x$ESS$beta, x$ESS$alpha)))
 
 # Posterior predictive checks (how well does our model fit the data?)
   # From vignette: binning the data across sites (group = 1) may help reveal 
@@ -93,7 +122,8 @@ min_ESS <- lapply(out_list, function(x) min(c(x$ESS$beta, x$ESS$alpha)))
 #------------------------------------------------------------------------------#
 
 # Get WAIC values for each model (used to compare models; lower is better)
-waic <- lapply(out_list, waicOcc)
+waic <- lapply(out_list, function(x) 
+  if(length(x) == 2) NA else waicOcc(x))
 
 # Table with model stats
 model_stats <- data.frame(model_no = 1:length(out_list),
