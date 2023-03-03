@@ -5,7 +5,7 @@
 # src/multi-season-models/PARK/spOccupancy-PARK-SPECIES_YEARS.R)
 
 # ER Zylstra
-# Updated 2023-03-02
+# Updated 2023-03-03
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -32,15 +32,16 @@ if (OCC_NULL) {occ_specs <- c("1", occ_specs)}
 occ_specs <- occ_specs[!is.na(occ_specs)]
 occ_specs <- paste0("~ ", occ_specs) 
 
+# If we want to include unstructured site random effects, add random site
+# intercepts using lme4 syntax
+if (SITE_RE_OCC == "unstructured") {
+  occ_specs <- paste0(occ_specs, " + (1 | site)")
+}
+
 # If we want to include unstructured temporal random effects, add random yearly
 # intercepts using lme4 syntax
-if (TIME_RE == "unstructured") {
+if (TIME_RE_OCC == "unstructured") {
   occ_specs <- paste0(occ_specs, " + (1 | years)")
-}
-# If we want to include unstructured site random effects, add random site
-# interceptsusing lme4 syntax
-if (SITE_RE == "unstructured") {
-  occ_specs <- paste0(occ_specs, " + (1 | site)")
 }
 
 #------------------------------------------------------------------------------#
@@ -66,6 +67,18 @@ det_specs <- c(detm1, detm2)
 if (DET_NULL) {det_specs <- c("1", det_specs)}
 det_specs <- det_specs[!is.na(det_specs)]
 det_specs <- paste0("~ ", det_specs) 
+
+# If we want to include unstructured site random effects, add random site
+# intercepts using lme4 syntax
+if (SITE_RE_DET == "unstructured") {
+  det_specs <- paste0(det_specs, " + (1 | site)")
+}
+
+# If we want to include unstructured temporal random effects, add random yearly
+# intercepts using lme4 syntax
+if (TIME_RE_DET == "unstructured") {
+  det_specs <- paste0(det_specs, " + (1 | years)")
+}
 
 #------------------------------------------------------------------------------#
 # Combine occurrence and detection formulas to create candidate model 

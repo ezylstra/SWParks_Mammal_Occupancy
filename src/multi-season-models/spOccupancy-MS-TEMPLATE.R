@@ -6,7 +6,7 @@
 # src/multi-season-model/PARK/spOccupancy-PARK-SPECIES-YEARS.R)
 
 # ER Zylstra
-# Updated 2023-03-02
+# Updated 2023-03-03
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -100,18 +100,16 @@ covariates %>%
 OCC_NULL <- TRUE
 
 # Pick covariates to include in simple candidate models via the short_name 
-# column in the covariates dataframe. Note that including "years" as a covariate
+# column in the covariates dataframe. Note that including "years_z" as a covariate
 # creates a trend model (logit-linear trend in occurrence probability)
-# OCC_MODELS1 <- c("elev2", "veg", "years")
-OCC_MODELS1 <- c("elev2")
+OCC_MODELS1 <- c("years")
 
 # To combine covariates in a single candidate model, provide a vector of 
 # short_names. Compile these vectors into a list.
 # e.g., c("aspect", "boundary") would create the following model for occurrence: 
 # psi ~ east + north + boundary
-# OCC_MODELS2 <- list(c("veg", "years"),
-#                     c("veg", "wash", "years"))
-OCC_MODELS2 <- list(c("veg", "years"))
+OCC_MODELS2 <- list(c("veg", "years"),
+                    c("elev2", "years"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -125,15 +123,17 @@ covariates %>%
   
 # Logical indicating whether a null model for detection should be included in 
 # the candidate model set
-DET_NULL <- TRUE
+DET_NULL <- FALSE
 
 # Pick covariates to include in simple candidate models via the short_name 
 # column in the covariates dataframe
 DET_MODELS1 <- c("effort")
 
 # To combine different covariates in a candidate model, provide a vector of 
-# short_names
-DET_MODELS2 <- list(c("day2", "deploy", "effort", "camera_2022"))
+# short_names (Note: not including camera_2022 in models since that seems to
+# cause some problems, likely because that's the last year we have data for. 
+# Random yearly effects might be more effective)
+DET_MODELS2 <- list(c("day2", "deploy", "effort"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models
@@ -141,24 +141,30 @@ DET_MODELS2 <- list(c("day2", "deploy", "effort", "camera_2022"))
 
 # Use OCC and DET objects to create formulas for candidate models
 
-# Random effects
+# Random effects in occurrence part of model
   # Note: for this stage of the analysis, it's worth considering whether we 
   # include unstructured random effects for both site and time. 
   # Site REs make sense in these implicit dynamic models because we want to 
   # account for non-independence of data from sites over years. 
   # A yearly RE could also make sense because we don't have many covariates that 
-  # can explain annual variation in occupancy (or variation beyond that 
-  # explained by a linear trend). However, we could run into problems with 
-  # convergence with spatial and temporal random effects. 
+  # can explain annual variation in occurrence (or temporal variation beyond 
+  # that explained by a linear trend). However, we could run into problems with 
+  # convergence if we include both spatial and temporal random effects given the
+  # relatively short time series.
 
   # For now, we can start with an unstructured site effect in all candidate 
   # models, and then evaluate random effect structures at a later stage. To add 
   # an unstructured site RE, we need to add (1 | site) to each formula for the 
   # occurrence part of the model. 
   
-  # Specify TIME_RE and SITE_RE as either "none" or "unstructured"
-  TIME_RE <- "none" 
-  SITE_RE <- "unstructured"
+  # Specify TIME_RE_OCC and SITE_RE_OCC as either "none" or "unstructured"
+  TIME_RE_OCC <- "none" 
+  SITE_RE_OCC <- "unstructured"
+  
+# Random effects in detection part of model  
+  # For now, we won't include any random effects
+  TIME_RE_DET <- "none"
+  SITE_RE_DET <- "none"
 
 source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
 
@@ -172,15 +178,15 @@ model_specs
 # Set MCMC parameters
 
 N_CHAINS <- 3
-N_BURN <- 2500
-N_THIN <- 15
+N_BURN <- 2000
+N_THIN <- 12
 
 # Instead of specifying the total number of samples (like we did for single-
 # season models), we'll split the samples into a set of N_BATCH batches, each
 # comprised of BATCH_LENGTH samples to improve mixing for the adaptive 
 # algorithm. See documentation for the spOccupancy package for more info.
 
-N_BATCH <- 300
+N_BATCH <- 200
 BATCH_LENGTH <- 25
 
 n_samples <- N_BATCH * BATCH_LENGTH
