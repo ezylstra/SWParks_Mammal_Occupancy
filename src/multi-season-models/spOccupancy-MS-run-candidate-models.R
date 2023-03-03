@@ -12,6 +12,8 @@
 # Output from candidate models will be stored in a list (out_list)
 # Model summaries/diagnostics will be stored in a dataframe (model_stats)
 
+# TODO: add random effects parameters to rhat and ESS summaries
+
 #------------------------------------------------------------------------------#
 # Run models
 #------------------------------------------------------------------------------#
