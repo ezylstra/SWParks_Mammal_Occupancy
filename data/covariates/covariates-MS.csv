@@ -14,8 +14,7 @@ either,CHIR,none,burn,burn_severity,Burn severity
 either,SAGW,none,wash,wash_z,Distance to nearest wash (m)
 either,SAGW,none,veg,vegclass2 + vegclass3,NA
 either,all,none,site,site,Index for site (for random effects)
-either,all,annual,years,years,Index for year (for random effects)
-either,all,annual,years_z,years_z,Year
+either,all,annual,years,years_z,Year
 either,all,annual,monsoon_ppt,monsoon_ppt_z,Precipitation during previous monsoon (mm)
 either,SAGW,annual,ppt10,ppt10_z,Precipitation during previous 10 months (Mar-Dec; mm)
 either,ORPI,annual,ppt10,ppt10_z,Precipitation during previous 10 months (May-Feb; mm)
