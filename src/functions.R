@@ -419,3 +419,69 @@ marginal_plot_det <- function(covariate,
   
   return(marg_plot)
 }
+
+#------------------------------------------------------------------------------#
+# trend_occ_plot: Create figure depicting trend in occurrence probability over 
+# time (only for multi-season models with implicit dynamics)
+#------------------------------------------------------------------------------#
+
+# INPUTS
+# model: output from spOccupancy single-season model
+# data_list: list of data required to run model in spOccupancy 
+# covariate_table: table with information and axis labels for covariates
+# central_meas: metric for summarizing predictions (mean [default] or median)
+# lower_ci: quantile for lower bound of credible interval (0.025 for 95% CI)
+# upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
+# line_color: color for line depicting mean/median predicted probability
+# transparency: alpha value specifying transparency of shaded CI
+
+# RETURNS
+# trend_plot: ggplot object depicting the trend on probability scale
+
+trend_plot_occ <- function(model, 
+                           data_list,
+                           covariate_table,
+                           central_meas = c(mean, median),
+                           lower_ci = 0.025,
+                           upper_ci = 0.975,
+                           line_color = "forestgreen",
+                           transparency = 0.2) {
+  
+  cols <- str_subset(colnames(best$beta.samples), pattern = "years_z")
+  beta_samples <- best$beta.samples[,c("(Intercept)", cols)]
+  X_cov <- seq(from = min(data_list$occ.covs[["years_z"]]), 
+               to = max(data_list$occ.covs[["years_z"]]),
+               length = 100)
+  X_cov <- cbind(1, X_cov)
+  
+  preds <-  X_cov %*% t(beta_samples)
+  preds <- exp(preds)/(1 + exp(preds))
+  preds_cent <- apply(preds, 1, central_meas)
+  preds_lcl <- apply(preds, 1, quantile, lower_ci)
+  preds_ucl <- apply(preds, 1, quantile, upper_ci)
+  
+  # Identify covariate values for x-axis (on original scale)
+  cov_mn <- mean(data_list$occ.covs[["years"]])
+  cov_sd <- sd(data_list$occ.covs[["years"]])
+  cov_plot <- X_cov[,2] * cov_sd + cov_mn
+  
+  # Create and save plots for later viewing
+  data_plot <- data.frame(x = cov_plot,
+                          cent = preds_cent,
+                          lcl = preds_lcl,
+                          ucl = preds_ucl)
+  
+  cred_interval <- (upper_ci - lower_ci) * 100
+  yaxis_label <- paste0("Predicted occurrence probability (", 
+                        cred_interval, 
+                        "% CI)")
+  
+  trend_plot <- ggplot(data = data_plot, aes(x = x)) + 
+    geom_line(aes(y = cent), col = line_color) +
+    geom_ribbon(aes(ymin = lcl, ymax = ucl), alpha = transparency) +
+    labs(x = "Year", y = yaxis_label) +
+    scale_y_continuous(limits = c(0, 1)) +
+    theme_classic()
+  
+  return(trend_plot)
+}
