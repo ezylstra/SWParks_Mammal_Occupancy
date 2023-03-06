@@ -66,7 +66,9 @@ create_cov_list <- function(object) {
   }
 
   z_list <- object %>%
-    str_remove(pattern = "~ ") %>% 
+    str_remove(pattern = "~ ") %>%
+    str_remove(pattern = " [+] [(]1 [|] site[)]") %>%
+    str_remove(pattern = " [+] [(]1 [|] years[)]") %>%
     str_remove_all(pattern = "I[(]") %>%
     str_remove_all(pattern = "[)]") %>%
     str_remove_all(pattern = "\\^2") %>%
