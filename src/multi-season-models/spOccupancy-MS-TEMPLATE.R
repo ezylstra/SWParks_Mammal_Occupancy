@@ -6,7 +6,7 @@
 # src/multi-season-model/PARK/spOccupancy-PARK-SPECIES-YEARS.R)
 
 # ER Zylstra
-# Updated 2023-03-03
+# Updated 2023-03-06
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -17,9 +17,11 @@ library(dplyr)
 library(lubridate)
 library(stringr)
 library(tidyr)
+library(abind)
 library(terra)
 library(spOccupancy)
 library(ggplot2)
+library(gridExtra)
 library(tidyterra)
 
 source("src/functions.R")
@@ -145,7 +147,7 @@ DET_MODELS2 <- list(c("day2", "deploy", "effort"))
   # Note: for this stage of the analysis, it's worth considering whether we 
   # include unstructured random effects for both site and time. 
   # Site REs make sense in these implicit dynamic models because we want to 
-  # account for non-independence of data from sites over years. 
+  # account for non-independence of data from sites over multiple years. 
   # A yearly RE could also make sense because we don't have many covariates that 
   # can explain annual variation in occurrence (or temporal variation beyond 
   # that explained by a linear trend). However, we could run into problems with 
@@ -153,9 +155,9 @@ DET_MODELS2 <- list(c("day2", "deploy", "effort"))
   # relatively short time series.
 
   # For now, we can start with an unstructured site effect in all candidate 
-  # models, and then evaluate random effect structures at a later stage. To add 
-  # an unstructured site RE, we need to add (1 | site) to each formula for the 
-  # occurrence part of the model. 
+  # models, and then evaluate alternative random effect structures at a later 
+  # stage. To add an unstructured site RE, we need to add (1 | site) to each 
+  # formula for the occurrence part of the model. 
   
   # Specify TIME_RE_OCC and SITE_RE_OCC as either "none" or "unstructured"
   TIME_RE_OCC <- "none" 
@@ -179,14 +181,14 @@ model_specs
 
 N_CHAINS <- 3
 N_BURN <- 2000
-N_THIN <- 12
+N_THIN <- 10
 
 # Instead of specifying the total number of samples (like we did for single-
 # season models), we'll split the samples into a set of N_BATCH batches, each
 # comprised of BATCH_LENGTH samples to improve mixing for the adaptive 
 # algorithm. See documentation for the spOccupancy package for more info.
 
-N_BATCH <- 200
+N_BATCH <- 280
 BATCH_LENGTH <- 25
 
 n_samples <- N_BATCH * BATCH_LENGTH
@@ -217,8 +219,8 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
     # (lower is better)
 
 # Check that r-hat values and ESS look okay for most models.  If not, may 
-# need to re-run after increasing N_BATCH or removing site REs, or may need
-# remove some covariate combinations from consideration.
+# need to re-run after increasing N_BATCH or removing site REs. If problem
+# persists, may need to remove some covariate combinations from consideration.
   
 #------------------------------------------------------------------------------#
 # Look at results and predictions from "best" model
@@ -229,11 +231,11 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
 # directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "waic"   
+STAT <- "model_no"   
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 8  
+  best_index <- 3 
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -244,12 +246,11 @@ best <- out_list[[best_index]]
 best_psi_model <- model_specs[best_index, 1]
 best_p_model <- model_specs[best_index, 2]
 
-
-##################### PICK UP HERE ############################################
-
 # Extract covariate names (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(best_psi_model)
+psi_covs_z <- psi_covs_z[psi_covs_z != "years_z"]
 p_covs_z <- create_cov_list(best_p_model)
+p_covs_z <- p_covs_z[p_covs_z != "years_z"]
 psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
 p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
 
@@ -277,75 +278,101 @@ plot(best$beta.samples, density = FALSE)
 plot(best$alpha.samples, density = FALSE)
 
 # Posterior predictive checks (want Bayesian p-values between 0.1 and 0.9)
-ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
-ppc.rep <- as.numeric(model_stats$ppc.reps[model_stats$model_no == best_index])
-if (ppc.site < 0.1 | ppc.site > 0.9) {
-  warning(paste0("PPC indicates that we have not adequately described spatial ",
-                 "variation in occupancy and/or detection."))
-} else {
-  cat(paste0("PPC indicates that we have adequately described spatial ",
-             "variation in occupancy and detection."))
-} 
-if (ppc.rep < 0.1 | ppc.site > 0.9) {
-  warning(paste0("PPC indicates that we have not adequately described temporal ",
-                 "variation in detection."))
-} else {
-  cat(paste0("PPC indicates that we have adequately described temporal ",
-                 "variation in detection."))
-}
+# ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
+# ppc.rep <- as.numeric(model_stats$ppc.reps[model_stats$model_no == best_index])
+# if (ppc.site < 0.1 | ppc.site > 0.9) {
+#   warning(paste0("PPC indicates that we have not adequately described spatial ",
+#                  "variation in occupancy and/or detection."))
+# } else {
+#   cat(paste0("PPC indicates that we have adequately described spatial ",
+#              "variation in occupancy and detection."))
+# } 
+# if (ppc.rep < 0.1 | ppc.site > 0.9) {
+#   warning(paste0("PPC indicates that we have not adequately described temporal ",
+#                  "variation in detection."))
+# } else {
+#   cat(paste0("PPC indicates that we have adequately described temporal ",
+#                  "variation in detection."))
+# }
 
 # If there's evidence that spatial variation isn't well explained, plot the 
 # difference in the discrepancy measure between the replicate and actual data 
 # across each of the sites (identify sites that are causing a lack of fit).
-if (ppc.site < 0.1 | ppc.site > 0.9) {
-  best_ppcs <- ppc.sites[[best_index]]
-  diff_fit <- best_ppcs$fit.y.rep.group.quants[3, ] - best_ppcs$fit.y.group.quants[3, ]
-  
-  # Plot differences
-  par(mfrow = c(1,1))
-  plot(diff_fit, pch = 19, xlab = 'Site ID', ylab = "Replicate - True Discrepancy") 
-  
-  # Identify sites on a map
-  prob_sites <- which(abs(diff_fit) > 0.4)
-  plot(lat~long, data = spatial_covs, las = 1) # all camera locs
-  points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
-}
+# if (ppc.site < 0.1 | ppc.site > 0.9) {
+#   best_ppcs <- ppc.sites[[best_index]]
+#   diff_fit <- best_ppcs$fit.y.rep.group.quants[3, ] - best_ppcs$fit.y.group.quants[3, ]
+#   
+#   # Plot differences
+#   par(mfrow = c(1,1))
+#   plot(diff_fit, pch = 19, xlab = 'Site ID', ylab = "Replicate - True Discrepancy") 
+#   
+#   # Identify sites on a map
+#   prob_sites <- which(abs(diff_fit) > 0.4)
+#   plot(lat~long, data = spatial_covs, las = 1) # all camera locs
+#   points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
+# }
 
 #------------------------------------------------------------------------------#
 # Calculate and visualize predicted probabilities of occupancy, across park
 #------------------------------------------------------------------------------#
 
-source("src/single-season-models/spOccupancy-predictions.R")
+source("src/multi-season-models/spOccupancy-MS-predictions.R")
   # Note: this can take several minutes to run.
 
 # This script creates:
   # best_pred: a list with predictions for each raster cell, MCMC sample
-  # preds_mn: a raster with mean values in each cell (across MCMC samples)
-  # preds_sd: a raster with SDs in each cell (across MCMC samples)
-  # plot_preds_mn: a ggplot object with predicted mean values across park
-  # plot_preds_sd: a ggplot object with predicted sd values across park
+  # preds_mn_firstyr: a raster with mean occurrence probability in each cell 
+  # in the first year (across MCMC samples)
+  # preds_mn_lastyr: a raster with mean occurrence probability in each cell 
+  # in the last year (across MCMC samples)
+  # preds_sd_firstyr: a raster with SDs in each cell in the first year
+  # preds_sd_lastyr: a raster with SDs in each cell in the last year
+  # plot_preds_mn_firstyr: a ggplot object with predicted mean values across 
+  # park in the first year
+  # plot_preds_mn_lastyr: a ggplot object with predicted mean values across 
+  # park in the last year
+  # plot_preds_sd_firstyr: a ggplot object with predicted SD values across park 
+  # in the first year
+  # plot_preds_sd_lastyr: a ggplot object with predicted SD values across park 
+  # in the last year
 
-# Plot predicted means
-  plot_preds_mn 
+# Plot predicted means in first, last year
+  grid.arrange(plot_preds_mn_firstyr, plot_preds_mn_lastyr, nrow = 2)
 
-# Plot predicted sds
-  plot_preds_sd
+# Plot predicted SDs in first, last year
+  grid.arrange(plot_preds_sd_firstyr, plot_preds_sd_lastyr, nrow = 2)
 
-# Can save either of the plots to file (example below):
-# ggsave(filename = "C:/Users/erin/Desktop/SPECIES_MeanOccupancy.jpg",
-#        plot = plot_preds_mn,
+# Can save any of the plots to file (example below):
+# ggsave(filename = "C:/Users/erin/Desktop/SPECIES_MeanOccupancy_2022.jpg",
+#        plot = plot_preds_mn_lastyr,
 #        device = "jpeg",
 #        width = 4,
 #        height = 4,
 #        units = "in",
 #        dpi = 600)  
+
+#------------------------------------------------------------------------------#
+# Calculate and create figures trends in occurrence probability over time
+#------------------------------------------------------------------------------#
   
+trend <- trend_plot_occ(model = best, 
+                        data_list = data_list,
+                        covariate_table = covariates,
+                        central_meas = mean,
+                        lower_ci = 0.025,
+                        upper_ci = 0.975)
+trend
+
+
+
 #------------------------------------------------------------------------------#
 # Calculate and create figures depicting marginal effects of covariates on 
 # occurrence probability (predicted covariate effects assuming all other 
 # covariates held constant)
 #------------------------------------------------------------------------------#
 
+# TODO: Update this section ####################################################  
+  
 # Identify continuous covariates in occurrence part of the best model
   psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
   psi_cont_unique <- unique(psi_continuous)
@@ -402,6 +429,8 @@ source("src/single-season-models/spOccupancy-predictions.R")
 # constant)
 #------------------------------------------------------------------------------#
 
+  # TODO: Update this section ####################################################    
+  
 # Identify continuous covariates in occurrence part of the best model
 p_continuous <- p_covs_z[p_covs_z != "1"]
 p_cont_unique <- unique(p_continuous)
