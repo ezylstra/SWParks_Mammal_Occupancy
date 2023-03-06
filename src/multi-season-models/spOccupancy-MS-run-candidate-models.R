@@ -6,13 +6,11 @@
 # src/multi-season-models/PARK/spOccupancy-PARK-SPECIES_YEARS.R)
 
 # ER Zylstra
-# Updated 2023-03-03
+# Updated 2023-03-06
 ################################################################################
 
 # Output from candidate models will be stored in a list (out_list)
 # Model summaries/diagnostics will be stored in a dataframe (model_stats)
-
-# TODO: add random effects parameters to rhat and ESS summaries
 
 #------------------------------------------------------------------------------#
 # Run models
@@ -90,15 +88,15 @@ for (i in 1:length(out_list)) {
 # Extract a few model diagnostics
 #------------------------------------------------------------------------------#
 
-# Assess convergence with Rhat value (maximum across all parameters)
-# (would like to see a value <1.05)
+# Assess convergence with Rhat value (maximum across all parameters, including 
+# random effects). Would like to see a value < 1.05
 max_rhat <- lapply(out_list, function(x) 
-  if(length(x) == 2) NA else max(c(x$rhat$beta, x$rhat$alpha)))
+  if(length(x) == 2) NA else max(unlist(x$rhat)))
 
-# Assess effective sample sizes (ESS; minimum across all parameters)
-# (would like to see a value > 400)
+# Assess effective sample sizes (ESS; minimum across all parameters, including
+# random effects). Would like to see a value > 400.
 min_ESS <- lapply(out_list, function(x) 
-  if(length(x) == 2) NA else min(c(x$ESS$beta, x$ESS$alpha)))
+  if(length(x) == 2) NA else min(unlist(x$ESS)))
 
 # Posterior predictive checks (how well does our model fit the data?)
   # From vignette: binning the data across sites (group = 1) may help reveal 
