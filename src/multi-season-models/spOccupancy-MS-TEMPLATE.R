@@ -102,16 +102,21 @@ covariates %>%
 OCC_NULL <- TRUE
 
 # Pick covariates to include in simple candidate models via the short_name 
-# column in the covariates dataframe. Note that including "years_z" as a covariate
-# creates a trend model (logit-linear trend in occurrence probability)
+# column in the covariates dataframe. Note that including "years_z" as a 
+# covariate creates a trend model (logit-linear trend in occurrence probability)
 OCC_MODELS1 <- c("years")
 
 # To combine covariates in a single candidate model, provide a vector of 
 # short_names. Compile these vectors into a list.
 # e.g., c("aspect", "boundary") would create the following model for occurrence: 
 # psi ~ east + north + boundary
-OCC_MODELS2 <- list(c("veg", "years"),
-                    c("elev2", "years"))
+OCC_MODELS2 <- list(c("veg", "wash", "years"),
+                    c("elev2", "years"),
+                    c("slope2", "years"),
+                    c("boundary", "years"),
+                    c("pois", "years"),
+                    c("roads", "years"),
+                    c("trail", "years"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -135,7 +140,7 @@ DET_MODELS1 <- c("effort")
 # short_names (Note: not including camera_2022 in models since that seems to
 # cause some problems, likely because that's the last year we have data for. 
 # Random yearly effects might be more effective)
-DET_MODELS2 <- list(c("day2", "deploy", "effort"))
+# DET_MODELS2 <- list(c("day2", "deploy", "effort"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models
@@ -198,7 +203,7 @@ message("MCMC specifications will result in a total of ",
 
 # Run candidate models using spOccupancy package
 source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
-  # Note: each model can take 1-2 minutes to run.
+  # Note: this can take several minutes to run
 
 # View summary table, ranked by WAIC
   model_stats %>% arrange(waic)
@@ -226,12 +231,16 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
 # Look at results and predictions from "best" model
 #------------------------------------------------------------------------------#
 
+# To look at the estimates from any model in the list, use the following,
+# replacing "X" with the model_no of interest
+# summary(out_list[[X]]) 
+
 # Identify a model to use for inferences.  Can base this on WAIC or can select 
 # any model by setting STAT equal to "model_no" and specifying the "best_index" 
 # directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "model_no"   
+STAT <- "waic"   
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
@@ -265,13 +274,20 @@ det_estimates <- parameter_estimates(model = best,
                                      parameter = "det",
                                      lower_ci = 0.025,
                                      upper_ci = 0.975)
-# Can save these tables to file with code below
-# write.csv(occ_estimates,
-#           file = "C:/Users/erin/Desktop/occupancy_estimates.csv",
-#           row.names = FALSE)
-# write.csv(det_estimates,
-#           file = "C:/Users/erin/Desktop/detection_estimates.csv",
-#           row.names = FALSE)
+occ_estimates <- occ_estimates %>%
+  rename(Covariate = Parameter) %>%
+  mutate(Parameter = "Occurrence", .before = "Covariate")
+det_estimates <- det_estimates %>%
+  rename(Covariate = Parameter) %>%
+  mutate(Parameter = "Detection", .before = "Covariate")
+estimates <- rbind(occ_estimates, det_estimates)
+
+# Can save this table to file with code below
+write.csv(estimates,
+          file = paste0("C:/Users/erin/Desktop/Mammals/",
+                        PARK, "-", SPECIES, "-", 
+                        YEARS[1], YEARS[length(YEARS)], ".csv"),
+          row.names = FALSE)
 
 # Trace plots
 plot(best$beta.samples, density = FALSE)
@@ -343,13 +359,18 @@ source("src/multi-season-models/spOccupancy-MS-predictions.R")
   grid.arrange(plot_preds_sd_firstyr, plot_preds_sd_lastyr, nrow = 2)
 
 # Can save any of the plots to file (example below):
-# ggsave(filename = "C:/Users/erin/Desktop/SPECIES_MeanOccupancy_2022.jpg",
-#        plot = plot_preds_mn_lastyr,
-#        device = "jpeg",
-#        width = 4,
-#        height = 4,
-#        units = "in",
-#        dpi = 600)  
+plot_save <- plot_preds_mn_lastyr +
+  theme_bw(base_size = 8)
+plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
+                   PARK, "-", SPECIES, "-OccProbMN-Slope-",
+                   YEARS[length(YEARS)], ".jpg")
+ggsave(filename = plotname,
+       plot = plot_save,
+       device = "jpeg",
+       width = 4,
+       height = 4,
+       units = "in",
+       dpi = 600)
 
 #------------------------------------------------------------------------------#
 # Calculate and create figures trends in occurrence probability over time
@@ -362,8 +383,19 @@ trend <- trend_plot_occ(model = best,
                         lower_ci = 0.025,
                         upper_ci = 0.975)
 trend
-
-
+# Save to file
+plot_save <- trend +
+  theme_classic(base_size = 8)
+plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
+                   PARK, "-", SPECIES, "-Trend-(Slope)-",
+                   YEARS[length(YEARS)], ".jpg")
+ggsave(filename = plotname,
+       plot = plot_save,
+       device = "jpeg",
+       width = 4,
+       height = 4,
+       units = "in",
+       dpi = 600)
 
 #------------------------------------------------------------------------------#
 # Calculate and create figures depicting marginal effects of covariates on 
