@@ -66,7 +66,7 @@ X.0 <- array (1, dim = c(nrow(psi_rasters_df),
                          length(pred_years), 
                          ncol(best$beta.samples)))
 
-cov_order <- occ_estimates$Parameter
+cov_order <- occ_estimates$Covariate
 
 if (length(cov_order) > 1) {
   if ("years_z" %in% cov_order) {
@@ -97,19 +97,15 @@ if (length(cov_order) > 1) {
   # generally improve prediction at sampled sites, and will lead to nearly 
   # identical point estimates at non-sampled sites, but with larger uncertainty.
 
-ignore.RE <- TRUE
+ignore.RE <- FALSE
 # If we want to include unstructured REs in predictions, we need to add a slice
-# to the X.0 array (that I think will have just 0's...)
+# to the X.0 array (putting 0's in there, but I also tried NAs and the results
+# were the same)
 if (ignore.RE == FALSE) {
   RE <- matrix(0, nrow = dim(X.0)[1], ncol = dim(X.0)[2])
   X.0 <- abind(X.0, RE, along = 3)
+  dimnames(X.0)[[3]] <- c(cov_order, "site")
 }
-# Getting error here: 
-  # error: dimnames(X.0)[[3]] must match variable names in data$occ.covs
-  # It says that names of the third dimension (covariates) of any random effects 
-  # in X.0 must match the name of the random effects used to fit the model, if 
-  # specified in the corresponding formula argument of tPGOcc. Not sure what those
-  # should be for unsampled locations
 
 best_pred <- predict(object = best, 
                      X.0 = X.0,
