@@ -62,7 +62,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "CALA"
+SPECIES <- "URCI"
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -117,6 +117,9 @@ OCC_MODELS2 <- list(c("veg", "wash", "years"),
                     c("pois", "years"),
                     c("roads", "years"),
                     c("trail", "years"))
+# OCC_MODELS2 <- list(c("boundary", "veg", "wash", "years"),
+#                     c("boundary", "years"),
+#                     c("veg", "wash", "years"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -130,7 +133,7 @@ covariates %>%
   
 # Logical indicating whether a null model for detection should be included in 
 # the candidate model set
-DET_NULL <- FALSE
+DET_NULL <- TRUE
 
 # Pick covariates to include in simple candidate models via the short_name 
 # column in the covariates dataframe
@@ -244,7 +247,7 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 3 
+  best_index <- 2 
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -364,7 +367,7 @@ plot_save <- plot_preds_mn_lastyr +
 plot_save1 <- plot_preds_mn_firstyr +
   theme_bw(base_size = 8)
 plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
-                   PARK, "-", SPECIES, "-OccProbMN-WashVeg-",
+                   PARK, "-", SPECIES, "-OccProbMN-BoundaryWashVeg-",
                    YEARS[length(YEARS)], ".jpg")
 ggsave(filename = plotname,
        plot = plot_save,
@@ -390,8 +393,7 @@ trend
 plot_save <- trend +
   theme_classic(base_size = 8)
 plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
-                   PARK, "-", SPECIES, "-Trend-(WashVegBoundary)-",
-                   YEARS[length(YEARS)], ".jpg")
+                   PARK, "-", SPECIES, "-Trend-(BoundaryWashVeg).jpg")
 ggsave(filename = plotname,
        plot = plot_save,
        device = "jpeg",
