@@ -473,7 +473,7 @@ trend_plot_occ <- function(model,
                           ucl = preds_ucl)
   
   cred_interval <- (upper_ci - lower_ci) * 100
-  yaxis_label <- paste0("Predicted probability of use (", 
+  yaxis_label <- paste0("Proportion of area used (", 
                         cred_interval, 
                         "% CI)")
   
