@@ -4,10 +4,16 @@
 #------------------------------------------------------------------------------#
 
 model_stats_orig <- model_stats
-occ_specs <- c("~ wash_z + vegclass2 + vegclass3 + pois_z + (1 | site)",
-               "~ wash_z + vegclass2 + vegclass3 + (1 | site)",
-               "~ pois_z + years_z + pois_z * years_z + (1 | site)")
-det_specs <- "~ day_z + I(day_z^2) + deploy_exp + effort_z + (1 | years)"
+# occ_specs <- c("~ wash_z + vegclass2 + vegclass3 + pois_z + (1 | site)",
+#                "~ wash_z + vegclass2 + vegclass3 + (1 | site)",
+#                "~ pois_z + years_z + pois_z * years_z + (1 | site)")
+occ_specs <- c("~ wash_z + vegclass2 + vegclass3 + monsoon_ppt_z + (1 | site)",
+               "~ wash_z + vegclass2 + vegclass3 + ppt10_z + (1 | site)",
+               "~ wash_z + vegclass2 + vegclass3 + years_z + (1 | site)",
+               "~ wash_z + vegclass2 + vegclass3 + monsoon_ppt_z + years_z + (1 | site)",
+               "~ wash_z + vegclass2 + vegclass3 + ppt10_z + years_z + (1 | site)",
+               "~ wash_z + vegclass2 + vegclass3 + (1 | site)")
+det_specs <- "~ day_z + I(day_z^2) + deploy_exp + effort_z"
 model_specs <- as.matrix(expand.grid(occ = occ_specs, 
                                      det = det_specs,
                                      KEEP.OUT.ATTRS = FALSE))
