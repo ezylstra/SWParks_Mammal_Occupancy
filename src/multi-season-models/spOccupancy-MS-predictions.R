@@ -52,9 +52,11 @@ psi_rasters <- mask(psi_rasters, park_boundary)
 psi_rasters_df <- as.data.frame(psi_rasters, cell = TRUE)
 
 # Remove rows that have any NA covariate values
-psi_rasters_df$nNAs <- ifelse(ncol(psi_rasters_df) == 2, 
-                              1*is.na(psi_rasters_df[,2]),
-                              apply(psi_rasters_df[, -1], 1, function(x) sum(is.na(x))))
+if (ncol(psi_rasters_df) == 2) {
+  psi_rasters_df$nNAs <- 1*is.na(psi_rasters_df[,2])
+} else {
+  psi_rasters_df$nNAs <- apply(psi_rasters_df[, -1], 1, function(x) sum(is.na(x)))
+}
 psi_rasters_df <- psi_rasters_df %>%
   dplyr::filter(nNAs == 0) %>%
   select(-nNAs)
