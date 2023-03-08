@@ -441,6 +441,7 @@ marginal_plot_det <- function(covariate,
 trend_plot_occ <- function(model, 
                            data_list,
                            covariate_table,
+                           raw_occ = TRUE,
                            central_meas = c(mean, median),
                            lower_ci = 0.025,
                            upper_ci = 0.975,
@@ -472,16 +473,42 @@ trend_plot_occ <- function(model,
                           ucl = preds_ucl)
   
   cred_interval <- (upper_ci - lower_ci) * 100
-  yaxis_label <- paste0("Predicted occurrence probability (", 
+  yaxis_label <- paste0("Predicted probability of use (", 
                         cred_interval, 
                         "% CI)")
   
-  trend_plot <- ggplot(data = data_plot, aes(x = x)) + 
-    geom_line(aes(y = cent), col = line_color) +
-    geom_ribbon(aes(ymin = lcl, ymax = ucl), alpha = transparency) +
-    labs(x = "Year", y = yaxis_label) +
-    scale_y_continuous(limits = c(0, 1)) +
-    theme_classic()
+
+  
+  if (raw_occ) {
+    
+    # Calculate the number of sites with at least one detection in a year
+    site_dets <- apply(data_list$y, c(1,2), paNA)
+    # Proportion of sites with a detection in each year
+    raw_occ_prob <- apply(site_dets, 2, mean, na.rm = TRUE)
+    
+    raws <- data.frame(yr = 2017:2022,
+                       raw_occ = raw_occ_prob,
+                       row.names = NULL)
+    
+    trend_plot <- 
+      ggplot(data = data_plot, aes(x = x)) + 
+      geom_line(aes(y = cent), col = line_color) +
+      geom_ribbon(aes(ymin = lcl, ymax = ucl), alpha = transparency) +
+      geom_point(data = raws[!is.na(raws$raw_occ), ], 
+                 aes(x = yr, y = raw_occ), col = "black") +
+      labs(x = "Year", y = yaxis_label) +
+      scale_y_continuous(limits = c(0, 1)) +
+      theme_classic()
+
+  } else {
+    
+    trend_plot <- ggplot(data = data_plot, aes(x = x)) + 
+      geom_line(aes(y = cent), col = line_color) +
+      geom_ribbon(aes(ymin = lcl, ymax = ucl), alpha = transparency) +
+      labs(x = "Year", y = yaxis_label) +
+      scale_y_continuous(limits = c(0, 1)) +
+      theme_classic()
+  }
   
   return(trend_plot)
 }
