@@ -62,7 +62,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "PETA"
+SPECIES <- "LYRU"
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -140,7 +140,7 @@ DET_MODELS1 <- c("effort")
 # short_names (Note: not including camera_2022 in models since that seems to
 # cause some problems, likely because that's the last year we have data for. 
 # Random yearly effects might be more effective)
-# DET_MODELS2 <- list(c("day2", "deploy", "effort"))
+DET_MODELS2 <- list(c("day2", "deploy", "effort"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models
@@ -240,11 +240,11 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
 # directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "waic"   
+STAT <- "model_no"   
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 3 
+  best_index <- 6 
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -361,8 +361,10 @@ source("src/multi-season-models/spOccupancy-MS-predictions.R")
 # Can save any of the plots to file (example below):
 plot_save <- plot_preds_mn_lastyr +
   theme_bw(base_size = 8)
+plot_save1 <- plot_preds_mn_firstyr +
+  theme_bw(base_size = 8)
 plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
-                   PARK, "-", SPECIES, "-OccProbMN-Slope-",
+                   PARK, "-", SPECIES, "-OccProbMN-Boundary-",
                    YEARS[length(YEARS)], ".jpg")
 ggsave(filename = plotname,
        plot = plot_save,
@@ -387,7 +389,7 @@ trend
 plot_save <- trend +
   theme_classic(base_size = 8)
 plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
-                   PARK, "-", SPECIES, "-Trend-(Slope)-",
+                   PARK, "-", SPECIES, "-Trend-(Boundary)-",
                    YEARS[length(YEARS)], ".jpg")
 ggsave(filename = plotname,
        plot = plot_save,
