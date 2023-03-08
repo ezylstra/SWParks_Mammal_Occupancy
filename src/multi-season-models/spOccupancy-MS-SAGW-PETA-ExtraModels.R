@@ -4,11 +4,17 @@
 #------------------------------------------------------------------------------#
 
 model_stats_orig <- model_stats
-occ_specs <- c("~ slope_z + I(slope_z^2) + (1 | site)",
-               "~ boundary_z + (1 | site)",
-               "~ slope_z + I(slope_z^2) + boundary_z + (1 | site)",
-               "~ slope_z + I(slope_z^2) + boundary_z + years_z + (1 | site)",
-               "~ boundary_z + years_z + boundary_z * years_z + (1 | site)")
+# occ_specs <- c("~ slope_z + I(slope_z^2) + (1 | site)",
+#                "~ boundary_z + (1 | site)",
+#                "~ slope_z + I(slope_z^2) + boundary_z + (1 | site)",
+#                "~ slope_z + I(slope_z^2) + boundary_z + years_z + (1 | site)",
+#                "~ boundary_z + years_z + boundary_z * years_z + (1 | site)")
+occ_specs <- c("~ slope_z + I(slope_z^2) + monsoon_ppt_z + (1 | site)",
+               "~ slope_z + I(slope_z^2) + ppt10_z + (1 | site)",
+               "~ slope_z + I(slope_z^2) + boundary_z + monsoon_ppt_z + (1 | site)",
+               "~ slope_z + I(slope_z^2) + boundary_z + ppt10_z + (1 | site)")
+# occ_specs <- c("~ slope_z + I(slope_z^2) + monsoon_ppt_z + (1 | site)",
+#                "~ slope_z + I(slope_z^2) + (1 | site) + (1 | years)")
 det_specs <- "~ effort_z"
 model_specs <- as.matrix(expand.grid(occ = occ_specs, 
                                      det = det_specs,
