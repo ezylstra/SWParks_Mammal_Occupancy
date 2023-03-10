@@ -99,6 +99,110 @@ north_sagw <- cos(terra::terrain(dem_sagw, v = "aspect", unit = "radians"))
   # writeRaster(dist_bound_sagw, paste0(sagw_folder, "dist_boundary_sagw.tif"))
 
 #------------------------------------------------------------------------------#
+# Distance to "unprotected" park boundary 
+# (boundary that is NOT adjacent to a protected area)
+#------------------------------------------------------------------------------#
+
+# Load shapefile with protected areas. Downloaded AZ shapefile with 3.0 data from: 
+# https://www.usgs.gov/programs/gap-analysis-project/science/pad-us-data-download
+# pa_folder <- "C:/Users/erin/Desktop/PADUS3_0_State_AZ_SHP/"
+pa_shp <- "data/covariates/shapefiles/PADUS3_0Combined_StateAZ.shp"
+az_pas <- terra::vect(pa_shp)
+az_pas <- terra::project(az_pas, crs(parks))
+
+# Crop to buffered areas around each park
+pas <- terra::crop(az_pas, parks_b)
+
+# Subset so just using areas with GAP status 1, 2, or 3
+  # 1: Areas managed for biodiversity where natural disturbances are allowed to 
+  # proceed
+  # 2: Areas managed for biodiversity where natural disturbance is suppressed
+  # 3: Areas protected from land cover conversion but subject to extractive uses 
+  # such as logging and mining
+  # 4: Areas with no known mandate for protection
+pas13 <- terra::subset(pas, pas$GAP_Sts %in% 1:3)
+
+# Aggregate different GAP units and fill in holes
+pas13_agg <- terra::aggregate(pas13)
+pas13_fill <- terra::fillHoles(pas13_agg)
+
+  # Check for SAGW
+  # plot(subset(parks_b, parks_b$UNIT_CODE == "SAGW"), lty = 2)
+  # polys(pas13_fill, col = "gray80")
+  # polys(pas13, col = "gray90")
+  # lines(parks, lwd = 2, col = "blue")
+
+  # Check for ORPI
+  # NOTE: For now, we're considering the southern border with MX to be
+  # unprotected (but we should revisit this)
+  plot(subset(parks_b, parks_b$UNIT_CODE == "ORPI"), lty = 2)
+  polys(pas13_fill, col = "gray80")
+  polys(pas13, col = "gray90")
+  lines(parks, lwd = 2, col = "blue")
+
+# Create 10-meter buffer around park boundary
+smallbuff <- terra::buffer(parks, width = 10)
+# Erase parts of PAs that fall within that buffered park boundary
+pas13_out <- terra::erase(pas13_fill, smallbuff)
+
+  # THINGS DON'T LOOK RIGHT FOR ORPI. NEED TO FIX THIS AND THEN SAVE NEW
+  # RASTERS TO FILE ###########################################################
+
+  # Checks:
+  plot(subset(parks_b, parks_b$UNIT_CODE == "ORPI"), lty = 2)
+  polys(pas13_out, col = "gray80")
+  lines(parks, lwd = 2, col = "blue")
+
+# Buffer that "outside PAs" layer by 50 m (so now all areas that are adjacent to 
+# park should overlap the park boundary)
+pas13_oute <- terra::buffer(pas13_out, width = 50)
+
+# Create new boundary layer that intersects the buffered outside PA layer
+boundary_PA <- terra::intersect(parks, pas13_oute)
+
+# Buffer these linear boundaries that are adjacent to PAs
+boundary_PA_line <- terra::as.lines(boundary_PA)
+boundary_PA_buffer <- terra::buffer(boundary_PA_line, 10)
+
+# Select portion of park boundaries don't fall in boundary_PA_buffer
+boundary_nonPA <- terra::erase(terra::as.lines(parks), boundary_PA_buffer)
+
+  # Checks
+  plot(subset(parks_b, parks_b$UNIT_CODE == "SAGW"), lty = 2)
+  polys(pas13_oute, col = "gray80")
+  lines(boundary_nonPA, lwd = 2, col = "red")
+  
+  plot(subset(parks_b, parks_b$UNIT_CODE == "CHIR"), lty = 2)
+  polys(pas13_oute, col = "gray80")
+  lines(boundary_nonPA, lwd = 2, col = "red")  
+  
+  # plot(subset(parks_b, parks_b$UNIT_CODE == "ORPI"), lty = 2)
+  # polys(pas13_oute, col = "gray80")
+  # lines(boundary_nonPA, lwd = 2, col = "red")    
+
+  chir_line <- subset(boundary_nonPA, boundary_nonPA$UNIT_CODE == "CHIR")
+  chir_boundary <- subset(parks, parks$UNIT_CODE == "CHIR")
+  dist_boundUP_chir <- rast(dem_chir)
+  dist_boundUP_chir <- terra::crop(dist_boundUP_chir, chir_boundary)
+  dist_boundUP_chir <- terra::distance(dist_boundUP_chir, chir_line)
+  # writeRaster(dist_boundUP_chir, 
+  #             paste0(chir_folder, "dist_boundaryUP_chir.tif"))
+  
+  sagw_line <- subset(boundary_nonPA, boundary_nonPA$UNIT_CODE == "SAGW")
+  sagw_boundary <- subset(parks, parks$UNIT_CODE == "SAGW")
+  dist_boundUP_sagw <- rast(dem_sagw)
+  dist_boundUP_sagw <- terra::crop(dist_boundUP_sagw, sagw_boundary)
+  dist_boundUP_sagw <- terra::distance(dist_boundUP_sagw, sagw_line)
+  # writeRaster(dist_boundUP_sagw, 
+  #             paste0(sagw_folder, "dist_boundaryUP_sagw.tif"))
+  
+  orpi_line <- subset(boundary_nonPA, boundary_nonPA$UNIT_CODE == "ORPI")
+  dist_boundUP_orpi <- rast(dem_orpi)
+  dist_boundUP_orpi <- terra::crop(dist_boundUP_orpi, orpi_line)
+  dist_boundUP_orpi <- terra::distance(dist_boundUP_orpi, orpi_line)
+  # writeRaster(dist_boundUP_orpi, paste0(orpi_folder, "dist_boundaryUP_orpi.tif"))
+  
+#------------------------------------------------------------------------------#
 # Distance to road
 #------------------------------------------------------------------------------#
 
