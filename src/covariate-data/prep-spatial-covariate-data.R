@@ -79,23 +79,30 @@ north_sagw <- cos(terra::terrain(dem_sagw, v = "aspect", unit = "radians"))
 # Distance to park boundary
 #------------------------------------------------------------------------------#
 
-# Note: this takes forever (hours), even if cropping raster to park boundary
+# Note: this can take a while to run, even if cropping raster to park boundary
+
   # chir_line <- as.lines(subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_bound_chir <- rast(dem_chir)
   # dist_bound_chir <- terra::crop(dist_bound_chir, chir_line)
-  # dist_bound_chir <- terra::distance(dist_bound_chir, chir_line)
-  # writeRaster(dist_bound_chir, paste0(chir_folder, "dist_boundary_chir.tif")) 
-
+  # dist_bound_chir <- terra::distance(dist_bound_chir, 
+  #                                    chir_line, 
+  #                                    rasterize = TRUE)
+  # writeRaster(dist_bound_chir, paste0(chir_folder, "dist_boundary_chir.tif"))
+  # 
   # orpi_line <- as.lines(subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_bound_orpi <- rast(dem_orpi)
   # dist_bound_orpi <- terra::crop(dist_bound_orpi, orpi_line)
-  # dist_bound_orpi <- terra::distance(dist_bound_orpi, orpi_line)
+  # dist_bound_orpi <- terra::distance(dist_bound_orpi, 
+  #                                    orpi_line, 
+  #                                    rasterize = TRUE)
   # writeRaster(dist_bound_orpi, paste0(orpi_folder, "dist_boundary_orpi.tif"))
-
+  # 
   # sagw_line <- as.lines(subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_bound_sagw <- rast(dem_sagw)
   # dist_bound_sagw <- terra::crop(dist_bound_sagw, sagw_line)
-  # dist_bound_sagw <- terra::distance(dist_bound_sagw, sagw_line)
+  # dist_bound_sagw <- terra::distance(dist_bound_sagw, 
+  #                                    sagw_line, 
+  #                                    rasterize = TRUE)
   # writeRaster(dist_bound_sagw, paste0(sagw_folder, "dist_boundary_sagw.tif"))
 
 #------------------------------------------------------------------------------#
@@ -124,84 +131,104 @@ pas13 <- terra::subset(pas, pas$GAP_Sts %in% 1:3)
 
 # Aggregate different GAP units and fill in holes
 pas13_agg <- terra::aggregate(pas13)
-pas13_fill <- terra::fillHoles(pas13_agg)
+pas13_agg <- terra::fillHoles(pas13_agg)
 
   # Check for SAGW
   # plot(subset(parks_b, parks_b$UNIT_CODE == "SAGW"), lty = 2)
-  # polys(pas13_fill, col = "gray80")
-  # polys(pas13, col = "gray90")
+  # polys(pas13_agg, col = "gray80")
   # lines(parks, lwd = 2, col = "blue")
 
   # Check for ORPI
   # NOTE: For now, we're considering the southern border with MX to be
   # unprotected (but we should revisit this)
-  plot(subset(parks_b, parks_b$UNIT_CODE == "ORPI"), lty = 2)
-  polys(pas13_fill, col = "gray80")
-  polys(pas13, col = "gray90")
-  lines(parks, lwd = 2, col = "blue")
+  # plot(subset(parks_b, parks_b$UNIT_CODE == "ORPI"), lty = 2)
+  # polys(pas13_agg, col = "gray80")
+  # lines(parks, lwd = 2, col = "blue")
+  
+# Looks like the protected areas DB has park lands extending beyond our boundary
+# layer, so we'll use slightly different buffers for ORPI to make this all work
+  
+# Create small buffer around park boundary
+smallbuff_orpi <- terra::buffer(subset(parks, parks$UNIT_CODE == "ORPI"), 
+                                width = 120)
+smallbuff_other <- terra::buffer(subset(parks, parks$UNIT_CODE != "ORPI"), 
+                                 width = 10)
 
-# Create 10-meter buffer around park boundary
-smallbuff <- terra::buffer(parks, width = 10)
 # Erase parts of PAs that fall within that buffered park boundary
-pas13_out <- terra::erase(pas13_fill, smallbuff)
-
-  # THINGS DON'T LOOK RIGHT FOR ORPI. NEED TO FIX THIS AND THEN SAVE NEW
-  # RASTERS TO FILE ###########################################################
-
-  # Checks:
-  plot(subset(parks_b, parks_b$UNIT_CODE == "ORPI"), lty = 2)
-  polys(pas13_out, col = "gray80")
-  lines(parks, lwd = 2, col = "blue")
+pas13_agg_orpi <- terra::crop(pas13_agg, 
+                              subset(parks_b, parks_b$UNIT_CODE == "ORPI"))
+pas13_agg_other <- terra::crop(pas13_agg, 
+                               subset(parks_b, parks_b$UNIT_CODE != "ORPI"))
+pas13_out_orpi <- terra::erase(pas13_agg_orpi, smallbuff_orpi)
+pas13_out_other <- terra::erase(pas13_agg_other, smallbuff_other)
 
 # Buffer that "outside PAs" layer by 50 m (so now all areas that are adjacent to 
 # park should overlap the park boundary)
-pas13_oute <- terra::buffer(pas13_out, width = 50)
+pas13_oute_orpi <- terra::buffer(pas13_out_orpi, width = 150)
+pas13_oute_other <- terra::buffer(pas13_out_other, width = 50)
 
 # Create new boundary layer that intersects the buffered outside PA layer
-boundary_PA <- terra::intersect(parks, pas13_oute)
+boundary_PA_orpi <- terra::intersect(parks, pas13_oute_orpi)
+boundary_PA_other <- terra::intersect(parks, pas13_oute_other)
 
 # Buffer these linear boundaries that are adjacent to PAs
-boundary_PA_line <- terra::as.lines(boundary_PA)
-boundary_PA_buffer <- terra::buffer(boundary_PA_line, 10)
+boundary_PA_line_orpi <- terra::as.lines(boundary_PA_orpi)
+boundary_PA_line_other <- terra::as.lines(boundary_PA_other)
+boundary_PA_buffer_orpi <- terra::buffer(boundary_PA_line_orpi, 10)
+boundary_PA_buffer_other <- terra::buffer(boundary_PA_line_other, 10)
 
 # Select portion of park boundaries don't fall in boundary_PA_buffer
-boundary_nonPA <- terra::erase(terra::as.lines(parks), boundary_PA_buffer)
+boundary_nonPA_orpi <- terra::erase(terra::as.lines(parks), 
+                                    boundary_PA_buffer_orpi)
+boundary_nonPA_other <- terra::erase(terra::as.lines(parks), 
+                                    boundary_PA_buffer_other)
 
   # Checks
-  plot(subset(parks_b, parks_b$UNIT_CODE == "SAGW"), lty = 2)
-  polys(pas13_oute, col = "gray80")
-  lines(boundary_nonPA, lwd = 2, col = "red")
-  
-  plot(subset(parks_b, parks_b$UNIT_CODE == "CHIR"), lty = 2)
-  polys(pas13_oute, col = "gray80")
-  lines(boundary_nonPA, lwd = 2, col = "red")  
-  
+  # plot(subset(parks_b, parks_b$UNIT_CODE == "SAGW"), lty = 2)
+  # lines(boundary_nonPA_other, lwd = 2, col = "red")
+  # polys(pas13_oute_other, col = "gray80")
+  # 
+  # plot(subset(parks_b, parks_b$UNIT_CODE == "CHIR"), lty = 2)
+  # lines(boundary_nonPA_other, lwd = 2, col = "red")
+  # polys(pas13_oute_other, col = "gray80")
+  # 
   # plot(subset(parks_b, parks_b$UNIT_CODE == "ORPI"), lty = 2)
-  # polys(pas13_oute, col = "gray80")
-  # lines(boundary_nonPA, lwd = 2, col = "red")    
+  # lines(boundary_nonPA_orpi, lwd = 2, col = "red")
+  # polys(pas13_oute_orpi, col = "gray80")
 
-  chir_line <- subset(boundary_nonPA, boundary_nonPA$UNIT_CODE == "CHIR")
-  chir_boundary <- subset(parks, parks$UNIT_CODE == "CHIR")
-  dist_boundUP_chir <- rast(dem_chir)
-  dist_boundUP_chir <- terra::crop(dist_boundUP_chir, chir_boundary)
-  dist_boundUP_chir <- terra::distance(dist_boundUP_chir, chir_line)
-  # writeRaster(dist_boundUP_chir, 
-  #             paste0(chir_folder, "dist_boundaryUP_chir.tif"))
+# Calculate distances and save rasters
+chir_line <- subset(boundary_nonPA_other, 
+                    boundary_nonPA_other$UNIT_CODE == "CHIR")
+chir_boundary <- as.lines(subset(parks, parks$UNIT_CODE == "CHIR"))
+dist_boundUP_chir <- rast(dem_chir)
+dist_boundUP_chir <- terra::crop(dist_boundUP_chir, chir_boundary)
+dist_boundUP_chir <- terra::distance(dist_boundUP_chir, 
+                                     chir_line, 
+                                     rasterize = TRUE)
+# writeRaster(dist_boundUP_chir, 
+#             paste0(chir_folder, "dist_boundaryUP_chir.tif"))
   
-  sagw_line <- subset(boundary_nonPA, boundary_nonPA$UNIT_CODE == "SAGW")
-  sagw_boundary <- subset(parks, parks$UNIT_CODE == "SAGW")
-  dist_boundUP_sagw <- rast(dem_sagw)
-  dist_boundUP_sagw <- terra::crop(dist_boundUP_sagw, sagw_boundary)
-  dist_boundUP_sagw <- terra::distance(dist_boundUP_sagw, sagw_line)
-  # writeRaster(dist_boundUP_sagw, 
-  #             paste0(sagw_folder, "dist_boundaryUP_sagw.tif"))
-  
-  orpi_line <- subset(boundary_nonPA, boundary_nonPA$UNIT_CODE == "ORPI")
-  dist_boundUP_orpi <- rast(dem_orpi)
-  dist_boundUP_orpi <- terra::crop(dist_boundUP_orpi, orpi_line)
-  dist_boundUP_orpi <- terra::distance(dist_boundUP_orpi, orpi_line)
-  # writeRaster(dist_boundUP_orpi, paste0(orpi_folder, "dist_boundaryUP_orpi.tif"))
-  
+sagw_line <- subset(boundary_nonPA_other, 
+                    boundary_nonPA_other$UNIT_CODE == "SAGW")
+sagw_boundary <- subset(parks, parks$UNIT_CODE == "SAGW")
+dist_boundUP_sagw <- rast(dem_sagw)
+dist_boundUP_sagw <- terra::crop(dist_boundUP_sagw, sagw_boundary)
+dist_boundUP_sagw <- terra::distance(dist_boundUP_sagw, 
+                                     sagw_line, 
+                                     rasterize = TRUE)
+# writeRaster(dist_boundUP_sagw, 
+#             paste0(sagw_folder, "dist_boundaryUP_sagw.tif"))
+
+orpi_line <- subset(boundary_nonPA_orpi, 
+                    boundary_nonPA_orpi$UNIT_CODE == "ORPI")
+dist_boundUP_orpi <- rast(dem_orpi)
+dist_boundUP_orpi <- terra::crop(dist_boundUP_orpi, orpi_line)
+dist_boundUP_orpi <- terra::distance(dist_boundUP_orpi, 
+                                     orpi_line, 
+                                     rasterize = TRUE)
+# writeRaster(dist_boundUP_orpi,
+#             paste0(orpi_folder, "dist_boundaryUP_orpi.tif"))
+
 #------------------------------------------------------------------------------#
 # Distance to road
 #------------------------------------------------------------------------------#
@@ -214,17 +241,17 @@ roads_sagw <- vect("data/covariates/shapefiles/roads_sagw.shp")
 # Calculate distance to roads
   # dist_roads_chir <- rast(dem_chir)
   # dist_roads_chir <- terra::crop(dist_roads_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
-  # dist_roads_chir <- terra::distance(dist_roads_chir, roads_chir)
+  # dist_roads_chir <- terra::distance(dist_roads_chir, roads_chir, rasterize = TRUE)
   # writeRaster(dist_roads_chir, paste0(chir_folder, "dist_roads_chir.tif"))
   
   # dist_roads_sagw <- rast(dem_sagw)
   # dist_roads_sagw <- terra::crop(dist_roads_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
-  # dist_roads_sagw <- terra::distance(dist_roads_sagw, roads_sagw)
+  # dist_roads_sagw <- terra::distance(dist_roads_sagw, roads_sagw, rasterize = TRUE)
   # writeRaster(dist_roads_sagw, paste0(sagw_folder, "dist_roads_sagw.tif"))
   
   # dist_roads_orpi <- rast(dem_orpi)
   # dist_roads_orpi <- terra::crop(dist_roads_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
-  # dist_roads_orpi <- terra::distance(dist_roads_orpi, roads_orpi)
+  # dist_roads_orpi <- terra::distance(dist_roads_orpi, roads_orpi, rasterize = TRUE)
   # writeRaster(dist_roads_orpi, paste0(orpi_folder, "dist_roads_orpi.tif"))
 
 #------------------------------------------------------------------------------#
@@ -237,21 +264,21 @@ trails <- vect("data/covariates/shapefiles/trails.shp")
 # Calculate distance to trails:
   dist_trail_chir <- rast(dem_chir)
   dist_trail_chir <- terra::crop(dist_trail_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
-  dist_trail_chir <- terra::distance(dist_trail_chir, trails)
-  writeRaster(dist_trail_chir, 
-              paste0(chir_folder, "dist_trail_chir.tif"),
-              overwrite = TRUE)
+  dist_trail_chir <- terra::distance(dist_trail_chir, trails, rasterize = TRUE)
+  # writeRaster(dist_trail_chir, 
+  #             paste0(chir_folder, "dist_trail_chir.tif"),
+  #             overwrite = TRUE)
 
   dist_trail_sagw <- rast(dem_sagw)
   dist_trail_sagw <- terra::crop(dist_trail_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
-  dist_trail_sagw <- terra::distance(dist_trail_sagw, trails)
+  dist_trail_sagw <- terra::distance(dist_trail_sagw, trails, rasterize = TRUE)
   # writeRaster(dist_trail_sagw, 
   #             paste0(sagw_folder, "dist_trail_sagw.tif"),
   #             overwrite = TRUE)
 
   dist_trail_orpi <- rast(dem_orpi)
   dist_trail_orpi <- terra::crop(dist_trail_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
-  dist_trail_orpi <- terra::distance(dist_trail_orpi, trails)
+  dist_trail_orpi <- terra::distance(dist_trail_orpi, trails, rasterize = TRUE)
   # writeRaster(dist_trail_orpi, 
   #             paste0(orpi_folder, "dist_trail_orpi.tif"),
   #             overwrite = TRUE)
@@ -282,21 +309,21 @@ allpois_sagw <- subset(allpois, allpois$UNITCODE == "SAGU")
 # Calculate distance to these features
   dist_pois_chir <- rast(dem_chir)
   dist_pois_chir <- terra::crop(dist_pois_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
-  dist_pois_chir <- terra::distance(dist_pois_chir, allpois_chir)
+  dist_pois_chir <- terra::distance(dist_pois_chir, allpois_chir, rasterize = TRUE)
   # writeRaster(dist_pois_chir, 
   #             paste0(chir_folder, "dist_pois_chir.tif"),
   #             overwrite = TRUE)
   
   dist_pois_sagw <- rast(dem_sagw)
   dist_pois_sagw <- terra::crop(dist_pois_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
-  dist_pois_sagw <- terra::distance(dist_pois_sagw, allpois_sagw)
+  dist_pois_sagw <- terra::distance(dist_pois_sagw, allpois_sagw, rasterize = TRUE)
   # writeRaster(dist_pois_sagw, 
   #             paste0(sagw_folder, "dist_pois_sagw.tif"),
   #             overwrite = TRUE)
 
   dist_pois_orpi <- rast(dem_orpi)
   dist_pois_orpi <- terra::crop(dist_pois_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
-  dist_pois_orpi <- terra::distance(dist_pois_orpi, allpois_orpi)
+  dist_pois_orpi <- terra::distance(dist_pois_orpi, allpois_orpi, rasterize = TRUE)
   # writeRaster(dist_pois_orpi, 
   #             paste0(orpi_folder, "dist_pois_orpi.tif"),
   #             overwrite = TRUE)
