@@ -233,26 +233,39 @@ dist_boundUP_orpi <- terra::distance(dist_boundUP_orpi,
 # Distance to road
 #------------------------------------------------------------------------------#
 
-# Load roads files
-roads_chir <- vect("data/covariates/shapefiles/roads_chir.shp")
-roads_orpi <- vect("data/covariates/shapefiles/roads_orpi.shp")
-roads_sagw <- vect("data/covariates/shapefiles/roads_sagw.shp")
+# Load roads files (If we have the more accurate data from NPS, use that.  If 
+# not, use the tigris data)
+if (file.exists("data/covariates/shapefiles/roads_chir_nps.shp")) {
+  roads_chir <- vect("data/covariates/shapefiles/roads_chir_nps.shp")  
+} else {
+  roads_chir <- vect("data/covariates/shapefiles/roads_chir_tigris.shp")  
+}
+if (file.exists("data/covariates/shapefiles/roads_orpi_nps.shp")) {
+  roads_orpi <- vect("data/covariates/shapefiles/roads_orpi_nps.shp")  
+} else {
+  roads_orpi <- vect("data/covariates/shapefiles/roads_orpi_tigris.shp")  
+}
+if (file.exists("data/covariates/shapefiles/roads_sagw_nps.shp")) {
+  roads_sagw <- vect("data/covariates/shapefiles/roads_sagw_nps.shp")  
+} else {
+  roads_sagw <- vect("data/covariates/shapefiles/roads_sagw_tigris.shp")  
+}
 
 # Calculate distance to roads
   # dist_roads_chir <- rast(dem_chir)
   # dist_roads_chir <- terra::crop(dist_roads_chir, subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_roads_chir <- terra::distance(dist_roads_chir, roads_chir, rasterize = TRUE)
-  # writeRaster(dist_roads_chir, paste0(chir_folder, "dist_roads_chir.tif"))
+  # writeRaster(dist_roads_chir, paste0(chir_folder, "dist_roads_chir.tif"), overwrite = TRUE)
   
   # dist_roads_sagw <- rast(dem_sagw)
   # dist_roads_sagw <- terra::crop(dist_roads_sagw, subset(parks, parks$UNIT_CODE == "SAGW"))
   # dist_roads_sagw <- terra::distance(dist_roads_sagw, roads_sagw, rasterize = TRUE)
-  # writeRaster(dist_roads_sagw, paste0(sagw_folder, "dist_roads_sagw.tif"))
+  # writeRaster(dist_roads_sagw, paste0(sagw_folder, "dist_roads_sagw.tif"), overwrite = TRUE)
   
   # dist_roads_orpi <- rast(dem_orpi)
   # dist_roads_orpi <- terra::crop(dist_roads_orpi, subset(parks, parks$UNIT_CODE == "ORPI"))
   # dist_roads_orpi <- terra::distance(dist_roads_orpi, roads_orpi, rasterize = TRUE)
-  # writeRaster(dist_roads_orpi, paste0(orpi_folder, "dist_roads_orpi.tif"))
+  # writeRaster(dist_roads_orpi, paste0(orpi_folder, "dist_roads_orpi.tif"), overwrite = TRUE)
 
 #------------------------------------------------------------------------------#
 # Distance to trail
