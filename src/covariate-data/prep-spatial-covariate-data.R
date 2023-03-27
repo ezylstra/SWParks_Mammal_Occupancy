@@ -233,10 +233,23 @@ dist_boundUP_orpi <- terra::distance(dist_boundUP_orpi,
 # Distance to road
 #------------------------------------------------------------------------------#
 
-# Load roads files
-roads_chir <- vect("data/covariates/shapefiles/roads_chir.shp")
-roads_orpi <- vect("data/covariates/shapefiles/roads_orpi.shp")
-roads_sagw <- vect("data/covariates/shapefiles/roads_sagw.shp")
+# Load roads files (If we have the more accurate data from NPS, use that.  If 
+# not, use the tigris data)
+if (exists("data/covariates/shapefiles/roads_chir_nps.shp")) {
+  roads_chir <- vect("data/covariates/shapefiles/roads_chir_nps.shp")  
+} else {
+  roads_chir <- vect("data/covariates/shapefiles/roads_chir_tigris.shp")  
+}
+if (exists("data/covariates/shapefiles/roads_orpi_nps.shp")) {
+  roads_orpi <- vect("data/covariates/shapefiles/roads_orpi_nps.shp")  
+} else {
+  roads_orpi <- vect("data/covariates/shapefiles/roads_orpi_tigris.shp")  
+}
+if (exists("data/covariates/shapefiles/roads_sagw_nps.shp")) {
+  roads_sagw <- vect("data/covariates/shapefiles/roads_sagw_nps.shp")  
+} else {
+  roads_sagw <- vect("data/covariates/shapefiles/roads_sagw_tigris.shp")  
+}
 
 # Calculate distance to roads
   # dist_roads_chir <- rast(dem_chir)
