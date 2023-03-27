@@ -51,9 +51,9 @@ roads_sagw <- crop(roads_pi, subset(parks_b, parks$UNIT_CODE == "SAGW"))
   roads_sagw <- subset(roads_sagw, roads_sagw$MTFCC %in% road_features)
 
 # Write to file
-# writeVector(roads_chir, filename = "data/covariates/shapefiles/roads_chir.shp")
-# writeVector(roads_orpi, filename = "data/covariates/shapefiles/roads_orpi.shp")
-# writeVector(roads_sagw, filename = "data/covariates/shapefiles/roads_sagw.shp")
+# writeVector(roads_chir_tigris, filename = "data/covariates/shapefiles/roads_chir.shp")
+# writeVector(roads_orpi_tigris, filename = "data/covariates/shapefiles/roads_orpi.shp")
+# writeVector(roads_sagw_tigris, filename = "data/covariates/shapefiles/roads_sagw.shp")
 
 #------------------------------------------------------------------------------#
 # Trails
