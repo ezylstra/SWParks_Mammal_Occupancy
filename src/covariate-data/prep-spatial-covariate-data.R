@@ -79,8 +79,6 @@ north_sagw <- cos(terra::terrain(dem_sagw, v = "aspect", unit = "radians"))
 # Distance to park boundary
 #------------------------------------------------------------------------------#
 
-# Note: this can take a while to run, even if cropping raster to park boundary
-
   # chir_line <- as.lines(subset(parks, parks$UNIT_CODE == "CHIR"))
   # dist_bound_chir <- rast(dem_chir)
   # dist_bound_chir <- terra::crop(dist_bound_chir, chir_line)
@@ -341,6 +339,50 @@ allpois_sagw <- subset(allpois, allpois$UNITCODE == "SAGU")
   #             paste0(orpi_folder, "dist_pois_orpi.tif"),
   #             overwrite = TRUE)
 
+#------------------------------------------------------------------------------#
+# Combine a couple distance rasters with anthropogenic features
+#------------------------------------------------------------------------------#
+
+# If creating these combined layers after the other layers exist:
+  dist_roads_chir <- rast(paste0(chir_folder, "dist_roads_chir.tif"))
+  dist_roads_orpi <- rast(paste0(orpi_folder, "dist_roads_orpi.tif"))
+  dist_roads_sagw <- rast(paste0(sagw_folder, "dist_roads_sagw.tif"))
+  dist_boundUP_chir <- rast(paste0(chir_folder, "dist_boundaryUP_chir.tif"))
+  dist_boundUP_orpi <- rast(paste0(orpi_folder, "dist_boundaryUP_orpi.tif"))
+  dist_boundUP_sagw <- rast(paste0(sagw_folder, "dist_boundaryUP_sagw.tif"))
+  dist_trail_chir <- rast(paste0(chir_folder, "dist_trail_chir.tif"))
+  dist_trail_orpi <- rast(paste0(orpi_folder, "dist_trail_orpi.tif"))
+  dist_trail_sagw <- rast(paste0(sagw_folder, "dist_trail_sagw.tif"))
+  dist_pois_chir <- rast(paste0(chir_folder, "dist_pois_chir.tif"))
+  dist_pois_orpi <- rast(paste0(orpi_folder, "dist_pois_orpi.tif"))
+  dist_pois_sagw <- rast(paste0(sagw_folder, "dist_pois_sagw.tif"))
+
+# Distance to nearest road and/or boundary adjacent to unprotected lands
+  for (park in c("chir", "orpi", "sagw")) {
+    road_layer <- get(paste0("dist_roads_", park))
+    bound_layer <- get(paste0("dist_boundUP_", park))
+    roadbound <- c(road_layer, bound_layer)
+    roadbound <- min(roadbound)
+    names(roadbound) <- "roadbound"
+    writeRaster(roadbound, 
+                paste0("data/covariates/rasters-", toupper(park), 
+                       "/dist_roadbound_", park, ".tif"),
+                overwrite = TRUE)
+  }
+
+# Distance to nearest trail or POI 
+  for (park in c("chir", "orpi", "sagw")) {
+    trail_layer <- get(paste0("dist_trail_", park))
+    poi_layer <- get(paste0("dist_pois_", park))
+    trailpoi <- c(trail_layer, poi_layer)
+    trailpoi <- min(trailpoi)
+    names(trailpoi) <- "trailpoi"
+    writeRaster(trailpoi, 
+                paste0("data/covariates/rasters-", toupper(park), 
+                       "/dist_trailpoi_", park, ".tif"),
+                overwrite = TRUE)
+  }
+  
 #------------------------------------------------------------------------------#
 # Fire perimeter data
 #------------------------------------------------------------------------------#
