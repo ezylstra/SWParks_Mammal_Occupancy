@@ -361,6 +361,8 @@ allpois_sagw <- subset(allpois, allpois$UNITCODE == "SAGU")
   for (park in c("chir", "orpi", "sagw")) {
     road_layer <- get(paste0("dist_roads_", park))
     bound_layer <- get(paste0("dist_boundUP_", park))
+    # Boundary layer may have a smaller extent (by a row or column), so extend
+    bound_layer <- terra::extend(bound_layer, road_layer)
     roadbound <- c(road_layer, bound_layer)
     roadbound <- min(roadbound)
     names(roadbound) <- "roadbound"
