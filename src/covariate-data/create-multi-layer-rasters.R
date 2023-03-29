@@ -12,13 +12,17 @@ library(terra)
 
 # Brief descriptions of each spatial (time-invariant) covariate:
   # boundary = distance to nearest park boundary (m)
+  # boundaryUP = distance to nearest (unprotected) park boundary (m; original
+    # layer after excluding boundaries adjacent to protected lands)
   # east = eastness (aspect) Ranges from 1 (east-facing) to -1 (west-facing)
   # elev = elevation (m)
   # north = northness (aspect) Ranges from 1 (north-facing) to -1 (south-facing)
   # pois = distance to nearest point of interest (m; incl buildings, lots)
-  # roads = distance to nearest road (m; includes local roads, vehicular trails)
+  # roads = distance to nearest road (m)
   # slope = slope (degrees)
   # trail = distance to nearest trail (m)
+  # roadbound = distance to nearest road or unprotected boundary (m)
+  # trailpoi = distance to nearest trail or point of interest (m)
   # wash [SAGW only] = distance to nearest wash (m) 
   # vegclass [SAGW only] = vegetation class where 1 = low gradient desert with 
     # high-cover mixed cactus and 2-15% tree cover; 2 = Low hillslope and 
@@ -74,23 +78,23 @@ for (PARK in parks) {
     # Make ORPI rasters lower resolution to allow for park-wide predictions
     # Increasing cell size by a factor of 9 (combining 3 x 3 original cells into
     # one), which gives us about 90 m x 90 m cells.
-    # First, cropping rasters so they all have the same extent
+    ##### First, cropping rasters so they all have the same extent
     if (PARK == "ORPI") {
       if (i == 1) {
         raster_list[[i]] <- terra::aggregate(x = raster_list[[i]], 
                                              fact = 3,
                                              fun = "mean")
       } else {
-        raster_list[[i]] <- terra::crop(raster_list[[i]], raster_list[[1]])
-        raster_list[[i]] <- terra::aggregate(x = raster_list[[i]], 
-                                             fact = 3,
-                                             fun = "mean")
+        raster_list[[i]] <- resample(raster_list[[i]], 
+                                     raster_list[[1]], 
+                                     method = "average")
       }
-      # Note: might need to change the aggregate function for vegclasses once 
+      # Note: might need to change the resample function for vegclasses once 
       # that layer is available for ORPI to ensure that cells have integer values
     }
     # Crop raster to park boundary
-    raster_list[[i]] <- terra::crop(raster_list[[i]], boundary)  
+    raster_list[[i]] <- terra::crop(raster_list[[i]], boundary) 
+    
   }
   names(raster_list) <- raster_names
 
@@ -107,8 +111,8 @@ for (PARK in parks) {
   }  
 
   # Put layers for each park in same order 
-  raster_order <- c("boundary", "east", "elev", "north", "pois", "roads", 
-                    "slope", "trail", 
+  raster_order <- c("boundary", "boundaryUP", "east", "elev", "north", "pois", 
+                    "roads", "roadbound", "slope", "trail", "trailpoi",
                     "burn_severity_2011",
                     "vegclasses", "vegclass2", "vegclass3", "wash")
   raster_order <- raster_order[raster_order %in% names(raster_list)]
