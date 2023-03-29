@@ -66,32 +66,15 @@ for (PARK in parks) {
   raster_names <- basename(park_rasters) %>%
     str_remove(pattern = ".tif") %>%
     str_remove(pattern = "dist_") %>%
-    str_remove(pattern = paste0("_", tolower(PARK))) %>%
-    str_replace(., pattern = paste0(PARK, "_DEM_1as"), replacement = "elev")
+    str_remove(pattern = paste0("_", tolower(PARK)))
   
   # Load rasters into a list
   raster_list <- list()
   for (i in 1:length(park_rasters)) {
+    
     raster_list[[i]] <- terra::rast(park_rasters[i])
     names(raster_list[[i]]) <- raster_names[i]
 
-    # Make ORPI rasters lower resolution to allow for park-wide predictions
-    # Increasing cell size by a factor of 9 (combining 3 x 3 original cells into
-    # one), which gives us about 90 m x 90 m cells.
-    ##### First, cropping rasters so they all have the same extent
-    if (PARK == "ORPI") {
-      if (i == 1) {
-        raster_list[[i]] <- terra::aggregate(x = raster_list[[i]], 
-                                             fact = 3,
-                                             fun = "mean")
-      } else {
-        raster_list[[i]] <- resample(raster_list[[i]], 
-                                     raster_list[[1]], 
-                                     method = "average")
-      }
-      # Note: might need to change the resample function for vegclasses once 
-      # that layer is available for ORPI to ensure that cells have integer values
-    }
     # Crop raster to park boundary
     raster_list[[i]] <- terra::crop(raster_list[[i]], boundary) 
     
@@ -110,6 +93,12 @@ for (PARK in parks) {
     raster_list <- c(raster_list, vegclass2 = vegclass2, vegclass3 = vegclass3)
   }  
 
+  # For ORPI, boundaryUP layer is slightly smaller than the rest
+  if (PARK == "ORPI") {
+    raster_list$boundaryUP <- resample(raster_list$boundaryUP,
+                                       raster_list$boundary)
+  }
+  
   # Put layers for each park in same order 
   raster_order <- c("boundary", "boundaryUP", "east", "elev", "north", "pois", 
                     "roads", "roadbound", "slope", "trail", "trailpoi",
@@ -117,7 +106,7 @@ for (PARK in parks) {
                     "vegclasses", "vegclass2", "vegclass3", "wash")
   raster_order <- raster_order[raster_order %in% names(raster_list)]
   raster_list <- raster_list[raster_order]
-  
+
   # Create multi-layer raster
   multilayer_raster <- rast(raster_list)
 
