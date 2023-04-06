@@ -1,5 +1,5 @@
 parameter,park,temporal_variation,short_name,formula,axis_label
-either,all,none,boundary,boundary_z,Distance to park boundary (m)
+either,all,none,boundary,boundary_z,Distance to unprotected park boundary (m)
 either,all,none,aspect,east_z + north_z,NA
 either,all,none,east,east_z,Eastness
 either,all,none,north,north_z,Northness
@@ -15,6 +15,8 @@ either,SAGW,none,wash,wash_z,Distance to nearest wash (m)
 either,SAGW,none,veg,vegclass2 + vegclass3,NA
 either,all,none,site,site,Index for site (for random effects)
 either,all,annual,years,years_z,Year
+either,SAGW,annual,visits,visits_z,Number of visitors
+either,SAGW,annual,traffic,traffic_z,Average traffic volume (no. cars)
 either,all,annual,monsoon_ppt,monsoon_ppt_z,Precipitation during previous monsoon (mm)
 either,SAGW,annual,ppt10,ppt10_z,Precipitation during previous 10 months (Mar-Dec; mm)
 either,ORPI,annual,ppt10,ppt10_z,Precipitation during previous 10 months (May-Feb; mm)

@@ -5,8 +5,13 @@
 # In most instances, this will be called from another script (something like:
 # src/multi-season-models/PARK/spOccupancy-PARK-SPECIES_YEARS.R)
 
+# At the moment, new CSVs with monthly visitors and traffic totals need to be 
+# added to the repo each year (replacing previous CSVs and updating the name
+# of the CSVs in the "Annual covariates" section below). Would be good to 
+# eventually automate this.
+
 # ER Zylstra
-# Updated 2023-02-27
+# Updated 2023-04-06
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -221,6 +226,66 @@ camera_2022 <- matrix(rep(c(0, 1, 0),
                       ncol = dim(dh)[2],
                       byrow = TRUE)
 
+# Monthly visitation data (currently only available for Saguaro, both districts 
+# combined)
+if (PARK == "SAGW") {
+  # Read in data
+  monthlyvisits <- read.csv("data/covariates/SAGU_MonthlyVisits_1979-2022.csv")
+  # Identify months when surveys occurred
+  surveymonths <- unique(c(month(occasions$start), month(occasions$end)))
+  # Calculate the total number of visitors during survey months each year
+  vis <- monthlyvisits %>%
+    pivot_longer(cols = JAN:DEC, 
+                 names_to = "month",
+                 names_transform = list(month = str_to_title),
+                 values_to = "visitors") %>%
+    mutate(mon = match(month, month.abb)) %>%
+    filter(Year %in% YEARS & mon %in% surveymonths) %>%
+    group_by(Year) %>%
+    summarize(visitors = sum(visitors)) %>%
+    data.frame()
+  visits <- matrix(vis$visitors, 
+                   nrow = dim(dh)[1],
+                   ncol = dim(dh)[2],
+                   byrow = TRUE)
+  # Standardize
+  visits_mn <- mean(visits)
+  visits_sd <- sd(visits)
+  visits_z <- (visits - visits_mn)/visits_sd
+}
+
+# Monthly traffic data (currently only available for SAGW)
+if (PARK == "SAGW") {
+  # Read in data
+  monthlytraffic <- read.csv("data/covariates/SAGW_MonthlyTraffic_1992-2022.csv")
+  # Identify months when surveys occurred
+  surveymonths <- unique(c(month(occasions$start), month(occasions$end)))
+  # Calculate total traffic (averaged across locations) during survey months 
+  # each year
+  traff <- monthlytraffic %>%
+    pivot_longer(cols = JAN:DEC, 
+                 names_to = "month",
+                 names_transform = list(month = str_to_title),
+                 values_to = "traffic") %>%
+    mutate(mon = match(month, month.abb)) %>%
+    filter(Year %in% YEARS & mon %in% surveymonths) %>%
+    group_by(Year, Loc) %>%
+    summarize(traffic = sum(traffic), .groups = "keep") %>%
+    group_by(Year) %>%
+    summarize(traffic = mean(traffic)) %>%
+    data.frame()
+  traffic <- matrix(traff$traffic, 
+                    nrow = dim(dh)[1],
+                    ncol = dim(dh)[2],
+                    byrow = TRUE)
+  # Standardize
+  traffic_mn <- mean(traffic)
+  traffic_sd <- sd(traffic)
+  traffic_z <- (traffic - traffic_mn)/traffic_sd
+}
+# Note: traffic and visitors were pretty well correlated for 2017-2020, but 
+# not in 2021-2022 (overall r = 0.50)
+
 # Only other annual covariates are weather related
 
 # Load rasters with seasonal weather data (that also varies over space)
@@ -319,6 +384,12 @@ invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
 # Load multi-layer raster with spatial data
 spat_raster <- readRDS(paste0("data/covariates/spatial-cov-", PARK, ".rds"))
 
+# We have 2 distance-to-boundary layers, one that applies to the entire park
+# boundary and one that applies to boundaries that are adjacent to unprotected
+# lands (boundaryUP). For now, we'll remove the original boundary layer
+spat_raster <- subset(spat_raster, "boundary", negate = TRUE)
+names(spat_raster)[names(spat_raster) == "boundaryUP"] <- "boundary"
+
 # Create dataframe with covariate values for each camera location
 spatial_covs <- locs_park
 # Ensure the order is the same as what's in the detection history matrix
@@ -370,7 +441,7 @@ cor_df <- cor_df %>%
 # in a list. Elements can be vectors with length equal to the number of sites 
 # (for spatial covariates), or they can be n_sites * n_years matrices (for 
 # annual varying covariates that may or may not vary spatially)
-occ_covs <- list(boundary_z = spatial_covs$boundary_z, 
+occ_covs <- list(boundary_z = spatial_covs$boundaryUP_z, 
                  east_z = spatial_covs$east_z,
                  elev_z = spatial_covs$elev_z,
                  north_z = spatial_covs$north_z,
@@ -395,7 +466,9 @@ if (PARK == "SAGW") {
                 list(wash_z = spatial_covs$wash_z,
                      vegclass2 = spatial_covs$vegclass2,
                      vegclass3 = spatial_covs$vegclass3,
-                     ppt10_z = ppt10_z))
+                     ppt10_z = ppt10_z,
+                     visits_z = visits_z,
+                     traffic_z = traffic_z))
 }
 
 # Then, put covariates that could be used in the detection part of the model in 
@@ -403,7 +476,7 @@ if (PARK == "SAGW") {
 # (for spatial covariates), can be n_sites * n_years matrices (for 
 # annual varying covariates that may or may not vary spatially), or can be 
 # observation-level covariates that vary over sites, years, and occasions.
-det_covs <- list(boundary_z = spatial_covs$boundary_z, 
+det_covs <- list(boundary_z = spatial_covs$boundaryUP_z, 
                  east_z = spatial_covs$east_z,
                  elev_z = spatial_covs$elev_z,
                  north_z = spatial_covs$north_z,
@@ -426,7 +499,9 @@ if (PARK == "SAGW") {
   det_covs <- c(det_covs,
                 list(wash_z = spatial_covs$wash_z,
                      vegclass2 = spatial_covs$vegclass2,
-                     vegclass3 = spatial_covs$vegclass3))
+                     vegclass3 = spatial_covs$vegclass3,
+                     visits_z = visits_z,
+                     traffic_z = traffic_z))
 }
 
 # spOccupancy can't take lat/long, so we'll need to reproject coordinates to 
