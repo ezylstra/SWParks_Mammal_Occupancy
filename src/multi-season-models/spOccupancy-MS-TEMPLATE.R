@@ -248,7 +248,7 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 5 
+  best_index <- 9 
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -401,7 +401,11 @@ if (length(psi_spatcovs) > 0) {
 #------------------------------------------------------------------------------#
 # Calculate and create figures trends in occurrence probability over time
 #------------------------------------------------------------------------------#
-  
+
+# Note: if there are other annual covariates in the model (eg, traffic), this is 
+# the predicted trend assuming mean levels of that covariate each year. In other
+# words, this is the predicted trend after accounting for all other covariates.
+
 trend <- trend_plot_occ(model = best, 
                         data_list = data_list,
                         covariate_table = covariates,
@@ -415,13 +419,13 @@ plot_save <- trend +
   theme_classic(base_size = 8)
 plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
                    PARK, "-", SPECIES, "-Trend-(BoundaryWashVeg).jpg")
-ggsave(filename = plotname,
-       plot = plot_save,
-       device = "jpeg",
-       width = 4,
-       height = 4,
-       units = "in",
-       dpi = 600)
+# ggsave(filename = plotname,
+#        plot = plot_save,
+#        device = "jpeg",
+#        width = 4,
+#        height = 4,
+#        units = "in",
+#        dpi = 600)
 
 #------------------------------------------------------------------------------#
 # Calculate and create figures depicting marginal effects of covariates on 

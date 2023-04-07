@@ -476,9 +476,7 @@ trend_plot_occ <- function(model,
   yaxis_label <- paste0("Proportion of area used (", 
                         cred_interval, 
                         "% CI)")
-  
 
-  
   if (raw_occ) {
     
     # Calculate the number of sites with at least one detection in a year
