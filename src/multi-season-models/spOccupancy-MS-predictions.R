@@ -6,7 +6,7 @@
 # src/multi-season-models/PARK/spOccupancy-PARK-SPECIES_YEARS.R)
 
 # ER Zylstra
-# Updated 2023-04-06
+# Updated 2023-04-07
 ################################################################################
 
 # Objects created in this script:
@@ -18,9 +18,9 @@
 # Create multi-layer raster with covariate data
 #------------------------------------------------------------------------------#
 
-# Extract layers from spat_raster for spatial covariates in best model 
-# (excluding non-spatial covariates like year, traffic, and visits if present)
-psi_rasters <- spat_raster[[psi_spatcovs]]
+# Extract layers from park_raster for spatial covariates in best model 
+# (excluding non-spatial covariates like year, traffic, and visits)
+psi_rasters <- park_raster[[psi_spatcovs]]
 
 # Standardize values, where needed
 zs <- which(str_detect(psi_spatcovs_z, "_z"))
@@ -61,16 +61,61 @@ psi_rasters_df <- psi_rasters_df %>%
   dplyr::filter(nNAs == 0) %>%
   select(-nNAs)
 
-# Predict occurrence in the first and last year of the dataset
+# Select years for prediction (will usually select first and last year of study)
 pred_years <- YEARS[c(1, length(YEARS))]
 
 # Create 3-dimensional array of data with dimensions: 1 = number of sites; 2 = 
-# number of prediction years; 3 = number of predictors, including the intercept
-X.0 <- array (1, dim = c(nrow(psi_rasters_df), 
+# number of prediction years; 3 = number of predictors, including the intercept.
+# (Remember, we're only running this script if we have at >=1 spatial covariate)
+X.0 <- array(NA, dim = c(nrow(psi_rasters_df), 
                          length(pred_years), 
                          ncol(best$beta.samples)))
+# Make first slice = 1 for the intercept
+X.0[, , 1] <- 1
 
+# Extract order of all covariates in the model
 cov_order <- occ_estimates$Covariate
+
+# Grab standardized values of annual, non-spatial covariates for prediction 
+# years and place them in the appropriate slice of X.0
+if ("years_z" %in% cov_order) {
+  year_pred <- matrix(rep((pred_years - mean(data_list$occ.covs$years)) / 
+                            sd(data_list$occ.covs$years),
+                          nrow(psi_rasters_df)),
+                      nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                      byrow = TRUE)
+  X.0[, , which(cov_order == "years_z")] <- year_pred
+}
+if ("traffic_z" %in% cov_order) {
+  traffic_pred <- matrix(rep(data_list$occ.covs$traffic_z[1, which(YEARS %in% pred_years)],
+                             nrow(psi_rasters_df)),
+                      nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                      byrow = TRUE)
+  X.0[, , which(cov_order == "traffic_z")] <- traffic_pred
+}
+if ("visits_z" %in% cov_order) {
+  visits_pred <- matrix(rep(data_list$occ.covs$visits_z[1, which(YEARS %in% pred_years)],
+                            nrow(psi_rasters_df)),
+                         nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                         byrow = TRUE)
+  X.0[, , which(cov_order == "visits_z")] <- visits_pred
+}
+
+# Identify which slices of X.0 haven't been filled in yet. The number of slices
+# should equal the number of spatial covariates in the model
+slicestofill <- which(is.na(X.0[1, 1, ]))
+
+if (length(slicestofill) != length(psi_spatcovs)) {
+  message("Dimensions of X.0 inconsistent with the number of spatial covariates.", 
+          " Did not finish creating X.0.")
+} else {
+  # Fill in X.0 will values of spatial covariates from psi_rasters_df
+  for (i in 1:length(psi_spatcovs)) {
+    X.0[, , slicestofill[i]] <- psi_rasters_df[, i + 1]
+  }
+}
+
+
 
 ######### TODO: Adapt next section to deal with other annual covariates (eg, visits, traffic)
 
@@ -90,18 +135,19 @@ if (length(cov_order) > 1) {
 
 # Make predictions with predict.PGOcc() 
   # t.cols: index for which years you want predictions for (of only those years
-  # we have data for)
+    # we have data for)
   # ignore.RE: specify whether or not we want to ignore unstructured random 
-  # effects in the prediction and just use the fixed effects and any structured 
-  # random effects (ignore.RE = TRUE), or include unstructured random effects for 
-  # prediction (ignore.RE = FALSE). When ignore.RE = FALSE, the estimated values 
-  # of the unstructured random effects are included in the prediction for both 
-  # sampled and unsampled sites. For sampled sites, these effects come directly 
-  # from those estimated from the model, whereas for unsampled sites, the effects 
-  # are drawn from a normal distribution using our estimates of the random effect 
-  # variance. Including unstructured random effects in the predictions will 
-  # generally improve prediction at sampled sites, and will lead to nearly 
-  # identical point estimates at non-sampled sites, but with larger uncertainty.
+    # effects in the prediction and just use the fixed effects and any 
+    # structured random effects (ignore.RE = TRUE), or include unstructured 
+    # random effects for prediction (ignore.RE = FALSE). When ignore.RE = FALSE, 
+    # the estimated values of the unstructured random effects are included in 
+    # the prediction for both sampled and unsampled sites. For sampled sites, 
+    # these effects come directly from those estimated from the model, whereas 
+    # for unsampled sites, the effects are drawn from a normal distribution 
+    # using our estimates of the random effect variance. Including unstructured 
+    # random effects in the predictions will generally improve prediction at 
+    # sampled sites, and will lead to nearly identical point estimates at 
+    # non-sampled sites, but with larger uncertainty.
 
 ignore.RE <- FALSE
 # If we want to include unstructured REs in predictions, we need to add a slice
@@ -115,7 +161,7 @@ if (ignore.RE == FALSE) {
 
 best_pred <- predict(object = best, 
                      X.0 = X.0,
-                     t.cols = which(YEARs %in% pred_years),
+                     t.cols = which(YEARS %in% pred_years),
                      ignore.RE = ignore.RE,
                      type = "occupancy")
 
