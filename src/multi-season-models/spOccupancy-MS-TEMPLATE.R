@@ -6,7 +6,7 @@
 # src/multi-season-model/PARK/spOccupancy-PARK-SPECIES-YEARS.R)
 
 # ER Zylstra
-# Updated 2023-03-06
+# Updated 2023-04-07
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -121,9 +121,6 @@ OCC_MODELS2 <- list(c("slope2", "years"),
                     # c("trailpoi", "years"),
                     c("slope2", "boundary", "years"),
                     c("traffic", "slope2", "years"))
-# OCC_MODELS2 <- list(c("boundary", "veg", "wash", "years"),
-#                     c("boundary", "years"),
-#                     c("veg", "wash", "years"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -251,7 +248,7 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 9 
+  best_index <- 5 
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -263,13 +260,25 @@ best_psi_model <- model_specs[best_index, 1]
 best_p_model <- model_specs[best_index, 2]
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
+# And for occurrence, extract names of spatial covariates
 psi_covs_z <- create_cov_list(best_psi_model)
-psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
+if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
+  psi_covs_z <- character(0)
+  psi_covs <- character(0)
+  psi_spatcovs_z <- character(0)
+  psi_spatcovs <- character(0)
+} else {
+  psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
+  psi_spatcovs_z <- psi_covs_z[!psi_covs_z %in% c("years_z", "visits_z", "traffic_z")]
+  psi_spatcovs <- psi_covs[!psi_covs %in% c("years", "visits", "traffic")]  
+}
 p_covs_z <- create_cov_list(best_p_model)
-p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
-# For occurrence, extract names of spatial covariates
-psi_spatcovs_z <- psi_covs_z[!psi_covs_z %in% c("years_z", "visits_z", "traffic_z")]
-psi_spatcovs <- psi_covs[!psi_covs %in% c("years", "visits", "traffic")]
+if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
+  p_covs_z <- character(0)
+  p_covs <- character(0)
+} else {
+  p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
+}
 
 # View parameter estimates
 summary(best)
@@ -337,50 +346,57 @@ plot(best$alpha.samples, density = FALSE)
 # }
 
 #------------------------------------------------------------------------------#
-# Calculate and visualize predicted probabilities of occupancy, across park
+# Calculate and visualize predicted probabilities of occurrence, across park
 #------------------------------------------------------------------------------#
 
-source("src/multi-season-models/spOccupancy-MS-predictions.R")
-  # Note: this can take several minutes to run.
+# Create spatial predictions IF there are spatial covariates in the occurrence
+# part of the model. 
+# NOTE 1: this script will not work if there are covariates in the model that 
+# vary over space and time (eg, precipitation variables). Need to add this.
+# NOTE 2: this can take several minutes to run.
 
-# This script creates:
-  # best_pred: a list with predictions for each raster cell, MCMC sample
-  # preds_mn_firstyr: a raster with mean occurrence probability in each cell 
-  # in the first year (across MCMC samples)
-  # preds_mn_lastyr: a raster with mean occurrence probability in each cell 
-  # in the last year (across MCMC samples)
-  # preds_sd_firstyr: a raster with SDs in each cell in the first year
-  # preds_sd_lastyr: a raster with SDs in each cell in the last year
-  # plot_preds_mn_firstyr: a ggplot object with predicted mean values across 
-  # park in the first year
-  # plot_preds_mn_lastyr: a ggplot object with predicted mean values across 
-  # park in the last year
-  # plot_preds_sd_firstyr: a ggplot object with predicted SD values across park 
-  # in the first year
-  # plot_preds_sd_lastyr: a ggplot object with predicted SD values across park 
-  # in the last year
+if (length(psi_spatcovs) > 0) {
+  source("src/multi-season-models/spOccupancy-MS-predictions.R")
 
-# Plot predicted means in first, last year
-  grid.arrange(plot_preds_mn_firstyr, plot_preds_mn_lastyr, nrow = 2)
-
-# Plot predicted SDs in first, last year
-  grid.arrange(plot_preds_sd_firstyr, plot_preds_sd_lastyr, nrow = 2)
-
-# Can save any of the plots to file (example below):
-plot_save <- plot_preds_mn_lastyr +
-  theme_bw(base_size = 8)
-plot_save1 <- plot_preds_mn_firstyr +
-  theme_bw(base_size = 8)
-plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
-                   PARK, "-", SPECIES, "-OccProbMN-BoundaryWashVeg-",
-                   YEARS[length(YEARS)], ".jpg")
-ggsave(filename = plotname,
-       plot = plot_save,
-       device = "jpeg",
-       width = 4,
-       height = 4,
-       units = "in",
-       dpi = 600)
+  # This script creates:
+    # best_pred: a list with predictions for each raster cell, MCMC sample
+    # preds_mn_firstyr: a raster with mean occurrence probability in each cell 
+    # in the first year (across MCMC samples)
+    # preds_mn_lastyr: a raster with mean occurrence probability in each cell 
+    # in the last year (across MCMC samples)
+    # preds_sd_firstyr: a raster with SDs in each cell in the first year
+    # preds_sd_lastyr: a raster with SDs in each cell in the last year
+    # plot_preds_mn_firstyr: a ggplot object with predicted mean values across 
+    # park in the first year
+    # plot_preds_mn_lastyr: a ggplot object with predicted mean values across 
+    # park in the last year
+    # plot_preds_sd_firstyr: a ggplot object with predicted SD values across park 
+    # in the first year
+    # plot_preds_sd_lastyr: a ggplot object with predicted SD values across park 
+    # in the last year
+  
+  # Plot predicted means in first, last year
+    grid.arrange(plot_preds_mn_firstyr, plot_preds_mn_lastyr, nrow = 2)
+  
+  # Plot predicted SDs in first, last year
+    grid.arrange(plot_preds_sd_firstyr, plot_preds_sd_lastyr, nrow = 2)
+  
+  # Can save any of the plots to file (example below):
+  plot_save <- plot_preds_mn_lastyr +
+    theme_bw(base_size = 8)
+  plot_save1 <- plot_preds_mn_firstyr +
+    theme_bw(base_size = 8)
+  plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
+                     PARK, "-", SPECIES, "-OccProbMN-BoundaryWashVeg-",
+                     YEARS[length(YEARS)], ".jpg")
+  # ggsave(filename = plotname,
+  #        plot = plot_save,
+  #        device = "jpeg",
+  #        width = 4,
+  #        height = 4,
+  #        units = "in",
+  #        dpi = 600)
+}
 
 #------------------------------------------------------------------------------#
 # Calculate and create figures trends in occurrence probability over time
