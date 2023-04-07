@@ -104,7 +104,7 @@ OCC_NULL <- TRUE
 # Pick covariates to include in simple candidate models via the short_name 
 # column in the covariates dataframe. Note that including "years" as a 
 # covariate creates a trend model (logit-linear trend in occurrence probability)
-OCC_MODELS1 <- c("years", "visits", "traffic")
+OCC_MODELS1 <- c("years", "visits")
 
 # To combine covariates in a single candidate model, provide a vector of 
 # short_names. Compile these vectors into a list.
@@ -117,7 +117,7 @@ OCC_MODELS2 <- list(c("slope2", "years"),
                     # c("pois", "years"),
                     # c("roads", "years"),
                     # c("trail", "years"),
-                    c("roadbound", "years"),
+                    # c("roadbound", "years"),
                     # c("trailpoi", "years"),
                     c("slope2", "boundary", "years"),
                     c("traffic", "slope2", "years"))
@@ -144,7 +144,7 @@ DET_MODELS1 <- c("effort")
 # short_names (Note: not including camera_2022 in models since that seems to
 # cause some problems, likely because that's the last year we have data for. 
 # Random yearly effects might be more effective)
-# DET_MODELS2 <- list(c("day2", "deploy", "effort"))
+DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models
@@ -248,7 +248,7 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 9 
+  best_index <- 4 
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -406,37 +406,38 @@ if (length(psi_spatcovs) > 0) {
 # the predicted trend assuming mean levels of that covariate each year. In other
 # words, this is the predicted trend after accounting for all other covariates.
 
-trend <- trend_plot_occ(model = best, 
-                        data_list = data_list,
-                        covariate_table = covariates,
-                        raw_occ = TRUE,
-                        central_meas = mean,
-                        lower_ci = 0.025,
-                        upper_ci = 0.975)
-trend
-# Save to file
-plot_save <- trend +
-  theme_classic(base_size = 8)
-plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
-                   PARK, "-", SPECIES, "-Trend-(BoundaryWashVeg).jpg")
-# ggsave(filename = plotname,
-#        plot = plot_save,
-#        device = "jpeg",
-#        width = 4,
-#        height = 4,
-#        units = "in",
-#        dpi = 600)
-
+if ("years" %in% psi_covs) {
+  trend <- trend_plot_occ(model = best, 
+                          data_list = data_list,
+                          covariate_table = covariates,
+                          raw_occ = TRUE,
+                          central_meas = mean,
+                          lower_ci = 0.025,
+                          upper_ci = 0.975)
+  trend
+  # Save to file
+  plot_save <- trend +
+    theme_classic(base_size = 8)
+  plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
+                     PARK, "-", SPECIES, "-Trend-(BoundaryWashVeg).jpg")
+  # ggsave(filename = plotname,
+  #        plot = plot_save,
+  #        device = "jpeg",
+  #        width = 4,
+  #        height = 4,
+  #        units = "in",
+  #        dpi = 600)
+}
+  
 #------------------------------------------------------------------------------#
 # Calculate and create figures depicting marginal effects of covariates on 
 # occurrence probability (predicted covariate effects assuming all other 
 # covariates held constant)
 #------------------------------------------------------------------------------#
 
-# TODO: Update this section ####################################################  
-  
 # Identify continuous covariates in occurrence part of the best model
-  psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
+# Excluding years (trend) since that was covered in section above. 
+  psi_continuous <- psi_covs_z[!psi_covs_z %in% c("vegclass2", "vegclass3", "years_z")]
   psi_cont_unique <- unique(psi_continuous)
   psi_n_cont <- length(psi_cont_unique)
 
@@ -491,10 +492,8 @@ plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
 # constant)
 #------------------------------------------------------------------------------#
 
-  # TODO: Update this section ####################################################    
-  
 # Identify continuous covariates in occurrence part of the best model
-p_continuous <- p_covs_z[p_covs_z != "1"]
+p_continuous <- p_covs_z[!p_covs_z %in% c("vegclass2", "vegclass3")]
 p_cont_unique <- unique(p_continuous)
 p_n_cont <- length(p_cont_unique)
 
@@ -509,9 +508,11 @@ p_n_cont <- length(p_cont_unique)
              marginal_plot_det(covariate = cov, 
                                model = best, 
                                data_list = data_list,
-                               covariate_table = covariates))
+                               covariate_table = covariates,
+                               central_meas = mean))
     } 
   }
+
 # Can view these plots, calling them by name. Available plots listed here:
   str_subset(ls(), "marginal_p_")
   

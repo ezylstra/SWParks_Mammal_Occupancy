@@ -289,8 +289,8 @@ marginal_plot_occ <- function(covariate,
   
   cols <- str_subset(colnames(best$beta.samples), pattern = covariate)
   beta_samples <- best$beta.samples[,c("(Intercept)", cols)]
-  X_cov <- seq(from = min(data_list$occ.covs[, covariate]), 
-               to = max(data_list$occ.covs[, covariate]),
+  X_cov <- seq(from = min(data_list$occ.covs[[covariate]]), 
+               to = max(data_list$occ.covs[[covariate]]),
                length = 100)
   X_cov <- cbind(1, X_cov)
   
@@ -306,12 +306,24 @@ marginal_plot_occ <- function(covariate,
   preds_ucl <- apply(preds, 1, quantile, upper_ci)
   
   # Identify covariate values for x-axis (on original scale)
-  if (str_detect(covariate, "_z")) {
-    cov_mn <- mean(data_list$occ.covs[,str_remove(covariate, "_z")])
-    cov_sd <- sd(data_list$occ.covs[,str_remove(covariate, "_z")])
-    cov_plot <- X_cov[,2] * cov_sd + cov_mn
+  # If it's a spatial covariate:
+  if (any(str_detect(colnames(spatial_covs), covariate))) {
+    if (str_detect(covariate, "_z")) {
+      cov_mn <- mean(spatial_covs[,str_remove(covariate, "_z")])
+      cov_sd <- sd(spatial_covs[,str_remove(covariate, "_z")])
+      cov_plot <- X_cov[,2] * cov_sd + cov_mn
+    } else {
+      cov_plot <- X_cov[,2] 
+    }
   } else {
-    cov_plot <- X_cov[,2] 
+  # Otherwise it's an annual covariate (other than years)
+    if (str_detect(covariate, "_z")) {
+      cov_mn <- mean(c(get(str_remove(covariate, "_z"))))
+      cov_sd <- sd(c(get(str_remove(covariate, "_z"))))
+      cov_plot <- X_cov[,2] * cov_sd + cov_mn
+    } else {
+      cov_plot <- X_cov[,2] 
+    }
   }
   
   # Create and save plots for later viewing
@@ -385,19 +397,26 @@ marginal_plot_det <- function(covariate,
   preds_ucl <- apply(preds, 1, quantile, upper_ci)
   
   # Identify covariate values for x-axis (on original scale)
-  if (str_detect(covariate, "_z")) {
-    if (str_remove(covariate, "_z") %in% colnames(data_list$occ.covs)) {
-      cov_mn <- mean(data_list$occ.covs[,str_remove(covariate, "_z")])
-      cov_sd <- sd(data_list$occ.covs[,str_remove(covariate, "_z")])
+  # If it's a spatial covariate:
+  if (any(str_detect(colnames(spatial_covs), covariate))) {
+    if (str_detect(covariate, "_z")) {
+      cov_mn <- mean(spatial_covs[,str_remove(covariate, "_z")], )
+      cov_sd <- sd(spatial_covs[,str_remove(covariate, "_z")])
+      cov_plot <- X_cov[,2] * cov_sd + cov_mn
     } else {
-      cov_mn <- mean(data_list$det.covs[[str_remove(covariate, "_z")]], na.rm = TRUE)
-      cov_sd <- sd(data_list$det.covs[[str_remove(covariate, "_z")]], na.rm = TRUE)
+      cov_plot <- X_cov[,2] 
     }
-    cov_plot <- X_cov[,2] * cov_sd + cov_mn
   } else {
-    cov_plot <- X_cov[,2] 
-  }
-  
+    # Otherwise it's an annual or survey covariate
+    if (str_detect(covariate, "_z")) {
+      cov_mn <- mean(c(get(str_remove(covariate, "_z"))), na.rm = TRUE)
+      cov_sd <- sd(c(get(str_remove(covariate, "_z"))), na.rm = TRUE)
+      cov_plot <- X_cov[,2] * cov_sd + cov_mn
+    } else {
+      cov_plot <- X_cov[,2] 
+    }
+  }  
+
   # Create and save plots for later viewing
   data_plot <- data.frame(x = cov_plot,
                           cent = preds_cent,

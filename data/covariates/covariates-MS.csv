@@ -24,6 +24,6 @@ either,SAGW,annual,ppt10,ppt10_z,Precipitation during previous 10 months (Mar-De
 either,ORPI,annual,ppt10,ppt10_z,Precipitation during previous 10 months (May-Feb; mm)
 detection,all,occasion,day,day_z,Day of the year
 detection,all,occasion,day2,day_z + I(day_z^2),Day of the year
-detection,all,occasion,deploy,deploy_exp,Deployment personnel experience
+detection,all,occasion,deploy_exp,deploy_exp,Deployment personnel experience
 detection,all,occasion,effort,effort_z,Proportion of days camera was operational
 detection,all,annual,camera_2022,camera_2022,"Indicator for 2022, when different cameras were used"
