@@ -10,6 +10,8 @@ either,all,none,roads,roads_z,Distance to nearest road (m)
 either,all,none,slope,slope_z,Slope (degrees)
 either,all,none,slope2,slope_z + I(slope_z^2),Slope (degrees)
 either,all,none,trail,trail_z,Distance to nearest trail (m)
+either,all,none,roadbound,roadbound_z,Distance to nearest road or unprotected boundary (m)
+either,all,none,trailpoi,trailpoi_z,Distance to nearest trail or point of interest (m)
 either,CHIR,none,burn,burn_severity,Burn severity
 either,SAGW,none,wash,wash_z,Distance to nearest wash (m)
 either,SAGW,none,veg,vegclass2 + vegclass3,NA
