@@ -11,7 +11,7 @@
 # eventually automate this.
 
 # ER Zylstra
-# Updated 2023-04-06
+# Updated 2023-04-07
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -382,13 +382,13 @@ invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
 #------------------------------------------------------------------------------#
 
 # Load multi-layer raster with spatial data
-spat_raster <- readRDS(paste0("data/covariates/spatial-cov-", PARK, ".rds"))
+park_raster <- readRDS(paste0("data/covariates/spatial-cov-", PARK, ".rds"))
 
-# We have 2 distance-to-boundary layers, one that applies to the entire park
+# We have two distance-to-boundary layers, one that applies to the entire park
 # boundary and one that applies to boundaries that are adjacent to unprotected
-# lands (boundaryUP). For now, we'll remove the original boundary layer
-spat_raster <- subset(spat_raster, "boundary", negate = TRUE)
-names(spat_raster)[names(spat_raster) == "boundaryUP"] <- "boundary"
+# lands (boundaryUP). For now, we'll remove the original boundary layer.
+park_raster <- subset(park_raster, "boundary", negate = TRUE)
+names(park_raster)[names(park_raster) == "boundaryUP"] <- "boundary"
 
 # Create dataframe with covariate values for each camera location
 spatial_covs <- locs_park
@@ -397,7 +397,7 @@ spatial_covs <- spatial_covs[match(rownames(dh), spatial_covs$loc),]
 
 # Extract covariate values for each camera location
 spatial_covs <- cbind(spatial_covs, 
-                      terra::extract(x = spat_raster, 
+                      terra::extract(x = park_raster, 
                                      y = spatial_covs[,c("long", "lat")],
                                      ID = FALSE))
 
@@ -441,7 +441,7 @@ cor_df <- cor_df %>%
 # in a list. Elements can be vectors with length equal to the number of sites 
 # (for spatial covariates), or they can be n_sites * n_years matrices (for 
 # annual varying covariates that may or may not vary spatially)
-occ_covs <- list(boundary_z = spatial_covs$boundaryUP_z, 
+occ_covs <- list(boundary_z = spatial_covs$boundary_z, 
                  east_z = spatial_covs$east_z,
                  elev_z = spatial_covs$elev_z,
                  north_z = spatial_covs$north_z,
@@ -476,7 +476,7 @@ if (PARK == "SAGW") {
 # (for spatial covariates), can be n_sites * n_years matrices (for 
 # annual varying covariates that may or may not vary spatially), or can be 
 # observation-level covariates that vary over sites, years, and occasions.
-det_covs <- list(boundary_z = spatial_covs$boundaryUP_z, 
+det_covs <- list(boundary_z = spatial_covs$boundary_z, 
                  east_z = spatial_covs$east_z,
                  elev_z = spatial_covs$elev_z,
                  north_z = spatial_covs$north_z,
