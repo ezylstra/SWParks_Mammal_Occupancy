@@ -62,7 +62,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "URCI"
+SPECIES <- "PETA"
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -102,21 +102,25 @@ covariates %>%
 OCC_NULL <- TRUE
 
 # Pick covariates to include in simple candidate models via the short_name 
-# column in the covariates dataframe. Note that including "years_z" as a 
+# column in the covariates dataframe. Note that including "years" as a 
 # covariate creates a trend model (logit-linear trend in occurrence probability)
-OCC_MODELS1 <- c("years")
+OCC_MODELS1 <- c("years", "visits", "traffic")
 
 # To combine covariates in a single candidate model, provide a vector of 
 # short_names. Compile these vectors into a list.
 # e.g., c("aspect", "boundary") would create the following model for occurrence: 
 # psi ~ east + north + boundary
-OCC_MODELS2 <- list(c("veg", "wash", "years"),
-                    c("elev2", "years"),
-                    c("slope2", "years"),
+OCC_MODELS2 <- list(c("slope2", "years"),
+                    # c("veg", "wash", "years"),
+                    # c("elev2", "years"),
                     c("boundary", "years"),
-                    c("pois", "years"),
-                    c("roads", "years"),
-                    c("trail", "years"))
+                    # c("pois", "years"),
+                    # c("roads", "years"),
+                    # c("trail", "years"),
+                    c("roadbound", "years"),
+                    # c("trailpoi", "years"),
+                    c("slope2", "boundary", "years"),
+                    c("traffic", "slope2", "years"))
 # OCC_MODELS2 <- list(c("boundary", "veg", "wash", "years"),
 #                     c("boundary", "years"),
 #                     c("veg", "wash", "years"))
@@ -133,7 +137,7 @@ covariates %>%
   
 # Logical indicating whether a null model for detection should be included in 
 # the candidate model set
-DET_NULL <- TRUE
+DET_NULL <- FALSE
 
 # Pick covariates to include in simple candidate models via the short_name 
 # column in the covariates dataframe
@@ -143,7 +147,7 @@ DET_MODELS1 <- c("effort")
 # short_names (Note: not including camera_2022 in models since that seems to
 # cause some problems, likely because that's the last year we have data for. 
 # Random yearly effects might be more effective)
-DET_MODELS2 <- list(c("day2", "deploy", "effort"))
+# DET_MODELS2 <- list(c("day2", "deploy", "effort"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models
@@ -247,7 +251,7 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 2 
+  best_index <- 9 
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -258,13 +262,14 @@ best <- out_list[[best_index]]
 best_psi_model <- model_specs[best_index, 1]
 best_p_model <- model_specs[best_index, 2]
 
-# Extract covariate names (with and without "_z" subscripts) from best model
+# Extract names of covariates (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(best_psi_model)
-psi_covs_z <- psi_covs_z[psi_covs_z != "years_z"]
-p_covs_z <- create_cov_list(best_p_model)
-p_covs_z <- p_covs_z[p_covs_z != "years_z"]
 psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
+p_covs_z <- create_cov_list(best_p_model)
 p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
+# For occurrence, extract names of spatial covariates
+psi_spatcovs_z <- psi_covs_z[!psi_covs_z %in% c("years_z", "visits_z", "traffic_z")]
+psi_spatcovs <- psi_covs[!psi_covs %in% c("years", "visits", "traffic")]
 
 # View parameter estimates
 summary(best)
@@ -286,11 +291,11 @@ det_estimates <- det_estimates %>%
 estimates <- rbind(occ_estimates, det_estimates)
 
 # Can save this table to file with code below
-write.csv(estimates,
-          file = paste0("C:/Users/erin/Desktop/Mammals/",
-                        PARK, "-", SPECIES, "-", 
-                        YEARS[1], YEARS[length(YEARS)], ".csv"),
-          row.names = FALSE)
+# write.csv(estimates,
+#           file = paste0("C:/Users/erin/Desktop/Mammals/",
+#                         PARK, "-", SPECIES, "-", 
+#                         YEARS[1], YEARS[length(YEARS)], ".csv"),
+#           row.names = FALSE)
 
 # Trace plots
 plot(best$beta.samples, density = FALSE)

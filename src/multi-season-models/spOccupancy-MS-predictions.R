@@ -6,7 +6,7 @@
 # src/multi-season-models/PARK/spOccupancy-PARK-SPECIES_YEARS.R)
 
 # ER Zylstra
-# Updated 2023-03-06
+# Updated 2023-04-06
 ################################################################################
 
 # Objects created in this script:
@@ -18,21 +18,21 @@
 # Create multi-layer raster with covariate data
 #------------------------------------------------------------------------------#
 
-# Extract layers from spat_raster for covariates in best model (excluding years
-# if present)
-psi_rasters <- spat_raster[[psi_covs]]
+# Extract layers from spat_raster for spatial covariates in best model 
+# (excluding non-spatial covariates like year, traffic, and visits if present)
+psi_rasters <- spat_raster[[psi_spatcovs]]
 
 # Standardize values, where needed
-zs <- which(str_detect(psi_covs_z, "_z"))
+zs <- which(str_detect(psi_spatcovs_z, "_z"))
 for (z in zs) {
-  var_name <- psi_covs[z]
+  var_name <- psi_spatcovs[z]
   var_mn <- mean(spatial_covs[, var_name])
   var_sd <- sd(spatial_covs[, var_name])
   psi_rasters[[z]] <- (psi_rasters[[z]] - var_mn) / var_sd
 }
 
 # Create quadratics, where needed
-quads <- which(duplicated(psi_covs))
+quads <- which(duplicated(psi_spatcovs))
 for (q in quads) {
   psi_rasters[[q]] <- psi_rasters[[q]] * psi_rasters[[q]]
   names(psi_rasters[[q]]) <- paste0(names(psi_rasters[[q]]), "2")
@@ -71,6 +71,8 @@ X.0 <- array (1, dim = c(nrow(psi_rasters_df),
                          ncol(best$beta.samples)))
 
 cov_order <- occ_estimates$Covariate
+
+######### TODO: Adapt next section to deal with other annual covariates (eg, visits, traffic)
 
 if (length(cov_order) > 1) {
   if ("years_z" %in% cov_order) {
