@@ -11,7 +11,7 @@
   # Method used to select a "best" model for inferences: STAT
 
 # ER Zylstra
-# Updated 2023-02-03
+# Updated 2023-04-14
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -65,7 +65,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "CALA"
+SPECIES <- "PETA"
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -109,7 +109,7 @@ OCC_NULL <- TRUE
 OCC_MODELS1 <- c("aspect", "elev2", "slope", "veg")
 
 # To combine covariates in a single candidate model, provide a vector of 
-# short_names 
+# short_names. Compile these vectors into a list.
 # e.g., c("aspect", "boundary") would create the following model for occurrence: 
 # psi ~ east + north + boundary
 OCC_MODELS2 <- list(c("veg", "boundary"),
@@ -127,14 +127,14 @@ covariates %>%
   
 # Logical indicating whether a null model for detection should be included in 
 # the candidate model set
-DET_NULL <- TRUE
+DET_NULL <- FALSE
 
 # Pick covariates to include in simple candidate models via the short_name 
 # column in the covariates dataframe
 DET_MODELS1 <- c("effort")
 
 # To combine different covariates in a candidate model, provide a vector of 
-# short_names
+# short_names. Compile those vectors into a list.
 DET_MODELS2 <- list(c("day2", "deploy", "effort"))
 
 #------------------------------------------------------------------------------#
@@ -143,7 +143,7 @@ DET_MODELS2 <- list(c("day2", "deploy", "effort"))
 
 # Use OCC and DET objects to create formulas for candidate models:
 source("src/single-season-models/spOccupancy-create-model-formulas.R")
-    
+ 
 message("Check candidate models:", sep = "\n")
 model_specs
 
@@ -152,9 +152,9 @@ model_specs
 #------------------------------------------------------------------------------#
 
 # Set MCMC parameters
-N_SAMPLES <- 5000
-N_BURN <- 3000
-N_THIN <- 2
+N_SAMPLES <- 8000
+N_BURN <- 4000
+N_THIN <- 8
 N_CHAINS <- 3
 
 # Run candidate models using spOccupancy package
@@ -194,7 +194,7 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 20  
+  best_index <- 3  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -205,11 +205,21 @@ best <- out_list[[best_index]]
 best_psi_model <- model_specs[best_index, 1]
 best_p_model <- model_specs[best_index, 2]
 
-# Extract covariate names (with and without "_z" subscripts) from best model
+# Extract names of covariates (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(best_psi_model)
+if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
+  psi_covs_z <- character(0)
+  psi_covs <- character(0)
+} else {
+  psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
+}
 p_covs_z <- create_cov_list(best_p_model)
-psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
-p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
+if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
+  p_covs_z <- character(0)
+  p_covs <- character(0)
+} else {
+  p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
+}
 
 # View parameter estimates
 summary(best)
@@ -222,12 +232,19 @@ det_estimates <- parameter_estimates(model = best,
                                      parameter = "det",
                                      lower_ci = 0.025,
                                      upper_ci = 0.975)
-# Can save these tables to file with code below
-# write.csv(occ_estimates,
-#           file = "C:/Users/erin/Desktop/occupancy_estimates.csv",
-#           row.names = FALSE)
-# write.csv(det_estimates,
-#           file = "C:/Users/erin/Desktop/detection_estimates.csv",
+occ_estimates <- occ_estimates %>%
+  rename(Covariate = Parameter) %>%
+  mutate(Parameter = "Occurrence", .before = "Covariate")
+det_estimates <- det_estimates %>%
+  rename(Covariate = Parameter) %>%
+  mutate(Parameter = "Detection", .before = "Covariate")
+estimates <- rbind(occ_estimates, det_estimates)
+
+# Can save this table to file with amended version of code below
+# write.csv(estimates,
+#           file = paste0("C:/Users/erin/Desktop/Mammals/",
+#                         PARK, "-", SPECIES, "-",
+#                         YEAR, ".csv"),
 #           row.names = FALSE)
 
 # Trace plots
@@ -273,31 +290,39 @@ if (ppc.site < 0.1 | ppc.site > 0.9) {
 # Calculate and visualize predicted probabilities of occupancy, across park
 #------------------------------------------------------------------------------#
 
-source("src/single-season-models/spOccupancy-predictions.R")
-  # Note: this can take several minutes to run.
+############### Pick up here #################################################
 
-# This script creates:
-  # best_pred: a list with predictions for each raster cell, MCMC sample
-  # preds_mn: a raster with mean values in each cell (across MCMC samples)
-  # preds_sd: a raster with SDs in each cell (across MCMC samples)
-  # plot_preds_mn: a ggplot object with predicted mean values across park
-  # plot_preds_sd: a ggplot object with predicted sd values across park
+# Create spatial predictions IF there are spatial covariates in the occurrence
+# part of the model. 
+# NOTE: this can take several minutes to run.
 
-# Plot predicted means
-  plot_preds_mn 
-
-# Plot predicted sds
-  plot_preds_sd
-
-# Can save either of the plots to file (example below):
-# ggsave(filename = "C:/Users/erin/Desktop/SPECIES_MeanOccupancy.jpg",
-#        plot = plot_preds_mn,
-#        device = "jpeg",
-#        width = 4,
-#        height = 4,
-#        units = "in",
-#        dpi = 600)  
+if (length(psi_covs) > 0) {
+  source("src/single-season-models/spOccupancy-predictions.R")
+    # Note: this can take several minutes to run.
   
+  # This script creates:
+    # best_pred: a list with predictions for each raster cell, MCMC sample
+    # preds_mn: a raster with mean values in each cell (across MCMC samples)
+    # preds_sd: a raster with SDs in each cell (across MCMC samples)
+    # plot_preds_mn: a ggplot object with predicted mean values across park
+    # plot_preds_sd: a ggplot object with predicted sd values across park
+  
+  # Plot predicted means
+    plot_preds_mn 
+  
+  # Plot predicted sds
+    plot_preds_sd
+  
+  # Can save either of the plots to file (example below):
+  # ggsave(filename = "C:/Users/erin/Desktop/SPECIES_MeanOccupancy.jpg",
+  #        plot = plot_preds_mn,
+  #        device = "jpeg",
+  #        width = 4,
+  #        height = 4,
+  #        units = "in",
+  #        dpi = 600)  
+}
+ 
 #------------------------------------------------------------------------------#
 # Calculate and create figures depicting marginal effects of covariates on 
 # occurrence probability (predicted covariate effects assuming all other 
