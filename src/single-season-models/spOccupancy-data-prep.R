@@ -6,7 +6,7 @@
 # src/single-seasons/models/YEAR/spOccupancy-PARK-SPECIES_YEAR.R)
 
 # ER Zylstra
-# Updated 2023-01-26
+# Updated 2023-04-14
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -175,7 +175,13 @@ day_z <- (day - day_mn)/day_sd
 #------------------------------------------------------------------------------#
 
 # Load multi-layer raster with spatial data
-spat_raster <- readRDS(paste0("data/covariates/spatial-cov-", PARK, ".rds"))
+park_raster <- readRDS(paste0("data/covariates/spatial-cov-", PARK, ".rds"))
+
+# We have two distance-to-boundary layers, one that applies to the entire park
+# boundary and one that applies to boundaries that are adjacent to unprotected
+# lands (boundaryUP). For now, we'll remove the original boundary layer.
+park_raster <- subset(park_raster, "boundary", negate = TRUE)
+names(park_raster)[names(park_raster) == "boundaryUP"] <- "boundary"
 
 # Create dataframe with covariate values for each camera location
 spatial_covs <- locs_park
@@ -184,7 +190,7 @@ spatial_covs <- spatial_covs[match(rownames(dh), spatial_covs$loc),]
 
 # Extract covariate values for each camera location
 spatial_covs <- cbind(spatial_covs, 
-                      terra::extract(x = spat_raster, 
+                      terra::extract(x = park_raster, 
                                      y = spatial_covs[,c("long", "lat")],
                                      ID = FALSE))
 
@@ -211,9 +217,9 @@ cor_df <- cor_df %>%
   arrange(variable1, variable2) %>%
   rename(corr = Freq)
 # View those pairs with high correlations
-cor_df %>%
-  arrange(desc(corr)) %>%
-  filter(abs(corr) > 0.5)
+# cor_df %>%
+#   arrange(desc(corr)) %>%
+#   filter(abs(corr) > 0.5)
 
 #------------------------------------------------------------------------------#
 # Create data object for spOccupancy package
@@ -222,20 +228,19 @@ cor_df %>%
 # First put covariates that could be used in the detection model in a list
 # Elements can be n_sites * n_occasions matrices (for survey covariates)
 # or vectors of length n_sites (for spatial covariates)
-det_covs <- list(day = day,
-                 deploy_exp = deploy_exp,
-                 effort = effort,
-                 day_z = day_z,
+det_covs <- list(day_z = day_z,
                  deploy_exp = deploy_exp,
                  effort_z = effort_z,
-                 boundary_z = spatial_covs$boundary_z,
+                 boundary_z = spatial_covs$boundary_z, 
                  east_z = spatial_covs$east_z,
                  elev_z = spatial_covs$elev_z,
                  north_z = spatial_covs$north_z,
                  pois_z = spatial_covs$pois_z,
                  roads_z = spatial_covs$roads_z,
                  slope_z = spatial_covs$slope_z,
-                 trail_z = spatial_covs$trail_z)
+                 trail_z = spatial_covs$trail_z,
+                 roadbound_z = spatial_covs$roadbound_z,
+                 trailpoi_z = spatial_covs$trailpoi_z)
 if (PARK == "CHIR") {
   det_covs <- c(det_covs, 
                 list(burn_severity = spatial_covs$burn_severity_2011))
