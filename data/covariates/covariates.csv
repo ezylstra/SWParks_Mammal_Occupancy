@@ -17,5 +17,5 @@ either,SAGW,wash,wash_z,Distance to nearest wash (m)
 either,SAGW,veg,vegclass2 + vegclass3,NA
 detection,all,day,day_z,Day of the year
 detection,all,day2,day_z + I(day_z^2),Day of the year
-detection,all,deploy,deploy_exp,Deployment personnel experience
+detection,all,deploy_exp,deploy_exp,Deployment personnel experience
 detection,all,effort,effort_z,Proportion of days camera was operational
