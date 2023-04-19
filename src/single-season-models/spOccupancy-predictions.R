@@ -18,7 +18,7 @@
 #------------------------------------------------------------------------------#
 
 # Extract layers from spat_raster for covariates in best model
-psi_rasters <- spat_raster[[psi_covs]]
+psi_rasters <- park_raster[[psi_covs]]
 
 # Standardize values, where needed
 zs <- which(str_detect(psi_covs_z, "_z"))
@@ -36,12 +36,6 @@ for (q in quads) {
   names(psi_rasters[[q]]) <- paste0(names(psi_rasters[[q]]), "2")
 }
 
-# Add layer for intercept
-rast_int <- rast(psi_rasters[[1]])
-rast_int <- rast(rast_int, vals = 1)
-names(rast_int) <- "int"
-psi_rasters <- c(rast_int, psi_rasters)
-
 # Crop and mask by park boundary
 park_boundaries <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
 park_boundary <- subset(park_boundaries, park_boundaries$UNIT_CODE == PARK)
@@ -56,14 +50,21 @@ psi_rasters <- mask(psi_rasters, park_boundary)
 psi_rasters_df <- as.data.frame(psi_rasters, cell = TRUE)
 
 # Remove rows that have any NA covariate values
-psi_rasters_df$nNAs <- apply(psi_rasters_df[, -1], 1, function(x) sum(is.na(x)))
+if (ncol(psi_rasters_df) == 2) {
+  psi_rasters_df$nNAs <- 1*is.na(psi_rasters_df[,2])
+} else {
+  psi_rasters_df$nNAs <- apply(psi_rasters_df[, -1], 1, function(x) sum(is.na(x)))
+}
 psi_rasters_df <- psi_rasters_df %>%
   dplyr::filter(nNAs == 0) %>%
   select(-nNAs)
 
 # Make predictions with predict.PGOcc() 
 # Note: this can take a couple minutes, but is still faster than doing math
-best_pred <- predict(best, as.matrix(psi_rasters_df[, -1]))
+X.0 <- as.matrix(psi_rasters_df[, -1])
+# Make first column = 1 for the intercept
+X.0 <- cbind(1, X.0)
+best_pred <- predict(object = best, X.0 = X.0)
 
 # Plot predicted occupancy probability (can also take a couple minutes)
 plot_dat <- data.frame(cell = psi_rasters_df$cell,

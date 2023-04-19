@@ -194,7 +194,7 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 3  
+  best_index <- 7  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -248,8 +248,8 @@ estimates <- rbind(occ_estimates, det_estimates)
 #           row.names = FALSE)
 
 # Trace plots
-plot(best$beta.samples, density = FALSE)
-plot(best$alpha.samples, density = FALSE)
+# plot(best$beta.samples, density = FALSE)
+# plot(best$alpha.samples, density = FALSE)
 
 # Posterior predictive checks (want Bayesian p-values between 0.1 and 0.9)
 ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
@@ -289,8 +289,6 @@ if (ppc.site < 0.1 | ppc.site > 0.9) {
 #------------------------------------------------------------------------------#
 # Calculate and visualize predicted probabilities of occupancy, across park
 #------------------------------------------------------------------------------#
-
-############### Pick up here #################################################
 
 # Create spatial predictions IF there are spatial covariates in the occurrence
 # part of the model. 
