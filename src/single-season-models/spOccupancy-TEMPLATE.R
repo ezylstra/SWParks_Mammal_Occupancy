@@ -106,7 +106,7 @@ OCC_NULL <- TRUE
 
 # Pick covariates to include in simple candidate models via the short_name 
 # column in the covariates dataframe
-OCC_MODELS1 <- c("aspect", "elev2", "slope", "veg")
+OCC_MODELS1 <- c("aspect", "elev2", "slope2", "veg")
 
 # To combine covariates in a single candidate model, provide a vector of 
 # short_names. Compile these vectors into a list.
@@ -135,7 +135,7 @@ DET_MODELS1 <- c("effort")
 
 # To combine different covariates in a candidate model, provide a vector of 
 # short_names. Compile those vectors into a list.
-DET_MODELS2 <- list(c("day2", "deploy", "effort"))
+DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models
@@ -194,7 +194,7 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 7  
+  best_index <- 1  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -306,10 +306,10 @@ if (length(psi_covs) > 0) {
     # plot_preds_sd: a ggplot object with predicted sd values across park
   
   # Plot predicted means
-    plot_preds_mn 
+    print(plot_preds_mn) 
   
   # Plot predicted sds
-    plot_preds_sd
+    print(plot_preds_sd)
   
   # Can save either of the plots to file (example below):
   # ggsave(filename = "C:/Users/erin/Desktop/SPECIES_MeanOccupancy.jpg",
@@ -367,14 +367,12 @@ if (length(psi_covs) > 0) {
 
 # If there are no covariates in the model (ie, a null model), print overall 
 # occurrence probability
-  if (psi_n_cont == 0 & length(psi_covs) == 1) {
-    if (psi_covs == "1") {
-      overall_occ <- mean_estimate(model = best, 
-                                   parameter = "occ",
-                                   lower_ci = 0.025,
-                                   upper_ci = 0.975)
-      print(overall_occ)
-    }
+  if (psi_n_cont == 0 & length(psi_covs) == 0) {
+    overall_occ <- mean_estimate(model = best, 
+                                 parameter = "occ",
+                                 lower_ci = 0.025,
+                                 upper_ci = 0.975)
+    print(overall_occ)
   }  
   
 #------------------------------------------------------------------------------#
@@ -421,12 +419,10 @@ p_n_cont <- length(p_cont_unique)
 
 # If there are no covariates in the model (a null model), print overall 
 # detection probability
-  if (p_n_cont == 0 & length(p_covs) == 1) {
-    if (p_covs == "1") {
-      overall_det <- mean_estimate(model = best, 
-                                   parameter = "det",
-                                   lower_ci = 0.025,
-                                   upper_ci = 0.975)
-      print(overall_det)
-    }
+  if (p_n_cont == 0 & length(p_covs) == 0) {
+    overall_det <- mean_estimate(model = best, 
+                                 parameter = "det",
+                                 lower_ci = 0.025,
+                                 upper_ci = 0.975)
+    print(overall_det)
   }  
