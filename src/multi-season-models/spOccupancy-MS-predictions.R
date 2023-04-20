@@ -18,24 +18,34 @@
 # Create multi-layer raster with covariate data
 #------------------------------------------------------------------------------#
 
-# Extract layers from park_raster for spatial covariates in best model 
-# (excluding non-spatial covariates like year, traffic, and visits)
-psi_rasters <- park_raster[[psi_spatcovs]]
+# Identify time-invariant spatial covariates
+time_invar <- psi_spatcovs[!psi_spatcovs %in% c("ppt10", "monsoon_ppt")]
+time_invar_z <- psi_spatcovs_z[!psi_spatcovs_z %in% c("ppt10_z", "monsoon_ppt_z")]
 
-# Standardize values, where needed
-zs <- which(str_detect(psi_spatcovs_z, "_z"))
-for (z in zs) {
-  var_name <- psi_spatcovs[z]
-  var_mn <- mean(spatial_covs[, var_name])
-  var_sd <- sd(spatial_covs[, var_name])
-  psi_rasters[[z]] <- (psi_rasters[[z]] - var_mn) / var_sd
-}
-
-# Create quadratics, where needed
-quads <- which(duplicated(psi_spatcovs))
-for (q in quads) {
-  psi_rasters[[q]] <- psi_rasters[[q]] * psi_rasters[[q]]
-  names(psi_rasters[[q]]) <- paste0(names(psi_rasters[[q]]), "2")
+# Extract layers from park_raster for spatial covariates (that don't vary by
+# year) in best model 
+if (length(time_invar) > 0) {
+  psi_rasters <- park_raster[[time_invar]]
+  
+  # Standardize values, where needed
+  zs <- which(str_detect(time_invar_z, "_z"))
+  for (z in zs) {
+    var_name <- time_invar[z]
+    var_mn <- mean(spatial_covs[, var_name])
+    var_sd <- sd(spatial_covs[, var_name])
+    psi_rasters[[z]] <- (psi_rasters[[z]] - var_mn) / var_sd
+  }
+  
+  # Create quadratics, where needed
+  quads <- which(duplicated(time_invar))
+  for (q in quads) {
+    psi_rasters[[q]] <- psi_rasters[[q]] * psi_rasters[[q]]
+    names(psi_rasters[[q]]) <- paste0(names(psi_rasters[[q]]), "2")
+  }
+} else {
+  # If there are only time-varying spatial covariates, create a raster with 
+  # desired geometry (we won't need the actual values)
+  psi_rasters <- park_raster[["elev"]]
 }
 
 # Crop and mask by park boundary
@@ -87,49 +97,70 @@ if ("years_z" %in% cov_order) {
   X.0[, , which(cov_order == "years_z")] <- year_pred
 }
 if ("traffic_z" %in% cov_order) {
-  traffic_pred <- matrix(rep(data_list$occ.covs$traffic_z[1, which(YEARS %in% pred_years)],
-                             nrow(psi_rasters_df)),
-                      nrow = nrow(psi_rasters_df), ncol = length(pred_years),
-                      byrow = TRUE)
-  X.0[, , which(cov_order == "traffic_z")] <- traffic_pred
+  if (ANN_PREDS == "observed") {
+    traffic_pred <- matrix(rep(data_list$occ.covs$traffic_z[1, which(YEARS %in% pred_years)],
+                               nrow(psi_rasters_df)),
+                        nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                        byrow = TRUE)
+    X.0[, , which(cov_order == "traffic_z")] <- traffic_pred
+  } else {
+    X.0[, , which(cov_order == "traffic_z")] <- 0
+  }
 }
 if ("visits_z" %in% cov_order) {
-  visits_pred <- matrix(rep(data_list$occ.covs$visits_z[1, which(YEARS %in% pred_years)],
-                            nrow(psi_rasters_df)),
-                         nrow = nrow(psi_rasters_df), ncol = length(pred_years),
-                         byrow = TRUE)
-  X.0[, , which(cov_order == "visits_z")] <- visits_pred
-}
-
-# Identify which slices of X.0 haven't been filled in yet. The number of slices
-# should equal the number of spatial covariates in the model
-slicestofill <- which(is.na(X.0[1, 1, ]))
-
-if (length(slicestofill) != length(psi_spatcovs)) {
-  message("Dimensions of X.0 inconsistent with the number of spatial covariates.", 
-          " Did not finish creating X.0.")
-} else {
-  # Fill in X.0 will values of spatial covariates from psi_rasters_df
-  for (i in 1:length(psi_spatcovs)) {
-    X.0[, , slicestofill[i]] <- psi_rasters_df[, i + 1]
+  if (ANN_PREDS == "observed") {
+    visits_pred <- matrix(rep(data_list$occ.covs$visits_z[1, which(YEARS %in% pred_years)],
+                              nrow(psi_rasters_df)),
+                           nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                           byrow = TRUE)
+    X.0[, , which(cov_order == "visits_z")] <- visits_pred
+  } else {
+    X.0[, , which(cov_order == "visits_z")] <- 0
   }
 }
 
+# If annual, spatial covariates are in the occurrence model and we want to make 
+# predictions for the first and last year under observed conditions, then grab
+# the standarized values and place them in the appropriate slice of X.0
+if ("monsoon_ppt_z" %in% cov_order) {
+  if (ANN_PREDS == "observed") {
+    monsoon_raster <- rast(monsoon_list[which(YEARS %in% pred_years)])
+    monsoon_raster <- resample(monsoon_raster, psi_rasters, method = "near")
+    monsoon_df <- as.data.frame(monsoon_raster, cell = TRUE)
+    monsoon_df <- monsoon_df[monsoon_df$cell %in% psi_rasters_df$cell,]
+    monsoon_df[, -1] <- (monsoon_df[, -1] - monsoon_ppt_mn) / monsoon_ppt_sd
+    X.0[, , which(cov_order == "monsoon_ppt_z")] <- as.matrix(monsoon_df[, -1])
+  } else {
+    X.0[, , which(cov_order == "monsoon_ppt_z")] <- 0
+  }
+}
+if ("ppt10_z" %in% cov_order) {
+  if (ANN_PREDS == "observed") {
+    ppt10_raster <- rast(pp10_list[which(YEARS %in% pred_years)])
+    ppt10_raster <- resample(ppt10_raster, psi_rasters, method = "near")
+    ppt10_df <- as.data.frame(ppt10_raster, cell = TRUE)
+    ppt10_df <- ppt10_df[ppt10_df$cell %in% psi_rasters_df$cell,]
+    ppt10_df[, -1] <- (ppt10_df[, -1] - ppt10_mn) / ppt10_sd
+    X.0[, , which(cov_order == "ppt10_z")] <- as.matrix(ppt10_df[, -1])
+  } else {
+    X.0[, , which(cov_order == "ppt10_z")] <- 0
+  }
+}
 
+# Identify which slices of X.0 haven't been filled in yet (if any). The number 
+# of slices should equal the number of time-invariant spatial covariates in the 
+# model
+slicestofill <- which(is.na(X.0[1, 1, ]))
 
-######### TODO: Adapt next section to deal with other annual covariates (eg, visits, traffic)
-
-if (length(cov_order) > 1) {
-  if ("years_z" %in% cov_order) {
-    year_pred <- matrix(rep((pred_years - mean(data_list$occ.covs$years)) / 
-                              sd(data_list$occ.covs$years),
-                            nrow(psi_rasters_df)),
-                        nrow = nrow(psi_rasters_df), ncol = length(pred_years),
-                        byrow = TRUE)
-    X.0[, , length(cov_order)] <- year_pred
-  }  
-  for (i in 2:ncol(psi_rasters_df)) {
-    X.0[, , i] <- psi_rasters_df[, i]
+if (length(slicestofill > 0)) {
+  if (length(slicestofill) != length(time_invar)) {
+    message("Dimensions of X.0 inconsistent with the number of spatial covariates.", 
+            " Did not finish creating X.0.")
+  } else {
+    # Fill in X.0 will values of spatial covariates from psi_rasters_df
+    for (i in 1:length(time_invar)) {
+      X.0[, , slicestofill[i]] <- psi_rasters_df[, i + 1]
+    }
   }
 }
 

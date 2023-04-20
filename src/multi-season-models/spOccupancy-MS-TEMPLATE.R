@@ -6,7 +6,7 @@
 # src/multi-season-model/PARK/spOccupancy-PARK-SPECIES-YEARS.R)
 
 # ER Zylstra
-# Updated 2023-04-07
+# Updated 2023-04-20
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -111,16 +111,9 @@ OCC_MODELS1 <- c("years", "visits")
 # e.g., c("aspect", "boundary") would create the following model for occurrence: 
 # psi ~ east + north + boundary
 OCC_MODELS2 <- list(c("slope2", "years"),
-                    # c("veg", "wash", "years"),
-                    # c("elev2", "years"),
-                    c("boundary", "years"),
-                    # c("pois", "years"),
-                    # c("roads", "years"),
-                    # c("trail", "years"),
-                    # c("roadbound", "years"),
-                    # c("trailpoi", "years"),
-                    c("slope2", "boundary", "years"),
-                    c("traffic", "slope2", "years"))
+                    c("elev2", "years"),
+                    c("roadbound", "years"),
+                    c("veg", "years"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -307,8 +300,8 @@ estimates <- rbind(occ_estimates, det_estimates)
 #           row.names = FALSE)
 
 # Trace plots
-plot(best$beta.samples, density = FALSE)
-plot(best$alpha.samples, density = FALSE)
+# plot(best$beta.samples, density = FALSE)
+# plot(best$alpha.samples, density = FALSE)
 
 # Posterior predictive checks (want Bayesian p-values between 0.1 and 0.9)
 # ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
@@ -350,10 +343,19 @@ plot(best$alpha.samples, density = FALSE)
 #------------------------------------------------------------------------------#
 
 # Create spatial predictions IF there are spatial covariates in the occurrence
-# part of the model. 
-# NOTE 1: this script will not work if there are covariates in the model that 
-# vary over space and time (eg, precipitation variables). Need to add this.
-# NOTE 2: this can take several minutes to run.
+# part of the model. (Note that this can take several minutes to run.)
+
+# If there are time-varying covariates (other than year/trend) in the occurrence 
+# part of the model, identify whether we want predictions under average 
+# conditions ("averaged") or under observed conditions in the first and last 
+# year ("observed"). Note that if we're using "averaged" and years/trend isn't 
+# in the model, then predictions from the first and last year will be very,
+# but not identical if we're incoporating random effects.
+if (any(str_detect(string = psi_covs, 
+                   pattern = paste(c("visits", "traffic", "monsoon_ppt", "ppt10"),
+                                   collapse = "|")))) {
+  ANN_PREDS <- "observed"
+}  
 
 if (length(psi_spatcovs) > 0) {
   source("src/multi-season-models/spOccupancy-MS-predictions.R")
@@ -376,19 +378,20 @@ if (length(psi_spatcovs) > 0) {
     # in the last year
   
   # Plot predicted means in first, last year
-    grid.arrange(plot_preds_mn_firstyr, plot_preds_mn_lastyr, nrow = 2)
+    # grid.arrange(plot_preds_mn_firstyr, plot_preds_mn_lastyr, nrow = 2)
   
   # Plot predicted SDs in first, last year
-    grid.arrange(plot_preds_sd_firstyr, plot_preds_sd_lastyr, nrow = 2)
+    # grid.arrange(plot_preds_sd_firstyr, plot_preds_sd_lastyr, nrow = 2)
   
   # Can save any of the plots to file (example below):
   plot_save <- plot_preds_mn_lastyr +
     theme_bw(base_size = 8)
   plot_save1 <- plot_preds_mn_firstyr +
     theme_bw(base_size = 8)
-  plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
-                     PARK, "-", SPECIES, "-OccProbMN-BoundaryWashVeg-",
-                     YEARS[length(YEARS)], ".jpg")
+  # plotname <- paste0("C:/.../",
+  #                    PARK, "-", SPECIES, "-OccProbMN-",
+  #                    YEARS[length(YEARS)], ".jpg")
+										 
   # ggsave(filename = plotname,
   #        plot = plot_save,
   #        device = "jpeg",
@@ -414,12 +417,13 @@ if ("years" %in% psi_covs) {
                           central_meas = mean,
                           lower_ci = 0.025,
                           upper_ci = 0.975)
-  trend
+  print(trend)
   # Save to file
   plot_save <- trend +
     theme_classic(base_size = 8)
-  plotname <- paste0("C:/Users/erin/Desktop/Mammals/",
-                     PARK, "-", SPECIES, "-Trend-(BoundaryWashVeg).jpg")
+  # plotname <- paste0("C:/.../",
+  #                    PARK, "-", SPECIES, "-Trend.jpg")
+										 
   # ggsave(filename = plotname,
   #        plot = plot_save,
   #        device = "jpeg",
@@ -537,3 +541,10 @@ p_n_cont <- length(p_cont_unique)
                                  upper_ci = 0.975)
     print(overall_det)
   }  
+
+#------------------------------------------------------------------------------#
+# Clean up
+#------------------------------------------------------------------------------#
+
+# Remove weather rasters from local repo
+invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
