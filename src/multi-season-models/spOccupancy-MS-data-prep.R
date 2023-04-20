@@ -373,8 +373,7 @@ loc_matrix <- as.matrix(locs_park[,c("long", "lat")])
   ppt10_sd <- sd(ppt10)
   ppt10_z <- (ppt10 - ppt10_mn)/ppt10_sd 
 
-# Remove raster lists from workspace, and remove rasters from local repo
-rm(monsoon_list, ppt10_list)
+# Remove rasters from local repo
 invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
 
 #------------------------------------------------------------------------------#
