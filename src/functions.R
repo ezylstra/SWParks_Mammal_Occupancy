@@ -334,7 +334,7 @@ marginal_plot_occ <- function(covariate,
   cov_name <- ifelse(covariate=="burn_severity_2011",
                      "burn",
                      str_remove(covariate, "_z"))
-  
+
   cred_interval <- (upper_ci - lower_ci) * 100
   yaxis_label <- paste0("Predicted occurrence probability (", 
                         cred_interval, 
@@ -427,7 +427,7 @@ marginal_plot_det <- function(covariate,
   cov_name <- ifelse(covariate=="burn_severity_2011",
                      "burn",
                      str_remove(covariate, "_z"))
-  
+
   cred_interval <- (upper_ci - lower_ci) * 100
   yaxis_label <- paste0("Predicted detection probability (", 
                         cred_interval, 

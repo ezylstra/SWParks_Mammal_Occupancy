@@ -69,6 +69,8 @@ SPECIES <- "URCI"
 
 # Save this script as: src/single-season-models/YEAR/spOccupancy-PARK-SPECIES-YEAR.R
 
+# Save this script as: src/single-season-models/YEAR/spOccupancy-PARK-SPECIES-YEAR.R
+
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
 #------------------------------------------------------------------------------#
