@@ -64,6 +64,8 @@ detects %>%
 # Select species of interest (ideally with a detection rate of at least 5%)
 SPECIES <- "PETA"
 
+# Save this script as: src/multi-season-models/PARK/spOccupancy-PARK-SPECIES-FIRSTYEAR-LASTYEAR.R
+
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
 #------------------------------------------------------------------------------#
@@ -104,7 +106,7 @@ OCC_NULL <- TRUE
 # Pick covariates to include in simple candidate models via the short_name 
 # column in the covariates dataframe. Note that including "years" as a 
 # covariate creates a trend model (logit-linear trend in occurrence probability)
-OCC_MODELS1 <- c("years", "visits")
+OCC_MODELS1 <- c("years", "elev2")
 
 # To combine covariates in a single candidate model, provide a vector of 
 # short_names. Compile these vectors into a list.
@@ -113,7 +115,7 @@ OCC_MODELS1 <- c("years", "visits")
 OCC_MODELS2 <- list(c("slope2", "years"),
                     c("elev2", "years"),
                     c("roadbound", "years"),
-                    c("veg", "years"))
+                    c("aspect", "elev2", "years"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -294,7 +296,7 @@ estimates <- rbind(occ_estimates, det_estimates)
 
 # Can save this table to file with code below
 # write.csv(estimates,
-#           file = paste0("C:/Users/erin/Desktop/Mammals/",
+#           file = paste0("C:/.../",
 #                         PARK, "-", SPECIES, "-", 
 #                         YEARS[1], YEARS[length(YEARS)], ".csv"),
 #           row.names = FALSE)
@@ -494,7 +496,7 @@ if ("years" %in% psi_covs) {
 # constant)
 #------------------------------------------------------------------------------#
 
-# Identify continuous covariates in occurrence part of the best model
+# Identify continuous covariates in detection part of the best model
 p_continuous <- p_covs_z[!p_covs_z %in% c("vegclass2", "vegclass3")]
 p_cont_unique <- unique(p_continuous)
 p_n_cont <- length(p_cont_unique)
