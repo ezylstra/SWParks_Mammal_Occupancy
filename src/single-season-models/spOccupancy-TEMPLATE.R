@@ -67,6 +67,8 @@ detects %>%
 # Select species of interest (ideally with a detection rate of at least 5%)
 SPECIES <- "PETA"
 
+# Save this script as: src/single-season-models/YEAR/spOccupancy-PARK-SPECIES-YEAR.R
+
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
 #------------------------------------------------------------------------------#
@@ -381,7 +383,7 @@ if (length(psi_covs) > 0) {
 # constant)
 #------------------------------------------------------------------------------#
 
-# Identify continuous covariates in occurrence part of the best model
+# Identify continuous covariates in detection part of the best model
 p_continuous <- p_covs_z[p_covs_z != "1"]
 p_cont_unique <- unique(p_continuous)
 p_n_cont <- length(p_cont_unique)
@@ -397,7 +399,8 @@ p_n_cont <- length(p_cont_unique)
              marginal_plot_det(covariate = cov, 
                                model = best, 
                                data_list = data_list,
-                               covariate_table = covariates))
+                               covariate_table = covariates,
+                               central_meas = mean))
     } 
   }
 # Can view these plots, calling them by name. Available plots listed here:

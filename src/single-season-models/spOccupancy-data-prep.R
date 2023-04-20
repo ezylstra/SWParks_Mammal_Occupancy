@@ -243,7 +243,7 @@ det_covs <- list(day_z = day_z,
                  trailpoi_z = spatial_covs$trailpoi_z)
 if (PARK == "CHIR") {
   det_covs <- c(det_covs, 
-                list(burn_severity = spatial_covs$burn_severity_2011))
+                list(burn_severity_2011 = spatial_covs$burn_severity_2011))
 }
 if (PARK == "SAGW") {
   det_covs <- c(det_covs, 
