@@ -12,7 +12,7 @@ either,all,slope2,slope_z + I(slope_z^2),Slope (degrees)
 either,all,trail,trail_z,Distance to nearest trail (m)
 either,all,roadbound,roadbound_z,Distance to nearest road or unprotected boundary (m)
 either,all,trailpoi,trailpoi_z,Distance to nearest trail or point of interest (m)
-either,CHIR,burn,burn_severity,Burn severity
+either,CHIR,burn,burn_severity_2011,Burn severity
 either,SAGW,wash,wash_z,Distance to nearest wash (m)
 either,SAGW,veg,vegclass2 + vegclass3,NA
 detection,all,day,day_z,Day of the year
