@@ -11,7 +11,7 @@
   # Method used to select a "best" model for inferences: STAT
 
 # ER Zylstra
-# Updated 2023-04-14
+# Updated 2023-04-20
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -47,7 +47,7 @@ source("src/photo-data/format-mammal-data.R")
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "SAGW"
+PARK <- "CHIR"
 
 # Select year of interest
 YEAR <- 2022
@@ -65,7 +65,9 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "PETA"
+SPECIES <- "URCI"
+
+# Save this script as: src/single-season-models/YEAR/spOccupancy-PARK-SPECIES-YEAR.R
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -106,14 +108,13 @@ OCC_NULL <- TRUE
 
 # Pick covariates to include in simple candidate models via the short_name 
 # column in the covariates dataframe
-OCC_MODELS1 <- c("aspect", "elev2", "slope2", "veg")
+OCC_MODELS1 <- c("aspect", "elev2", "slope2")
 
 # To combine covariates in a single candidate model, provide a vector of 
 # short_names. Compile these vectors into a list.
 # e.g., c("aspect", "boundary") would create the following model for occurrence: 
 # psi ~ east + north + boundary
-OCC_MODELS2 <- list(c("veg", "boundary"),
-                    c("veg", "wash", "roads"))
+OCC_MODELS2 <- list(c("roadbound", "elev2"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -194,7 +195,7 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 1  
+  best_index <- 5  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -242,7 +243,7 @@ estimates <- rbind(occ_estimates, det_estimates)
 
 # Can save this table to file with amended version of code below
 # write.csv(estimates,
-#           file = paste0("C:/Users/erin/Desktop/Mammals/",
+#           file = paste0("C:/.../",
 #                         PARK, "-", SPECIES, "-",
 #                         YEAR, ".csv"),
 #           row.names = FALSE)
@@ -312,7 +313,7 @@ if (length(psi_covs) > 0) {
     print(plot_preds_sd)
   
   # Can save either of the plots to file (example below):
-  # ggsave(filename = "C:/Users/erin/Desktop/SPECIES_MeanOccupancy.jpg",
+  # ggsave(filename = "C:/.../SPECIES_MeanOccupancy.jpg",
   #        plot = plot_preds_mn,
   #        device = "jpeg",
   #        width = 4,
@@ -381,7 +382,7 @@ if (length(psi_covs) > 0) {
 # constant)
 #------------------------------------------------------------------------------#
 
-# Identify continuous covariates in occurrence part of the best model
+# Identify continuous covariates in detection part of the best model
 p_continuous <- p_covs_z[p_covs_z != "1"]
 p_cont_unique <- unique(p_continuous)
 p_n_cont <- length(p_cont_unique)
@@ -397,7 +398,8 @@ p_n_cont <- length(p_cont_unique)
              marginal_plot_det(covariate = cov, 
                                model = best, 
                                data_list = data_list,
-                               covariate_table = covariates))
+                               covariate_table = covariates,
+                               central_meas = mean))
     } 
   }
 # Can view these plots, calling them by name. Available plots listed here:
