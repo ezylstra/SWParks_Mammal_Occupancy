@@ -1,6 +1,5 @@
 ################################################################################
-# Template to run and evaluate a suite of multi-season occupancy models for 
-# a given park, set of years, and species (using the spOccupancy package)
+# Occurrence models for Black-tailed jackrabbits in SAGW, 2017-2022
 
 # ER Zylstra
 # Updated 2023-04-20
@@ -59,7 +58,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "PETA"
+SPECIES <- "LECA"
 
 # Save this script as: src/multi-season-models/PARK/spOccupancy-PARK-SPECIES-FIRSTYEAR-LASTYEAR.R
 
@@ -103,16 +102,15 @@ OCC_NULL <- TRUE
 # Pick covariates to include in simple candidate models via the short_name 
 # column in the covariates dataframe. Note that including "years" as a 
 # covariate creates a trend model (logit-linear trend in occurrence probability)
-OCC_MODELS1 <- c("years", "elev2")
+OCC_MODELS1 <- c("years", "slope2" ,"elev2")
 
 # To combine covariates in a single candidate model, provide a vector of 
 # short_names. Compile these vectors into a list.
 # e.g., c("aspect", "boundary") would create the following model for occurrence: 
 # psi ~ east + north + boundary
-OCC_MODELS2 <- list(c("slope2", "years"),
-                    c("elev2", "years"),
-                    c("roadbound", "years"),
-                    c("aspect", "elev2", "years"))
+OCC_MODELS2 <- list(c("slope2", "wash", "veg", "years"),
+                    c("slope", "roadbound", "years"),
+                    c("slope2", "wash", "veg", "roadbound", "years"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -136,7 +134,7 @@ DET_MODELS1 <- c("effort")
 # short_names (Note: not including camera_2022 in models since that seems to
 # cause some problems, likely because that's the last year we have data for. 
 # Random yearly effects might be more effective)
-DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
+# DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models

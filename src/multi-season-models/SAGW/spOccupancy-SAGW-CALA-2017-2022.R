@@ -1,9 +1,5 @@
 ################################################################################
-# Template to run and evaluate a suite of multi-season occupancy models for 
-# a given park, set of years, and species (using the spOccupancy package)
-
-# Objects that need to be specified to run models (ie, to create 
-# src/multi-season-model/PARK/spOccupancy-PARK-SPECIES-YEARS.R)
+# Occurrence models for Coyotes in SAGW, 2017-2022
 
 # ER Zylstra
 # Updated 2023-04-20
