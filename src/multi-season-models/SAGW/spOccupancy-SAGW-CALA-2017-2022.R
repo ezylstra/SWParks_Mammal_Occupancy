@@ -64,6 +64,8 @@ detects %>%
 # Select species of interest (ideally with a detection rate of at least 5%)
 SPECIES <- "CALA"
 
+# Save this script as: src/multi-season-models/PARK/spOccupancy-PARK-SPECIES-FIRSTYEAR-LASTYEAR.R
+
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
 #------------------------------------------------------------------------------#
@@ -243,7 +245,7 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 6
+  best_index <- 4 
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -296,7 +298,7 @@ estimates <- rbind(occ_estimates, det_estimates)
 
 # Can save this table to file with code below
 # write.csv(estimates,
-#           file = paste0("C:/Users/erin/Desktop/Mammals/",
+#           file = paste0("C:/.../",
 #                         PARK, "-", SPECIES, "-", 
 #                         YEARS[1], YEARS[length(YEARS)], ".csv"),
 #           row.names = FALSE)
@@ -390,10 +392,10 @@ if (length(psi_spatcovs) > 0) {
     theme_bw(base_size = 8)
   plot_save1 <- plot_preds_mn_firstyr +
     theme_bw(base_size = 8)
-  # plotname <- paste0("C:/..../",
+  # plotname <- paste0("C:/.../",
   #                    PARK, "-", SPECIES, "-OccProbMN-",
   #                    YEARS[length(YEARS)], ".jpg")
-  
+										 
   # ggsave(filename = plotname,
   #        plot = plot_save,
   #        device = "jpeg",
@@ -425,7 +427,7 @@ if ("years" %in% psi_covs) {
     theme_classic(base_size = 8)
   # plotname <- paste0("C:/.../",
   #                    PARK, "-", SPECIES, "-Trend.jpg")
-  
+										 
   # ggsave(filename = plotname,
   #        plot = plot_save,
   #        device = "jpeg",
@@ -496,7 +498,7 @@ if ("years" %in% psi_covs) {
 # constant)
 #------------------------------------------------------------------------------#
 
-# Identify continuous covariates in occurrence part of the best model
+# Identify continuous covariates in detection part of the best model
 p_continuous <- p_covs_z[!p_covs_z %in% c("vegclass2", "vegclass3")]
 p_cont_unique <- unique(p_continuous)
 p_n_cont <- length(p_cont_unique)
@@ -543,6 +545,10 @@ p_n_cont <- length(p_cont_unique)
                                  upper_ci = 0.975)
     print(overall_det)
   }  
-  
+
+#------------------------------------------------------------------------------#
+# Clean up
+#------------------------------------------------------------------------------#
+
 # Remove weather rasters from local repo
 invisible(file.remove(list.files(weather_folder, full.names = TRUE)))
