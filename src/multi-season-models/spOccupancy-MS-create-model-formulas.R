@@ -13,14 +13,16 @@
 #------------------------------------------------------------------------------#
 
 if (exists("OCC_MODELS1")) {
-  occm1 <- covariates$formula[covariates$short_name %in% OCC_MODELS1]
+  occm1 <- covariates$formula[covariates$short_name %in% OCC_MODELS1 &
+                                covariates$park %in% c("all", PARK)]
 } else {
   occm1 <- NA
 }
 if (exists("OCC_MODELS2")) {
   occm2 <- list()
   for (i in 1:length(OCC_MODELS2)) {
-    occm2[[i]] <- paste(covariates$formula[covariates$short_name %in% OCC_MODELS2[[i]]],
+    occm2[[i]] <- paste(covariates$formula[covariates$short_name %in% OCC_MODELS2[[i]] &
+                                             covariates$park %in% c("all", PARK)],
                         collapse = " + ")
   }
   occm2 <- unlist(occm2)
@@ -49,14 +51,16 @@ if (TIME_RE_OCC == "unstructured") {
 #------------------------------------------------------------------------------#
 
 if (exists("DET_MODELS1")) {
-  detm1 <- covariates$formula[covariates$short_name %in% DET_MODELS1]
+  detm1 <- covariates$formula[covariates$short_name %in% DET_MODELS1 &
+                                covariates$park %in% c("all", PARK)]
 } else {
   detm1 <- NA
 }
 if (exists("DET_MODELS2")) {
   detm2 <- list()
   for (i in 1:length(DET_MODELS2)) {
-    detm2[[i]] <- paste(covariates$formula[covariates$short_name %in% DET_MODELS2[[i]]],
+    detm2[[i]] <- paste(covariates$formula[covariates$short_name %in% DET_MODELS2[[i]] &
+                                             covariates$partk %in% c("all", PARK)],
                         collapse = " + ")
   }
   detm2 <- unlist(detm2)
