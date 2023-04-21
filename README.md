@@ -42,7 +42,7 @@ src/photo-data/format-mammal-data.R) as needed. _Note: we are now using the
 spOccupancy package to run single-season models._
 
 1. Open [spOccupancy-TEMPLATE.R](src/single-season-models/spOccupancy-TEMPLATE.R) 
-   and run through line 67, where you'll specify the park (PARK), year (YEAR), 
+   and run through line 68, where you'll specify the park (PARK), year (YEAR), 
    and species (SPECIES) of interest. 
 
 2. Save this script as: src/single-season-models/YEAR/spOccupancy-PARK-SPECIES-YEAR.R.
@@ -55,36 +55,35 @@ spOccupancy package to run single-season models._
 4. Run the rest of the script, beginning with the section "Look at results and 
    predictions from best model". Here, you'll select a model for inference,
    assess convergence and goodness-of-fit, produce tables with parameter 
-   estimates, and generate figures with predicted occurrence probabilities and 
-   marginal covariate effects.
+   estimates, generate a figure with predicted occurrence probabilities, and 
+   calculate marginal covariate effects.
 
-**To run a multi-season (dynamic) model** and estimate occupancy, detection 
-probability, and dynamic parameters (colonization, extinction), you'll need to
-run scripts in the src/multi-season-models folder. These files will call
-scripts in other folders (e.g., src/photo-data, JAGS) as needed. 
+**To run a multi-season (dynamic) model** and estimate annual occurrence and 
+detection probabilities, you'll need to access files in the 
+src/multi-season-models folder. These files will call scripts in other folders 
+(e.g., src/photo-dataformat-mammal-data.R) as needed. These are not explicit 
+dynamic models (that estimate colonization and extinction parameters), but
+instead model annual occurrence probabilities (that can vary as a function of 
+spatial or non-spatial annual covariates). _Note: we are now using the 
+spOccupancy package to run multi-season models._
 
-1. Use [MSoccupancy-wrapper.R](src/multi-season-models/MSoccupancy-wrapper.R) to
-   specify and run a multi-season occupancy model.
-   + In the first part of the script (~ the first 100 lines), specify the 
-     park, species, years, and covariates of interest (specifiable parameters in 
-     all caps).  
-   + Run the model in JAGS by calling 
-     [MSoccupancy-generic.R](src/multi-season-models/MSoccupancy-generic.R) 
-     using the source() function (line 103). 
-   + The last few lines of the script will save the model output along with 
-     other associated objects to file (in the output/models folder).
+1. Open [spOccupancy-MS-TEMPLATE.R](src/multi-season-models/spOccupancy-MS-TEMPLATE.R) 
+   and run through line 62, where you'll specify the park (PARK), years (YEARS), 
+   and species (SPECIES) of interest. 
 
-2. Use [MSoccupancy-results.R](src/multi-season-models/MSoccupancy-results.R) to
-   process results from a multi-season model run previously. This script:
-   + Loads a workspace with the jagsUI object and other dataframes
-   + Creates a table that summarizes covariate effects (with names)
-   + Creates a table with the estimated proportion of surveyed sites occupied 
-     each year
-   + Estimates (and plots) a logit-linear trend in occupancy for surveyed 
-     locations
-   + Provides example code to calculate and plot marginal covariate effects
-   + (in development) Creates maps with the predicted probability of occupancy 
-     in the first and last year
+2. Save this script as: 
+   src/multi-season-models/PARK/spOccupancy-PARK-SPECIES-FIRSTYEAR-LASTYEAR.R.
+  
+3. Continue running this script from line 63 through the section labeled "Run 
+   models and compare fit". In this part of the script, you'll specify 
+   covariates for a set of candidate models, run the models using the 
+   spOccupancy package, and create a table comparing model fit.
+
+4. Run the rest of the script, beginning with the section "Look at results and 
+   predictions from best model". Here, you'll select a model for inference,
+   assess convergence and goodness-of-fit, produce tables with parameter 
+   estimates, generate figures with predicted occurrence probabilities in
+   the first and last year, and calculate marginal covariate effects.
 
 ## Directory structure
 
@@ -104,13 +103,21 @@ scripts in other folders (e.g., src/photo-data, JAGS) as needed.
   single-season occupancy models, and interpret/visualize results.
     + 2022: scripts used to run occupancy models for select species in various
     parks in 2022. 
-    + JAGS: scripts used to run the models in JAGS (current not part of the 
+    + JAGS: scripts used to run the models in JAGS (no longer part of the 
     workflow).
   + functions.R: an R script that defines custom functions to be used in any 
-  script.    
+  script in the repo.    
   + map-detection-data: R scripts used to map detection data.
-  + multi-season-models: R scripts used to run multi-season models in JAGS 
-  (_need to work on this_)
+  + multi-season-models: R scripts used to process/format data, run 
+  multi-season occupancy models, and interpret/visualize results.
+    + CHIR: scripts used to run multi-season occupancy models for select species
+    in Chiricahua NM.
+    + JAGS: scripts used to run multi-season models in JAGS (no longer part of
+    the workflow.)
+    + ORPI: scripts used to run multi-season occupancy models for select species 
+    in Organ Pipe NM.
+    + SAGW: scripts used to run multi-season occupancy models for select species
+    in Saguaro NP.
 + output: Figures and tables summarizing survey effort and species detection
 data (_some files may not be under version control, but directory 
 structure is_).
@@ -141,19 +148,19 @@ src/covariate-data folder (should only need to be modified if new covariate
 data are available or in the case of climate data, modified each year if running 
 multi-season models)
 
-1. [get-roads-trails-pois-data.R](src/covariate-data/get-roads-trails-pois-data.R): 
-   Download feature data from NPS or other federal websites.
-
-2. [prep-spatial-covariate-data.R](src/covariate-data/prep-covaraite-data.R): 
-   Process spatial (time-invariant) data to generate rasters for each park.
-   
-3. [create-multi-layer-rasters.R](src/covariate-data/create-multi-layer-rasters.R):
+1. [create-multi-layer-rasters.R](src/covariate-data/create-multi-layer-rasters.R):
    Create a multi-layer raster for each park that contains all the spatial
    (time-invariant) covariate data at the same resolution and extent.
 
-4. [get-and-prep-climate-data.R](src/covariate-data/get-climate-data.R): 
+2. [get-and-prep-climate-data.R](src/covariate-data/get-climate-data.R): 
    Download gridMET climate data and create rasters.
 
+3. [get-roads-trails-pois-data.R](src/covariate-data/get-roads-trails-pois-data.R): 
+   Download feature data from NPS or other federal websites.
+
+4. [prep-spatial-covariate-data.R](src/covariate-data/prep-covaraite-data.R): 
+   Process spatial (time-invariant) data to generate rasters for each park.
+   
 Scripts used to create detection histories and run single-season occupancy models
 
 1. [spOccupancy-TEMPLATE.R](src/single-season-models/spOccupancy-TEMPLATE.R): 
@@ -183,33 +190,35 @@ Scripts used to create detection histories and run single-season occupancy model
    will typically be called from src/single-season-models/YEAR/spOccupancy-PARK-SPECIES-YEAR.R.)
  
 Scripts used to create detection histories and run multi-season occupancy models
-(**need to review**)
 
-1. [MSoccupancy-wrapper.R](src/multi-season-models/MSoccupancy-wrapper.R): Used
-   to specify and run a multi-season occupancy model. Specifiable parameters
-   (i.e., park, species, year, covariates) are denoted in all caps. There are
-   options to create quadratic terms and/or interactions among covariates. The
-   script runs the model in JAGS by calling 
-   [MSoccupancy-generic.R](src/multi-season-models/MSoccupancy-generic.R) and 
-   saves the jagsUI object with other relevant dataframes in an R workspace 
-   saved to the output/models folders.
-
-2. [MSoccupancy-generic.R](src/multi-season-models/MSoccupancy-generic.R): A 
-   script called by MSoccupancy-wrapper.R that reads in photo and covariate 
-   data, formats the data, and runs the model in JAGS.
-
-3. [MSoccupancy-results.R](src/multi-season-models/MSoccupancy-results.R): Used
-   to summarize, interpret, and visualize results from a multi-season occupancy
-   model. 
-
-4. [MSoccupancy-sagw-leca.R](src/multi-season-models/MSoccupancy-sagw-leca.R): 
-   Example of a multi-season (dynamic) occupancy analysis, using data for 
-   black-tailed jackrabbits in Saguaro National Park. _This file is now obsolete,
-   since it is now more efficient to specify a model for jackrabbits in SAGW 
-   using the MSoccupancy-wrapper.R script._
-
+1. [spOccupancy-MS-TEMPLATE.R](src/multi-season-models/spOccupancy-MS-TEMPLATE.R): 
+   A template to create a script that will run multi-season occupancy models 
+   for a selected park, species, and set of years. (this script calls src/functions.R 
+   and several scripts in the src/multi-season-models folder [see below])
+   
+2. [spOccupancy-MS-data-prep.R](src/multi-season-models/spOccupancy-MS-data-prep.R):
+   Formats detection and covariate data and packages everything into a list 
+   needed to run multi-season models in the spOccupancy package. (This script
+   will typically be called from 
+   src/multi-season-models/PARK/spOccupancy-PARK-SPECIES-YEARS.R.)
+   
+3. [spOccupancy-MS-create-model-formulas.R](src/multi-season-models/spOccupancy-MS-create-model-formulas.R):
+   Develop formulas for occurrence and detection parts of candidate models. (This 
+   script will typically be called from 
+   src/multi-season-models/PARK/spOccupancy-PARK-SPECIES-YEARS.R.)
+   
+4. [spOccupancy-MS-run-candidate-models.R](src/multi-season-models/spOccupancy-MS-run-candidate-models.R):
+   Run candidate multi-season models (with spOccupancy) and gather model 
+   diagnostics and statistics for comparisons. (This script will typically be 
+   called from src/multi-season-models/PARK/spOccupancy-PARK-SPECIES-YEARS.R.)
+   
+5. [spOccupancy-MS-predictions.R](src/multiseason-models/spOccupancy-MS-predictions.R):
+   Calculate predicted occurrence probabilities across a park in the first and
+   last year, and create ggplot objects that depict mean and SDs in each raster 
+   cell. (This script will typically be called from 
+   src/multi-season-models/YPARK/spOccupancy-PARK-SPECIES-YEARS.R.)
+   
 Scripts used to map detection data
-(**need to review**)
 
 1. [map-detection-data.R](src/map-detection-data/map-detection-data.R): Explore 
    how to create maps visualizing where species were detected in a park and 
