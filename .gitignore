@@ -25,6 +25,7 @@ data/covariates/rasters-SAGW/*
 
 # Output
 output/models-JAGS/*
+output/NPS-figures/*
 !output/models-JAGS/.gitkeep
 !output/models-JAGS/sagw-leca-MS-2022-10-19.Rdata
 !output/models-JAGS/sagw-leca-MS-2022-11-18.Rdata
