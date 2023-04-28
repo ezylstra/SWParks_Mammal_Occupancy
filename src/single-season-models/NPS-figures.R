@@ -44,7 +44,7 @@ park <- ifelse(PARK=="CHIR","Chiricahua NM",ifelse(PARK=="SAGW","Saguaro NP","Or
 
 for (fig in str_subset(ls(), "marginal_psi_")) {
   fig_NPS <- get(fig)
-  title <- paste("Occupancy probability of ",species$Common_name[species$Species_code==SPECIES], " vs. ", fig_NPS$labels[[1]], sep="")
+  title <- paste("Occurrence probability of ",species$Common_name[species$Species_code==SPECIES], " vs. ", fig_NPS$labels[[1]], sep="")
   subtitle <- paste(park, ", ", YEAR, sep="")
   fig_NPS <- fig_NPS + theme_NPS + ggtitle(str_wrap(title, 60), subtitle)
   fig_name <- fig
