@@ -35,7 +35,7 @@ theme_NPS <- ggplot2::theme_classic() +
 
 # get longer park name for use in plots
 park <- ifelse(PARK=="CHIR","Chiricahua NM",ifelse(PARK=="SAGW","Saguaro NP","Organ Pipe Cactus NM"))
-SpeciesName <- ifelse()
+
 
 #------------------------------------------------------------------------------#
 # Apply custom theme to trend plots (other co-variates at their means) 
@@ -105,7 +105,7 @@ if (length(psi_spatcovs) > 0) {
     theme(axis.line = element_blank()) + 
     theme(axis.text = element_blank()) + 
     theme(axis.ticks = element_blank())
-  plot_preds_firstyr_NPS
+  print(plot_preds_firstyr_NPS)
   ggsave(plot_preds_firstyr_NPS, file = paste(getwd(),"/output/NPS-figures/",PARK,"-",SPECIES,"-",min(YEARS),"_","MeanOccurrenceMap_4NPS.pdf",sep=""), device = cairo_pdf, dpi=300, width = 6, height = 4, units="in")
 }
 
@@ -120,6 +120,11 @@ if (length(psi_spatcovs) > 0) {
     theme(axis.line = element_blank()) + 
     theme(axis.text = element_blank()) + 
     theme(axis.ticks = element_blank())
-  plot_preds_lastyr_NPS
+  print(plot_preds_lastyr_NPS)
   ggsave(plot_preds_lastyr_NPS, file = paste(getwd(),"/output/NPS-figures/",PARK,"-",SPECIES,"-",max(YEARS),"_","MeanOccurrenceMap_4NPS.pdf",sep=""), device = cairo_pdf, dpi=300, width = 6, height = 4, units="in")
 }
+
+# if you want to see the first year and last year together (stacked) 
+# note that the scales are different for each year
+plot_preds_firstlast_NPS <- grid.arrange(plot_preds_firstyr_NPS, plot_preds_lastyr_NPS+theme(plot.title=element_blank()), nrow = 2)
+ggsave(plot_preds_firstlast_NPS, file = paste(getwd(),"/output/NPS-figures/",PARK,"-",SPECIES,"-",min(YEARS),"-",max(YEARS),"_","MeanOccurrenceMaps_4NPS.pdf",sep=""), device = cairo_pdf, dpi=300, width = 6, height = 6, units="in")
