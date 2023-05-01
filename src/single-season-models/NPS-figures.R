@@ -44,7 +44,7 @@ park <- ifelse(PARK=="CHIR","Chiricahua NM",ifelse(PARK=="SAGW","Saguaro NP","Or
 
 for (fig in str_subset(ls(), "marginal_psi_")) {
   fig_NPS <- get(fig)
-  title <- paste("Occurrence probability of ",species$Common_name[species$Species_code==SPECIES], " vs. ", fig_NPS$labels[[1]], sep="")
+  title <- paste("Occurrence probability of ",species$Common_name[species$Species_code==SPECIES], " vs. ", tolower(fig_NPS$labels[[1]]), sep="")
   subtitle <- paste(park, ", ", YEAR, sep="")
   fig_NPS <- fig_NPS + theme_NPS + ggtitle(str_wrap(title, 60), subtitle)
   fig_name <- fig
@@ -60,7 +60,7 @@ for (fig in str_subset(ls(), "marginal_psi_")) {
 
 for (fig in str_subset(ls(), "marginal_p_")) {
   fig_NPS <- get(fig)
-  title <- paste("Detection probability of ",species$Common_name[species$Species_code==SPECIES], " vs. ", fig_NPS$labels[[1]], sep="")
+  title <- paste("Detection probability of ",species$Common_name[species$Species_code==SPECIES], " vs. ", tolower(fig_NPS$labels[[1]]), sep="")
   subtitle <- paste(park, ", ", YEAR, sep="")
   fig_NPS <- fig_NPS + theme_NPS + ggtitle(str_wrap(title, 60), subtitle)
   fig_name <- fig
@@ -79,26 +79,30 @@ mn_title <-  paste("Mean occurrence probability of ",species$Common_name[species
 sd_title <-  paste("Standard deviation of occurrence probability of ",species$Common_name[species$Species_code==SPECIES], sep="")
 subtitle <- paste(park, ", ", YEAR, sep="")
   
-plot_preds_mn_NPS <- ggplot() + 
-  geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) + 
-  scale_fill_viridis_c(na.value = 'transparent') +
-  #geom_spatvector(data=park_boundary, fill=NA, color="black", size=0.5) + 
-  labs(fill = '', title = mn_title, subtitle = subtitle) +
-  theme_NPS +
-  theme(axis.line = element_blank()) + 
-  theme(axis.text = element_blank()) + 
-  theme(axis.ticks = element_blank())
-plot_preds_mn_NPS
-ggsave(plot_preds_mn_NPS, file = paste(getwd(),"/output/NPS-figures/",PARK,"-",SPECIES,"-",YEAR,"_","MeanOccurrenceMap_4NPS.pdf",sep=""), device = cairo_pdf, dpi=300, width = 6, height = 4, units="in")
+if (length(psi_covs) > 0) {
+  plot_preds_mn_NPS <- ggplot() + 
+    geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) + 
+    scale_fill_viridis_c(na.value = 'transparent') +
+    #geom_spatvector(data=park_boundary, fill=NA, color="black", size=0.5) + 
+    labs(fill = '', title = mn_title, subtitle = subtitle) +
+    theme_NPS +
+    theme(axis.line = element_blank()) + 
+    theme(axis.text = element_blank()) + 
+    theme(axis.ticks = element_blank())
+  print(plot_preds_mn_NPS)
+  ggsave(plot_preds_mn_NPS, file = paste(getwd(),"/output/NPS-figures/",PARK,"-",SPECIES,"-",YEAR,"_","MeanOccurrenceMap_4NPS.pdf",sep=""), device = cairo_pdf, dpi=300, width = 6, height = 4, units="in")
+}
 
-plot_preds_sd_NPS <- ggplot() + 
-  geom_spatraster(data = preds_sd, mapping = aes(fill = sd)) + 
-  scale_fill_viridis_c(na.value = 'transparent') +
-  #geom_spatvector(data=park_boundary, fill=NA, color="black", size=0.5) + 
-  labs(fill = '', title = sd_title, subtitle = subtitle) +
-  theme_NPS +
-  theme(axis.line = element_blank()) + 
-  theme(axis.text = element_blank()) + 
-  theme(axis.ticks = element_blank())
-plot_preds_sd_NPS
-ggsave(plot_preds_sd_NPS, file = paste(getwd(),"/output/NPS-figures/",PARK,"-",SPECIES,"-",YEAR,"_","sdOccurrenceMap_4NPS.pdf",sep=""), device = cairo_pdf, dpi=300, width = 6, height = 4, units="in")
+if (length(psi_covs) > 0) {
+  plot_preds_sd_NPS <- ggplot() + 
+    geom_spatraster(data = preds_sd, mapping = aes(fill = sd)) + 
+    scale_fill_viridis_c(na.value = 'transparent') +
+    #geom_spatvector(data=park_boundary, fill=NA, color="black", size=0.5) + 
+    labs(fill = '', title = sd_title, subtitle = subtitle) +
+    theme_NPS +
+    theme(axis.line = element_blank()) + 
+    theme(axis.text = element_blank()) + 
+    theme(axis.ticks = element_blank())
+  print(plot_preds_sd_NPS)
+  ggsave(plot_preds_sd_NPS, file = paste(getwd(),"/output/NPS-figures/",PARK,"-",SPECIES,"-",YEAR,"_","sdOccurrenceMap_4NPS.pdf",sep=""), device = cairo_pdf, dpi=300, width = 6, height = 4, units="in")
+}
