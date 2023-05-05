@@ -348,8 +348,8 @@ estimates <- rbind(occ_estimates, det_estimates)
 # part of the model, identify whether we want predictions under average 
 # conditions ("averaged") or under observed conditions in the first and last 
 # year ("observed"). Note that if we're using "averaged" and years/trend isn't 
-# in the model, then predictions from the first and last year will be very,
-# but not identical if we're incoporating random effects.
+# in the model, then predictions from the first and last year will be very
+# similar (but not identical if we're incorporating random effects).
 if (any(str_detect(string = psi_covs, 
                    pattern = paste(c("visits", "traffic", "monsoon_ppt", "ppt10"),
                                    collapse = "|")))) {
