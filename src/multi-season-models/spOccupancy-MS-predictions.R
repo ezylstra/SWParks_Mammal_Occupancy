@@ -136,7 +136,7 @@ if ("monsoon_ppt_z" %in% cov_order) {
 }
 if ("ppt10_z" %in% cov_order) {
   if (ANN_PREDS == "observed") {
-    ppt10_raster <- rast(pp10_list[which(YEARS %in% pred_years)])
+    ppt10_raster <- rast(ppt10_list[which(YEARS %in% pred_years)])
     ppt10_raster <- resample(ppt10_raster, psi_rasters, method = "near")
     ppt10_df <- as.data.frame(ppt10_raster, cell = TRUE)
     ppt10_df <- ppt10_df[ppt10_df$cell %in% psi_rasters_df$cell,]
@@ -152,7 +152,7 @@ if ("ppt10_z" %in% cov_order) {
 # model
 slicestofill <- which(is.na(X.0[1, 1, ]))
 
-if (length(slicestofill > 0)) {
+if (length(slicestofill) > 0) {
   if (length(slicestofill) != length(time_invar)) {
     message("Dimensions of X.0 inconsistent with the number of spatial covariates.", 
             " Did not finish creating X.0.")
