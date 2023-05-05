@@ -114,7 +114,10 @@ if (length(psi_spatcovs) > 0) {
     theme(axis.text = element_blank()) + 
     theme(axis.ticks = element_blank())
   print(plot_preds_firstyr_NPS)
-  ggsave(plot_preds_firstyr_NPS, file = paste(getwd(),"/output/NPS-figures/",PARK,"-",SPECIES,"-",min(YEARS),"_","MeanOccurrenceMap_4NPS.pdf",sep=""), device = cairo_pdf, dpi=300, width = 6, height = 4, units="in")
+  ggsave(plot_preds_firstyr_NPS, 
+         file = paste0("output/NPS-figures/", PARK, "-", SPECIES, "-",
+                       min(YEARS), "_MS_", "MeanOccurrenceMap_4NPS.pdf"), 
+         device = cairo_pdf, dpi=300, width = 6, height = 4, units="in")
   
   # view and save spatial prediction for first  year as individual file 
   plot_preds_lastyr_NPS <- ggplot() + 
@@ -126,7 +129,10 @@ if (length(psi_spatcovs) > 0) {
     theme(axis.text = element_blank()) + 
     theme(axis.ticks = element_blank())
   print(plot_preds_lastyr_NPS)
-  ggsave(plot_preds_lastyr_NPS, file = paste(getwd(),"/output/NPS-figures/",PARK,"-",SPECIES,"-",max(YEARS),"_","MeanOccurrenceMap_4NPS.pdf",sep=""), device = cairo_pdf, dpi=300, width = 6, height = 4, units="in")
+  ggsave(plot_preds_lastyr_NPS, 
+         file = paste0("output/NPS-figures/", PARK, "-", SPECIES, "-",
+                       max(YEARS), "_MS_", "MeanOccurrenceMap_4NPS.pdf"), 
+         device = cairo_pdf, dpi=300, width = 6, height = 4, units="in")
   
   # with both years stacked in a single figure
   plot_preds_firstlast_NPS <- grid.arrange(plot_preds_firstyr_NPS, plot_preds_lastyr_NPS+theme(plot.title=element_blank()), nrow = 2)
