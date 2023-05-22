@@ -60,7 +60,7 @@ if (exists("DET_MODELS2")) {
   detm2 <- list()
   for (i in 1:length(DET_MODELS2)) {
     detm2[[i]] <- paste(covariates$formula[covariates$short_name %in% DET_MODELS2[[i]] &
-                                             covariates$partk %in% c("all", PARK)],
+                                             covariates$park %in% c("all", PARK)],
                         collapse = " + ")
   }
   detm2 <- unlist(detm2)
