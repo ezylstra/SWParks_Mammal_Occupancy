@@ -138,7 +138,7 @@ src/photo-data folder (should only need to be modified once per year)
    at each park throughout the duration of the study. (this script calls 
    format-mammal-data.R)
 
-3. [summarize-deployments-photos.R](src/photo-data/summarize-deployements-photos.R): 
+3. [summarize-deployments-photos.R](src/photo-data/summarize-deployments-photos.R): 
    Summarize (and create plots to visualize) when and where cameras were 
    deployed. Create tables with the number of observations of each species, each 
    year. (this script calls format-mammal-data.R)
@@ -152,13 +152,13 @@ multi-season models)
    Create a multi-layer raster for each park that contains all the spatial
    (time-invariant) covariate data at the same resolution and extent.
 
-2. [get-and-prep-climate-data.R](src/covariate-data/get-climate-data.R): 
+2. [get-and-prep-climate-data.R](src/covariate-data/get-and-prep-climate-data.R): 
    Download gridMET climate data and create rasters.
 
 3. [get-roads-trails-pois-data.R](src/covariate-data/get-roads-trails-pois-data.R): 
    Download feature data from NPS or other federal websites.
 
-4. [prep-spatial-covariate-data.R](src/covariate-data/prep-covaraite-data.R): 
+4. [prep-spatial-covariate-data.R](src/covariate-data/prep-spatial-covariate-data.R): 
    Process spatial (time-invariant) data to generate rasters for each park.
    
 Scripts used to create detection histories and run single-season occupancy models
@@ -212,7 +212,7 @@ Scripts used to create detection histories and run multi-season occupancy models
    diagnostics and statistics for comparisons. (This script will typically be 
    called from src/multi-season-models/PARK/spOccupancy-PARK-SPECIES-YEARS.R.)
    
-5. [spOccupancy-MS-predictions.R](src/multiseason-models/spOccupancy-MS-predictions.R):
+5. [spOccupancy-MS-predictions.R](src/multi-season-models/spOccupancy-MS-predictions.R):
    Calculate predicted occurrence probabilities across a park in the first and
    last year, and create ggplot objects that depict mean and SDs in each raster 
    cell. (This script will typically be called from 
