@@ -101,21 +101,40 @@ min_ESS <- lapply(out_list, function(x)
 # Posterior predictive checks (how well does our model fit the data?)
   # From vignette: binning the data across sites (group = 1) may help reveal 
   # whether the model fails to adequately represent variation in occurrence and 
-  # detection probability across space, while binning the data across replicates 
-  # (group = 2) may help reveal whether the model fails to adequately represent 
-  # variation in detection probability across the different replicate surveys. 
+  # detection probability across space in each year, while binning the data 
+  # across replicates (group = 2) may help reveal whether the model fails to 
+  # adequately represent variation in detection probability across replicate 
+  # surveys in each year. 
+  
+  # For multi-season models: The summary() function provides us with a Bayesian 
+  # p-value for the entire data set, as well as for each time period to give an 
+  # indication on how our model fits the data points across each time period.
 
-# # Create a function to get a Bayesian p-value from posterior predictive checks
-# # (want to see values between 0.1 and 0.9)
-# bayes.p <- function(object, digits = 3) {
-#   format(round(mean(object$fit.y.rep > object$fit.y), digits), 
-#          scientific = FALSE,
-#          nsmall = digits)
-# }
-# # Using Freeman-Tukey statistic for now, but could use chi-squared instead 
-# ppc.sites <- lapply(out_list, FUN = ppcOcc, fit.stat = "freeman-tukey", group = 1)
-# ppc.reps <- lapply(out_list, FUN = ppcOcc, fit.stat = "freeman-tukey", group = 2)
-# # These take a few seconds to run
+  # Using Freeman-Tukey statistic for now, but could use chi-squared instead
+  suppressMessages(ppc.sites <- lapply(out_list, 
+                                       FUN = ppcOcc, 
+                                       fit.stat = "freeman-tukey", 
+                                       group = 1))
+  suppressMessages(ppc.reps <- lapply(out_list, 
+                                      FUN = ppcOcc, 
+                                      fit.stat = "freeman-tukey", 
+                                      group = 2))
+  # These take a few seconds to run
+
+  # Create a function to get a Bayesian p-value from posterior predictive checks
+  # This multi-season version should remove years when surveys weren't done 
+  # before calculating overall p-value (want to see values between 0.1 and 0.9)
+  bayes.p.ms <- function(object, digits = 3) {
+    # Identify years when no surveys were done (column in first slice of 
+    # data_list$y should be all NAs)
+    no_surveys <- which(apply(data_list$y[, , 1], 2, function(x) all(is.na(x))))  
+    # Remove those years from calculations
+    fit.y.rep.mod <- object$fit.y.rep[, -no_surveys]
+    fit.y.mod <- object$fit.y[, -no_surveys]
+    format(round(mean(fit.y.rep.mod > fit.y.mod), digits), 
+           scientific = FALSE,
+           nsmall = digits)
+  }
 
 #------------------------------------------------------------------------------#
 # Model selection tools
@@ -131,6 +150,8 @@ model_stats <- data.frame(model_no = 1:length(out_list),
                           det = model_specs[,"det"],
                           max.rhat = round(unlist(max_rhat), 2),
                           min.ESS = round(unlist(min_ESS)),
-                          # ppc.sites = unlist(lapply(ppc.sites, FUN = bayes.p)),
-                          # ppc.reps = unlist(lapply(ppc.reps, FUN = bayes.p)),
+                          ppc.sites = unlist(lapply(ppc.sites, 
+                                                    FUN = bayes.p.ms)),
+                          ppc.reps = unlist(lapply(ppc.reps, 
+                                                   FUN = bayes.p.ms)),
                           waic = round(sapply(waic, "[", "WAIC"), 2))

@@ -210,12 +210,12 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
   # max.rhat: maximum value of R-hat across model parameters (want value < 1.05)
   # min.ESS: minimum value of ESS (effective sample size) across model
     # parameters (want value > 400)
-  # [NOT IN THERE YET] ppc.sites: posterior predictive checks when binning the 
-    # data across sites. P-values < 0.1 or > 0.9 can indicate that model fails 
-    # to adequately represent variation in occurrence or detection across space.
-  # [NOT IN THERE YET] ppc.reps: posterior predictive checks when binning the 
-    # data across replicates. P-values < 0.1 or > 0.9 can indicate that model 
-    # fails to adequately represent variation in detection over time.
+  # ppc.sites: posterior predictive checks when binning the data across sites
+    # (within year). P-values < 0.1 or > 0.9 can indicate that model fails to 
+    # adequately represent variation in occurrence or detection across space.
+  # ppc.reps: posterior predictive checks when binning the data across 
+    # replicates (within year). P-values < 0.1 or > 0.9 can indicate that model 
+    # fails to adequately represent variation in detection across replicates.
   # waic: WAIC (Widely Applicable Information Criterion) for comparing models
     # (lower is better)
 
@@ -240,7 +240,7 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 4 
+  best_index <- 7 
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -290,12 +290,13 @@ det_estimates <- det_estimates %>%
   rename(Covariate = Parameter) %>%
   mutate(Parameter = "Detection", .before = "Covariate")
 estimates <- rbind(occ_estimates, det_estimates)
+estimates
 
 # Can save this table to file with code below
 # write.csv(estimates,
 #           file = paste0("C:/.../",
 #                         PARK, "-", SPECIES, "-", 
-#                         YEARS[1], YEARS[length(YEARS)], ".csv"),
+#                         YEARS[1], "-", YEARS[length(YEARS)], ".csv"),
 #           row.names = FALSE)
 
 # Trace plots
@@ -303,39 +304,22 @@ estimates <- rbind(occ_estimates, det_estimates)
 # plot(best$alpha.samples, density = FALSE)
 
 # Posterior predictive checks (want Bayesian p-values between 0.1 and 0.9)
-# ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
-# ppc.rep <- as.numeric(model_stats$ppc.reps[model_stats$model_no == best_index])
-# if (ppc.site < 0.1 | ppc.site > 0.9) {
-#   warning(paste0("PPC indicates that we have not adequately described spatial ",
-#                  "variation in occupancy and/or detection."))
-# } else {
-#   cat(paste0("PPC indicates that we have adequately described spatial ",
-#              "variation in occupancy and detection."))
-# } 
-# if (ppc.rep < 0.1 | ppc.site > 0.9) {
-#   warning(paste0("PPC indicates that we have not adequately described temporal ",
-#                  "variation in detection."))
-# } else {
-#   cat(paste0("PPC indicates that we have adequately described temporal ",
-#                  "variation in detection."))
-# }
-
-# If there's evidence that spatial variation isn't well explained, plot the 
-# difference in the discrepancy measure between the replicate and actual data 
-# across each of the sites (identify sites that are causing a lack of fit).
-# if (ppc.site < 0.1 | ppc.site > 0.9) {
-#   best_ppcs <- ppc.sites[[best_index]]
-#   diff_fit <- best_ppcs$fit.y.rep.group.quants[3, ] - best_ppcs$fit.y.group.quants[3, ]
-#   
-#   # Plot differences
-#   par(mfrow = c(1,1))
-#   plot(diff_fit, pch = 19, xlab = 'Site ID', ylab = "Replicate - True Discrepancy") 
-#   
-#   # Identify sites on a map
-#   prob_sites <- which(abs(diff_fit) > 0.4)
-#   plot(lat~long, data = spatial_covs, las = 1) # all camera locs
-#   points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
-# }
+ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
+ppc.rep <- as.numeric(model_stats$ppc.reps[model_stats$model_no == best_index])
+if (ppc.site < 0.1 | ppc.site > 0.9) {
+  warning(paste0("PPC indicates that we have not adequately described spatial ",
+                 "variation in occupancy and/or detection."))
+} else {
+  cat(paste0("PPC indicates that we have adequately described spatial ",
+             "variation in occupancy and detection.\n"))
+}
+if (ppc.rep < 0.1 | ppc.site > 0.9) {
+  warning(paste0("PPC indicates that we have not adequately described temporal ",
+                 "variation in detection."))
+} else {
+  cat(paste0("PPC indicates that we have adequately described temporal ",
+                 "variation in detection.\n"))
+}
 
 #------------------------------------------------------------------------------#
 # Calculate and visualize predicted probabilities of occurrence, across park
@@ -383,14 +367,11 @@ if (length(psi_spatcovs) > 0) {
     # grid.arrange(plot_preds_sd_firstyr, plot_preds_sd_lastyr, nrow = 2)
   
   # Can save any of the plots to file (example below):
-  plot_save <- plot_preds_mn_lastyr +
-    theme_bw(base_size = 8)
-  plot_save1 <- plot_preds_mn_firstyr +
-    theme_bw(base_size = 8)
+  # plot_save <- plot_preds_mn_lastyr +
+  #   theme_bw(base_size = 8)
   # plotname <- paste0("C:/.../",
   #                    PARK, "-", SPECIES, "-OccProbMN-",
   #                    YEARS[length(YEARS)], ".jpg")
-										 
   # ggsave(filename = plotname,
   #        plot = plot_save,
   #        device = "jpeg",
@@ -402,6 +383,7 @@ if (length(psi_spatcovs) > 0) {
 
 #------------------------------------------------------------------------------#
 # Calculate and create figures trends in occurrence probability over time
+# (only if "years" is in the model for occurrence)
 #------------------------------------------------------------------------------#
 
 # Note: if there are other annual covariates in the model (eg, traffic), this is 
@@ -418,11 +400,11 @@ if ("years" %in% psi_covs) {
                           upper_ci = 0.975)
   print(trend)
   # Save to file
-  plot_save <- trend +
-    theme_classic(base_size = 8)
+  # plot_save <- trend +
+  #   theme_classic(base_size = 8)
   # plotname <- paste0("C:/.../",
-  #                    PARK, "-", SPECIES, "-Trend.jpg")
-										 
+  #                    PARK, "-", SPECIES, "-",
+  #                    YEARS[1], "-", YEARS[length(YEARS)],"-Trend.jpg")
   # ggsave(filename = plotname,
   #        plot = plot_save,
   #        device = "jpeg",
