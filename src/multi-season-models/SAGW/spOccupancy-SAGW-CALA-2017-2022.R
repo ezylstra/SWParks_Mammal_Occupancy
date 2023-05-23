@@ -2,7 +2,7 @@
 # Occurrence models for Coyotes in SAGW, 2017-2022
 
 # ER Zylstra
-# Updated 2023-04-20
+# Updated 2023-05-23
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -60,8 +60,6 @@ detects %>%
 # Select species of interest (ideally with a detection rate of at least 5%)
 SPECIES <- "CALA"
 
-# Save this script as: src/multi-season-models/PARK/spOccupancy-PARK-SPECIES-FIRSTYEAR-LASTYEAR.R
-
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
 #------------------------------------------------------------------------------#
@@ -102,7 +100,7 @@ OCC_NULL <- TRUE
 # Pick covariates to include in simple candidate models via the short_name 
 # column in the covariates dataframe. Note that including "years" as a 
 # covariate creates a trend model (logit-linear trend in occurrence probability)
-OCC_MODELS1 <- c("years", "visits")
+OCC_MODELS1 <- c("years", "visits", "traffic")
 
 # To combine covariates in a single candidate model, provide a vector of 
 # short_names. Compile these vectors into a list.
@@ -137,7 +135,7 @@ DET_MODELS1 <- c("effort")
 # short_names (Note: not including camera_2022 in models since that seems to
 # cause some problems, likely because that's the last year we have data for. 
 # Random yearly effects might be more effective)
-# DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
+DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models
@@ -204,6 +202,9 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
 
 # View summary table, ranked by WAIC
   model_stats %>% arrange(waic)
+  
+# Save to file:
+  # write.table(model_stats, "clipboard", sep = "\t", row.names = FALSE)
 
 # Description of columns in summary table:
   # psi: formula for occurrence part of model
@@ -211,15 +212,15 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
   # max.rhat: maximum value of R-hat across model parameters (want value < 1.05)
   # min.ESS: minimum value of ESS (effective sample size) across model
     # parameters (want value > 400)
-  # [NOT IN THERE YET] ppc.sites: posterior predictive checks when binning the 
-    # data across sites. P-values < 0.1 or > 0.9 can indicate that model fails 
-    # to adequately represent variation in occurrence or detection across space.
-  # [NOT IN THERE YET] ppc.reps: posterior predictive checks when binning the 
-    # data across replicates. P-values < 0.1 or > 0.9 can indicate that model 
-    # fails to adequately represent variation in detection over time.
+  # ppc.sites: posterior predictive checks when binning the data across sites
+    # (within year). P-values < 0.1 or > 0.9 can indicate that model fails to 
+    # adequately represent variation in occurrence or detection across space.
+  # ppc.reps: posterior predictive checks when binning the data across 
+    # replicates (within year). P-values < 0.1 or > 0.9 can indicate that model 
+    # fails to adequately represent variation in detection across replicates.
   # waic: WAIC (Widely Applicable Information Criterion) for comparing models
     # (lower is better)
-
+  
 # Check that r-hat values and ESS look okay for most models.  If not, may 
 # need to re-run after increasing N_BATCH or removing site REs. If problem
 # persists, may need to remove some covariate combinations from consideration.
@@ -231,6 +232,15 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
 # To look at the estimates from any model in the list, use the following,
 # replacing "X" with the model_no of interest
 # summary(out_list[[X]]) 
+  
+# Is there evidence of a trend? (Find highest ranked model that includes years
+# and see what coefficient is)
+trend_best <- model_stats %>% 
+  filter(str_detect(psi, "years")) %>%
+  arrange(waic) %>%
+  select(model_no) %>%
+  .[1, 1]
+summary(out_list[[trend_best]])
 
 # Identify a model to use for inferences.  Can base this on WAIC or can select 
 # any model by setting STAT equal to "model_no" and specifying the "best_index" 
