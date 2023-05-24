@@ -75,73 +75,30 @@ source("src/multi-season-models/spOccupancy-MS-data-prep.R")
 # coords: a matrix with UTM coordinates for each camera location (in WGS 84, 
   # Zone 12)
 
-#------------------------------------------------------------------------------#
-# Specify the occurrence portion of candidate models
-#------------------------------------------------------------------------------#
-
 # Load dataframe with information about covariates:
 covariates <- read.csv("data/covariates/covariates-MS.csv", header = TRUE)
 
-# View those pairs of continuous covariates that are highly correlated
-cor_df %>%
-  arrange(desc(corr)) %>%
-  dplyr::filter(abs(corr) > 0.5)
+#------------------------------------------------------------------------------#
+# Specify and run first set of candidate models
+#------------------------------------------------------------------------------#
 
-# See what covariates are available for occurrence part of model
-covariates %>%
-  dplyr::filter(parameter %in% c("either", "occupancy")) %>%
-  dplyr::filter(park %in% c(PARK, "all")) %>%
-  select(-c(parameter, park))
+# Keep a full model for detection (day2 + deploy_exp + effort)
+# Try each annual covariate + a site random effect
 
-# Logical indicating whether a null model for occurrence should be included in 
-# the candidate model set
+# We'll indicate which covariates to include using the short_name column in the 
+# covariates dataframe.
+
+# Logicals indicating whether a null model for occurrence or detection should be 
+# included in the candidate model set
 OCC_NULL <- TRUE
-
-# Pick covariates to include in simple candidate models via the short_name 
-# column in the covariates dataframe. Note that including "years" as a 
-# covariate creates a trend model (logit-linear trend in occurrence probability)
-OCC_MODELS1 <- c("years", "visits", "traffic")
-
-# To combine covariates in a single candidate model, provide a vector of 
-# short_names. Compile these vectors into a list.
-# e.g., c("aspect", "boundary") would create the following model for occurrence: 
-# psi ~ east + north + boundary
-OCC_MODELS2 <- list(c("slope2", "years"),
-                    c("elev2", "years"),
-                    c("boundary", "years"),
-                    c("veg", "wash", "boundary", "years"),
-                    c("veg", "wash", "boundary", "monsoon_ppt"),
-                    c("veg", "wash", "boundary", "ppt10"))
-
-#------------------------------------------------------------------------------#
-# Specify the detection portion of candidate models
-#------------------------------------------------------------------------------#
-
-# See what covariates are available for detection part of model
-covariates %>%
-  dplyr::filter(parameter %in% c("either", "detection")) %>%
-  dplyr::filter(park %in% c(PARK, "all")) %>%
-  select(-c(parameter, park))
-  
-# Logical indicating whether a null model for detection should be included in 
-# the candidate model set
 DET_NULL <- FALSE
 
-# Pick covariates to include in simple candidate models via the short_name 
-# column in the covariates dataframe
-DET_MODELS1 <- c("effort")
+# Pick covariates to include in models for occurrence (note that "years" is 
+# effectively a trend model)
+OCC_MODELS1 <- c("years", "visits", "traffic", "monsoon_ppt", "ppt10")
 
-# To combine different covariates in a candidate model, provide a vector of 
-# short_names (Note: not including camera_2022 in models since that seems to
-# cause some problems, likely because that's the last year we have data for. 
-# Random yearly effects might be more effective)
+# All model will have the same detection model (a "full" model)
 DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
-
-#------------------------------------------------------------------------------#
-# Create (and check) formulas for candidate models
-#------------------------------------------------------------------------------#
-
-# Use OCC and DET objects to create formulas for candidate models
 
 # Random effects in occurrence part of model
   # Note: for this stage of the analysis, it's worth considering whether we 
@@ -154,31 +111,27 @@ DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
   # convergence if we include both spatial and temporal random effects given the
   # relatively short time series.
 
-  # For now, we can start with an unstructured site effect in all candidate 
-  # models, and then evaluate alternative random effect structures at a later 
-  # stage. To add an unstructured site RE, we need to add (1 | site) to each 
-  # formula for the occurrence part of the model. 
-  
-  # Specify TIME_RE_OCC and SITE_RE_OCC as either "none" or "unstructured"
-  TIME_RE_OCC <- "none" 
-  SITE_RE_OCC <- "unstructured"
-  
-# Random effects in detection part of model  
-  # For now, we won't include any random effects
-  TIME_RE_DET <- "none"
-  SITE_RE_DET <- "none"
+# For now, we can start with an unstructured site effect in all candidate 
+# models, and then evaluate alternative random effect structures at a later 
+# stage. To add an unstructured site RE, we need to add (1 | site) to each 
+# formula for the occurrence part of the model. 
 
+# Specify TIME_RE_OCC and SITE_RE_OCC as either "none" or "unstructured"
+TIME_RE_OCC <- "none" 
+SITE_RE_OCC <- "unstructured"
+
+# Random effects in detection part of model  
+# For now, we won't include any random effects
+TIME_RE_DET <- "none"
+SITE_RE_DET <- "none"
+
+# Create candidate model set
 source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
 
 message("Check candidate models:", sep = "\n")
 model_specs
 
-#------------------------------------------------------------------------------#
-# Run models and compare fit
-#------------------------------------------------------------------------------#
-
 # Set MCMC parameters
-
 N_CHAINS <- 3
 N_BURN <- 2000
 N_THIN <- 10
@@ -196,22 +149,102 @@ message("MCMC specifications will result in a total of ",
         (n_samples - N_BURN) * N_CHAINS / N_THIN, 
         " posterior samples for each parameter.")
 
-# Run candidate models using spOccupancy package
+# Run first set of candidate models using spOccupancy package
 source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
-  # Note: this can take several minutes to run
+# Note: this can take several minutes to run
 
 # View summary table, ranked by WAIC
-  model_stats %>% arrange(waic)
-  
+model_stats %>% arrange(waic)
+
 # Save to file:
-  # write.table(model_stats, "clipboard", sep = "\t", row.names = FALSE)
+# write.table(model_stats, "clipboard", sep = "\t", row.names = FALSE)
+
+# Models with 10-month precipitation (ppt10) or visits are better than the rest
+# ppt10 slightly better than visits.
+# Trend model is the worst (and coefficient is ~0)
+
+# None of the detection covariates are close to significant. Will use a null
+# model moving forward.
+
+#------------------------------------------------------------------------------#
+# Specify and run second set of candidate models
+#------------------------------------------------------------------------------#
+
+# There are 3 categories of spatial covariates:
+  # topographic: aspect, elev, slope
+    # (using linear rather than quadratic forms of elev & slope because SAGW 
+    # doesn't span that large of a range and we often get nonsensical results 
+    # with highest probabilities at extreme values)
+  # veg: vegclasses + wash
+  # anthropogenic: roads, boundary, trails, pois, roadbound, trailpois
+
+# For occurrence part of the models try including item(s) from each category of
+# spatial covariates + the annual covariate selected above
+
+scov_combos <- list(c("aspect", "veg", "wash", "roads"),
+                    c("elev", "veg", "wash", "roads"),
+                    c("slope", "veg", "wash", "roads"),
+                    c("aspect", "veg", "wash", "boundary"),
+                    c("elev", "veg", "wash", "boundary"),
+                    c("slope", "veg", "wash", "boundary"),
+                    c("aspect", "veg", "wash", "trail"),
+                    c("elev", "veg", "wash", "trail"),
+                    c("slope", "veg", "wash", "trail"),
+                    c("aspect", "veg", "wash", "pois"),
+                    c("elev", "veg", "wash", "pois"),
+                    c("slope", "veg", "wash", "pois"),
+                    c("aspect", "veg", "wash", "roadbound"),
+                    c("elev", "veg", "wash", "roadbound"),
+                    c("slope", "veg", "wash", "roadbound"),
+                    c("aspect", "veg", "wash", "trailpoi"),
+                    c("elev", "veg", "wash", "trailpoi"),
+                    c("slope", "veg", "wash", "trailpoi"))
+best_annual <- "ppt10"
+
+# Logicals indicating whether a null model for occurrence or detection should be 
+# included in the candidate model set
+OCC_NULL <- FALSE
+DET_NULL <- TRUE
+
+# All model will have the same detection model
+# DET_MODELS1 <- c("effort")
+rm(DET_MODELS2)
+
+# Pick covariates to include in models for occurrence (note that "years" is 
+# effectively a trend model)
+rm(OCC_MODELS1)
+OCC_MODELS2 <- lapply(scov_combos, function(x) c(x, best_annual))
+
+# Specify TIME_RE_OCC and SITE_RE_OCC as either "none" or "unstructured"
+TIME_RE_OCC <- "none" 
+SITE_RE_OCC <- "unstructured"
+
+# Random effects in detection part of model  
+TIME_RE_DET <- "none"
+SITE_RE_DET <- "none"
+
+# Create candidate model set
+source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
+
+message("Check candidate models:", sep = "\n")
+model_specs
+
+# Run first set of candidate models using spOccupancy package
+source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
+# Note: this can take several minutes to run
+
+# View summary table, ranked by WAIC
+model_stats %>% arrange(waic)
+
+# Save to file:
+# write.table(model_stats, "clipboard", sep = "\t", row.names = FALSE)
 
 # Description of columns in summary table:
   # psi: formula for occurrence part of model
   # det: formula for detection part of model
   # max.rhat: maximum value of R-hat across model parameters (want value < 1.05)
   # min.ESS: minimum value of ESS (effective sample size) across model
-    # parameters (want value > 400)
+    # parameters (want value > 400, though less worried about random effects)
   # ppc.sites: posterior predictive checks when binning the data across sites
     # (within year). P-values < 0.1 or > 0.9 can indicate that model fails to 
     # adequately represent variation in occurrence or detection across space.
@@ -224,7 +257,7 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
 # Check that r-hat values and ESS look okay for most models.  If not, may 
 # need to re-run after increasing N_BATCH or removing site REs. If problem
 # persists, may need to remove some covariate combinations from consideration.
-  
+
 #------------------------------------------------------------------------------#
 # Look at results and predictions from "best" model
 #------------------------------------------------------------------------------#
@@ -232,22 +265,13 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
 # To look at the estimates from any model in the list, use the following,
 # replacing "X" with the model_no of interest
 # summary(out_list[[X]]) 
-  
-# Is there evidence of a trend? (Find highest ranked model that includes years
-# and see what coefficient is)
-trend_best <- model_stats %>% 
-  filter(str_detect(psi, "years")) %>%
-  arrange(waic) %>%
-  select(model_no) %>%
-  .[1, 1]
-summary(out_list[[trend_best]])
 
 # Identify a model to use for inferences.  Can base this on WAIC or can select 
 # any model by setting STAT equal to "model_no" and specifying the "best_index" 
 # directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "model_no"   
+STAT <- "waic"   
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
@@ -301,6 +325,7 @@ det_estimates <- det_estimates %>%
   rename(Covariate = Parameter) %>%
   mutate(Parameter = "Detection", .before = "Covariate")
 estimates <- rbind(occ_estimates, det_estimates)
+estimates
 
 # Can save this table to file with code below
 # write.csv(estimates,
@@ -308,45 +333,30 @@ estimates <- rbind(occ_estimates, det_estimates)
 #                         PARK, "-", SPECIES, "-", 
 #                         YEARS[1], YEARS[length(YEARS)], ".csv"),
 #           row.names = FALSE)
+# OR
+# write.table(estimates, "clipboard", sep = "\t", row.names = FALSE)
 
 # Trace plots
 # plot(best$beta.samples, density = FALSE)
 # plot(best$alpha.samples, density = FALSE)
 
 # Posterior predictive checks (want Bayesian p-values between 0.1 and 0.9)
-# ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
-# ppc.rep <- as.numeric(model_stats$ppc.reps[model_stats$model_no == best_index])
-# if (ppc.site < 0.1 | ppc.site > 0.9) {
-#   warning(paste0("PPC indicates that we have not adequately described spatial ",
-#                  "variation in occupancy and/or detection."))
-# } else {
-#   cat(paste0("PPC indicates that we have adequately described spatial ",
-#              "variation in occupancy and detection."))
-# } 
-# if (ppc.rep < 0.1 | ppc.site > 0.9) {
-#   warning(paste0("PPC indicates that we have not adequately described temporal ",
-#                  "variation in detection."))
-# } else {
-#   cat(paste0("PPC indicates that we have adequately described temporal ",
-#                  "variation in detection."))
-# }
-
-# If there's evidence that spatial variation isn't well explained, plot the 
-# difference in the discrepancy measure between the replicate and actual data 
-# across each of the sites (identify sites that are causing a lack of fit).
-# if (ppc.site < 0.1 | ppc.site > 0.9) {
-#   best_ppcs <- ppc.sites[[best_index]]
-#   diff_fit <- best_ppcs$fit.y.rep.group.quants[3, ] - best_ppcs$fit.y.group.quants[3, ]
-#   
-#   # Plot differences
-#   par(mfrow = c(1,1))
-#   plot(diff_fit, pch = 19, xlab = 'Site ID', ylab = "Replicate - True Discrepancy") 
-#   
-#   # Identify sites on a map
-#   prob_sites <- which(abs(diff_fit) > 0.4)
-#   plot(lat~long, data = spatial_covs, las = 1) # all camera locs
-#   points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
-# }
+ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
+ppc.rep <- as.numeric(model_stats$ppc.reps[model_stats$model_no == best_index])
+if (ppc.site < 0.1 | ppc.site > 0.9) {
+  warning(paste0("PPC indicates that we have not adequately described spatial ",
+                 "variation in occupancy and/or detection."))
+} else {
+  cat(paste0("PPC indicates that we have adequately described spatial ",
+             "variation in occupancy and detection.\n"))
+}
+if (ppc.rep < 0.1 | ppc.site > 0.9) {
+  warning(paste0("PPC indicates that we have not adequately described temporal ",
+                 "variation in detection."))
+} else {
+  cat(paste0("PPC indicates that we have adequately described temporal ",
+             "variation in detection.\n"))
+}
 
 #------------------------------------------------------------------------------#
 # Calculate and visualize predicted probabilities of occurrence, across park
@@ -396,14 +406,17 @@ if (length(psi_spatcovs) > 0) {
   # Can save any of the plots to file (example below):
   plot_save <- plot_preds_mn_lastyr +
     theme_bw(base_size = 8)
+  plotname <- paste0("C:/Users/erin/OneDrive/SODN/Mammals/SAGW_20172022_PrelimResults/",
+                     PARK, "-", SPECIES, "-OccProbMN-",
+                     YEARS[length(YEARS)], ".jpg")
   plot_save1 <- plot_preds_mn_firstyr +
     theme_bw(base_size = 8)
-  # plotname <- paste0("C:/.../",
-  #                    PARK, "-", SPECIES, "-OccProbMN-",
-  #                    YEARS[length(YEARS)], ".jpg")
-										 
-  # ggsave(filename = plotname,
-  #        plot = plot_save,
+  plotname1 <- paste0("C:/Users/erin/OneDrive/SODN/Mammals/SAGW_20172022_PrelimResults/",
+                     PARK, "-", SPECIES, "-OccProbMN-",
+                     YEARS[1], ".jpg")
+  
+  # ggsave(filename = plotname1,
+  #        plot = plot_save1,
   #        device = "jpeg",
   #        width = 4,
   #        height = 4,
@@ -413,6 +426,7 @@ if (length(psi_spatcovs) > 0) {
 
 #------------------------------------------------------------------------------#
 # Calculate and create figures trends in occurrence probability over time
+# (only if "years" is in the model for occurrence)
 #------------------------------------------------------------------------------#
 
 # Note: if there are other annual covariates in the model (eg, traffic), this is 
@@ -479,6 +493,14 @@ if ("years" %in% psi_covs) {
     print(get(fig))
   }
   # Could also save any of the plots to file using ggsave()
+  # ggsave(filename = paste0("C:/Users/erin/OneDrive/SODN/Mammals/SAGW_20172022_PrelimResults/",
+  #                          PARK, "-", SPECIES, "-Occ-psi-wash.jpg"),
+  #        plot = marginal_psi_wash,
+  #        device = "jpeg",
+  #        width = 4,
+  #        height = 4,
+  #        units = "in",
+  #        dpi = 600)
 
 # If vegetation classes were included as covariates in the model, extract
 # occurrence probabilities for each class
