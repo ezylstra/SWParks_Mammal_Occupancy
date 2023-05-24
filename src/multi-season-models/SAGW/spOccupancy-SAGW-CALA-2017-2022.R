@@ -162,6 +162,7 @@ model_stats %>% arrange(waic)
 # Models with 10-month precipitation (ppt10) or visits are better than the rest
 # ppt10 slightly better than visits.
 # Trend model is the worst (and coefficient is ~0)
+BEST_ANNUAL <- "ppt10"
 
 # None of the detection covariates are close to significant. Will use a null
 # model moving forward.
@@ -199,7 +200,6 @@ scov_combos <- list(c("aspect", "veg", "wash", "roads"),
                     c("aspect", "veg", "wash", "trailpoi"),
                     c("elev", "veg", "wash", "trailpoi"),
                     c("slope", "veg", "wash", "trailpoi"))
-best_annual <- "ppt10"
 
 # Logicals indicating whether a null model for occurrence or detection should be 
 # included in the candidate model set
@@ -213,7 +213,7 @@ rm(DET_MODELS2)
 # Pick covariates to include in models for occurrence (note that "years" is 
 # effectively a trend model)
 rm(OCC_MODELS1)
-OCC_MODELS2 <- lapply(scov_combos, function(x) c(x, best_annual))
+OCC_MODELS2 <- lapply(scov_combos, function(x) c(x, BEST_ANNUAL))
 
 # Specify TIME_RE_OCC and SITE_RE_OCC as either "none" or "unstructured"
 TIME_RE_OCC <- "none" 
@@ -229,7 +229,7 @@ source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
 message("Check candidate models:", sep = "\n")
 model_specs
 
-# Run first set of candidate models using spOccupancy package
+# Run second set of candidate models using spOccupancy package
 source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
 # Note: this can take several minutes to run
 
@@ -257,6 +257,14 @@ model_stats %>% arrange(waic)
 # Check that r-hat values and ESS look okay for most models.  If not, may 
 # need to re-run after increasing N_BATCH or removing site REs. If problem
 # persists, may need to remove some covariate combinations from consideration.
+
+# Look at estimates from top model: are all coefficients significant (or close)?
+  # Note: if one coefficient in group is significant, leave all in (eg, if 
+  # vegclass2 is significant, leave in vegclass3 and wash regardless of whether
+  # they're significant)
+min_waic <- min(model_stats$waic)
+summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
+# Yes.
 
 #------------------------------------------------------------------------------#
 # Look at results and predictions from "best" model
@@ -494,7 +502,7 @@ if ("years" %in% psi_covs) {
   }
   # Could also save any of the plots to file using ggsave()
   # ggsave(filename = paste0("C:/Users/erin/OneDrive/SODN/Mammals/SAGW_20172022_PrelimResults/",
-  #                          PARK, "-", SPECIES, "-Occ-psi-wash.jpg"),
+  #                          PARK, "-", SPECIES, "-Occ-wash.jpg"),
   #        plot = marginal_psi_wash,
   #        device = "jpeg",
   #        width = 4,
@@ -555,6 +563,14 @@ p_n_cont <- length(p_cont_unique)
     print(get(fig))
   }
   # Could also save any of the plots to file using ggsave()
+	# ggsave(filename = paste0("C:/Users/erin/OneDrive/SODN/Mammals/SAGW_20172022_PrelimResults/",
+  #                          PARK, "-", SPECIES, "-Det-effort.jpg"),
+  #        plot = marginal_p_effort,
+  #        device = "jpeg",
+  #        width = 4,
+  #        height = 4,
+  #        units = "in",
+  #        dpi = 600)
   
 # If vegetation classes were included as covariates in the model, extract
 # detection probabilities for each class
