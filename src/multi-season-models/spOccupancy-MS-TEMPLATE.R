@@ -196,13 +196,13 @@ min_waic <- min(model_stats$waic)
 summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
 
 # To use a null model:
-# DET_NULL <- TRUE
-# rm(DET_MODELS2)
+  # DET_NULL <- TRUE
+  # rm(DET_MODELS2)
 # To use a model will just a single covariate, like effort:
-# DET_MODELS1 <- "effort"
-# rm(DET_MODELS2)
+  # DET_MODELS1 <- "effort"
+  # rm(DET_MODELS2)
 # To use a model with more than one covariate, like day2, deploy_exp, and effort:
-DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
+  DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
 
 #------------------------------------------------------------------------------#
 # Specify and run second set of candidate models, where we will evaluate:
@@ -258,9 +258,10 @@ model_stats %>% arrange(waic)
 # Description of columns in summary table:
   # psi: formula for occurrence part of model
   # det: formula for detection part of model
-  # max.rhat: maximum value of R-hat across model parameters (want value < 1.05)
+  # max.rhat: maximum value of R-hat across model fixed-effect parameters (want 
+    # value < 1.05)
   # min.ESS: minimum value of ESS (effective sample size) across model
-    # parameters (want value > 400, though less worried about random effects)
+    # fixed-effect parameters  (want value > 400)
   # ppc.sites: posterior predictive checks when binning the data across sites
     # (within year). P-values < 0.1 or > 0.9 can indicate that model fails to 
     # adequately represent variation in occurrence or detection across space.

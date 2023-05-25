@@ -88,15 +88,15 @@ for (i in 1:length(out_list)) {
 # Extract a few model diagnostics
 #------------------------------------------------------------------------------#
 
-# Assess convergence with Rhat value (maximum across all parameters, including 
+# Assess convergence with Rhat value (maximum across all parameters, excluding
 # random effects). Would like to see a value < 1.05
-max_rhat <- lapply(out_list, function(x) 
-  if(length(x) == 2) NA else max(unlist(x$rhat)))
+max_rhat <- lapply(out_list, function(x)
+  if(length(x) == 2) NA else max(unlist(c(x$rhat$beta, x$rhat$alpha))))
 
-# Assess effective sample sizes (ESS; minimum across all parameters, including
+# Assess effective sample sizes (ESS; minimum across all parameters, excluding
 # random effects). Would like to see a value > 400.
 min_ESS <- lapply(out_list, function(x) 
-  if(length(x) == 2) NA else min(unlist(x$ESS)))
+  if(length(x) == 2) NA else min(unlist(x$ESS$beta, x$ESS$alpha)))
 
 # Posterior predictive checks (how well does our model fit the data?)
   # From vignette: binning the data across sites (group = 1) may help reveal 
