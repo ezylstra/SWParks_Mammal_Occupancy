@@ -89,26 +89,20 @@ covariates <- read.csv("data/covariates/covariates-MS.csv", header = TRUE)
 # To specify which covariates to include in models for occurrence or detection,
 # we'll use the short_name column in the covariates dataframe.
 
-# To create candidate model sets for occurrence, we'll define up to 3 objects:
+# To create candidate model sets for occurrence, we'll define 1 or 2 objects:
 
   # OCC_NULL: a logical indicating whether a null model should be included the 
   # candidate model set
-  
-  # OCC_MODELS1: a list of covariates that will be used as the lone fixed-effect 
-  # in a series of candidate models. For instance, OCC_MODELS1 <- c("years", "elev")
-  # indicates that we will include two models in a candidate set, one that allows
-  # occurrence probabilities to vary linearly with year (occ prob ~ year) and one
-  # that allows occurrence probabilities to vary with elevation (occ prob ~ elev).
-  
-  # OCC_MODELS2: a list, where each element is a vector with covariates to include
-  # in a single model. For instance, OCC_MODELS2 <- list(c("years", "elev"), 
-  # c("years", "roads")) indicates that we will include two models in our 
-  # candidate set, one that allows occurrence probabilities to vary with year and 
-  # elevation (occ prob ~ years + elev) and one that allows probabilities to vary 
-  # with year and distance to roads (occ prob ~ years + roads).
+
+  # OCC_MODELS: a list, where each element is a vector listing one of more 
+  # covariates to include in a single candidate model. For instance, 
+  # OCC_MODELS <- list(c("years"), c("years", "roads")) indicates that we will 
+  # include two models in our candidate set, one in which occurrence 
+  # probabilities vary with year, and one in which occurrence probabilities vary
+  # with both year and distance to roads (occ prob ~ years + roads).
 
   # We'll use the same process to create candidate model sets for detection:
-  # DET_NULL, DET_MODELS1, DET_MODELS2
+  # DET_NULL, DET_MODELS
 
 # Random effects: 
 
@@ -137,13 +131,17 @@ covariates <- read.csv("data/covariates/covariates-MS.csv", header = TRUE)
   # which, if any, covariates should be included in detection models
 #------------------------------------------------------------------------------#
 
-# For detection, keep a full model (day2 + deploy_exp + effort)
+# For detection, use a "full" model
 DET_NULL <- FALSE
-DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
+DET_MODELS <- list(c("day2", "deploy_exp", "effort"))
 
 # For occurrence, try each annual covariate in a separate model
 OCC_NULL <- TRUE
-OCC_MODELS1 <- c("years", "visits", "traffic", "monsoon_ppt", "ppt10")
+OCC_MODELS <- list("years", 
+                   "visits", 
+                   "traffic", 
+                   "monsoon_ppt", 
+                   "ppt10")
 
 # Include a random site effect in occurrence model, but no other random effects
 SITE_RE_OCC <- "unstructured"
@@ -195,14 +193,11 @@ BEST_ANNUAL <- "years"
 min_waic <- min(model_stats$waic)
 summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
 
-# To use a null model:
+# To use a null model for detection:
   # DET_NULL <- TRUE
-  # rm(DET_MODELS2)
-# To use a model will just a single covariate, like effort:
-  # DET_MODELS1 <- "effort"
-  # rm(DET_MODELS2)
-# To use a model with more than one covariate, like day2, deploy_exp, and effort:
-  DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
+# To use a model with a subset of those covariates, like day2 and effort:
+  # DET_MODELS2 <- list(c("day2", "effort"))
+# To use the same model, we can leave DET_MODELS as is
 
 #------------------------------------------------------------------------------#
 # Specify and run second set of candidate models, where we will evaluate:
@@ -238,7 +233,8 @@ scov_combos <- list(c("aspect", "veg", "wash", "roads"),
                     c("aspect", "veg", "wash", "trailpoi"),
                     c("elev", "veg", "wash", "trailpoi"),
                     c("slope", "veg", "wash", "trailpoi"))
-OCC_MODELS2 <- lapply(scov_combos, function(x) c(x, BEST_ANNUAL))
+OCC_MODELS <- lapply(scov_combos, function(x) c(x, BEST_ANNUAL))
+OCC_NULL <- FALSE
 
 # Create candidate model set
 source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
@@ -284,11 +280,12 @@ summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
 
 # If all the covariates have sufficient explanatory power, then move on to the 
 # next step (looking at results from best model, below). If not, run a model 
-# that excludes extraneous covariates from the model for occurrence.
+# that excludes covariates with little to no explantory power from the model for 
+# occurrence.
 
   # Identify new set of spatial covariates to include in a model for inference:
   scov_new <- list(c("slope", "veg", "wash"))
-  OCC_MODELS2 <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
+  OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
   source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
   message("Check candidate models:", sep = "\n")
   model_specs

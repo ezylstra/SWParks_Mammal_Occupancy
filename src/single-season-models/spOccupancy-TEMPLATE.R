@@ -5,13 +5,13 @@
 # Objects that need to be specified to run models (ie, to create 
 # src/single-season-model/YEAR/spOccupancy-PARK-SPECIES-YEAR.R)
   # PARK, YEAR, SPECIES (lines 50, 53, 67)
-  # Specifications for occurrence models: OCC_NULL, OCC_MODELS1, OCC_MODELS2
-  # Specifications for detection models: DET_NULL, DET_MODELS1, DET_MODELS2
+  # Specifications for occurrence models: OCC_NULL, OCC_MODELS
+  # Specifications for detection models: DET_NULL, DET_MODELS
   # MCMC parameters: N_SAMPLES, N_BURN, N_THIN, N_CHAINS
   # Method used to select a "best" model for inferences: STAT
 
 # ER Zylstra
-# Updated 2023-04-20
+# Updated 2023-05-26
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -67,7 +67,8 @@ detects %>%
 # Select species of interest (ideally with a detection rate of at least 5%)
 SPECIES <- "URCI"
 
-# Save this script as: src/single-season-models/YEAR/spOccupancy-PARK-SPECIES-YEAR.R
+# Save this script as: 
+# src/single-season-models/YEAR/spOccupancy-PARK-SPECIES-YEAR.R
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -84,12 +85,34 @@ source("src/single-season-models/spOccupancy-data-prep.R")
   # covariates are matrices (no. sites * no. occasions). Named objects that end
   # with "_z" are standardized)
 
+# Load dataframe with information about covariates:
+covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
+
+#------------------------------------------------------------------------------#
+# Information about how to build candidate model sets
+#------------------------------------------------------------------------------#
+
+# To specify which covariates to include in models for occurrence or detection,
+# we'll use the short_name column in the covariates dataframe.
+
+# To create candidate model sets for occurrence, we'll define 1 or 2 objects:
+
+  # OCC_NULL: a logical indicating whether a null model should be included the 
+  # candidate model set
+  
+  # OCC_MODELS: a list, where each element is a vector listing one of more 
+  # covariates to include in a single candidate model. For instance, 
+  # OCC_MODELS <- list(c("years"), c("years", "roads")) indicates that we will 
+  # include two models in our candidate set, one in which occurrence 
+  # probabilities vary with year, and one in which occurrence probabilities vary
+  # with both year and distance to roads (occ prob ~ years + roads).
+
+  # We'll use the same process to create candidate model sets for detection:
+  # DET_NULL, DET_MODELS
+
 #------------------------------------------------------------------------------#
 # Specify the occurrence portion of candidate models
 #------------------------------------------------------------------------------#
-
-# Load dataframe with information about covariates:
-covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
 
 # View those pairs of continuous covariates that are highly correlated
 cor_df %>%
@@ -106,15 +129,11 @@ covariates %>%
 # the candidate model set
 OCC_NULL <- TRUE
 
-# Pick covariates to include in simple candidate models via the short_name 
-# column in the covariates dataframe
-OCC_MODELS1 <- c("aspect", "elev2", "slope2")
-
-# To combine covariates in a single candidate model, provide a vector of 
-# short_names. Compile these vectors into a list.
-# e.g., c("aspect", "boundary") would create the following model for occurrence: 
-# psi ~ east + north + boundary
-OCC_MODELS2 <- list(c("roadbound", "elev2"))
+# Pick covariates to include candidate models
+OCC_MODELS <- list("aspect", 
+                    "elev2", 
+                    "slope2",
+                    c("roadbound", "elev2"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -130,13 +149,9 @@ covariates %>%
 # the candidate model set
 DET_NULL <- FALSE
 
-# Pick covariates to include in simple candidate models via the short_name 
-# column in the covariates dataframe
-DET_MODELS1 <- c("effort")
-
-# To combine different covariates in a candidate model, provide a vector of 
-# short_names. Compile those vectors into a list.
-DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
+# Pick covariates to include candidate models
+DET_MODELS <- list("effort",
+                   c("day2", "deploy_exp", "effort"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models

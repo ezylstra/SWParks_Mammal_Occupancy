@@ -5,83 +5,71 @@
 # src/multi-season-models/PARK/spOccupancy-PARK-SPECIES_YEARS.R)
 
 # ER Zylstra
-# Updated 2023-03-03
+# Updated 2023-05-26
 ################################################################################
 
 #------------------------------------------------------------------------------#
 # Create formulas for occurrence part of candidate models
 #------------------------------------------------------------------------------#
 
-if (exists("OCC_MODELS1")) {
-  occm1 <- covariates$formula[covariates$short_name %in% OCC_MODELS1 &
-                                covariates$park %in% c("all", PARK)]
-} else {
-  occm1 <- NA
-}
-if (exists("OCC_MODELS2")) {
-  occm2 <- list()
-  for (i in 1:length(OCC_MODELS2)) {
-    occm2[[i]] <- paste(covariates$formula[covariates$short_name %in% OCC_MODELS2[[i]] &
-                                             covariates$park %in% c("all", PARK)],
-                        collapse = " + ")
+if (exists("OCC_MODELS")) {
+  occm <- list()
+  for (i in 1:length(OCC_MODELS)) {
+    occm[[i]] <- paste(covariates$formula[covariates$short_name %in% OCC_MODELS[[i]] & 
+                                            covariates$park %in% c("all", PARK)],
+                       collapse = " + ")
   }
-  occm2 <- unlist(occm2)
+  occm <- unlist(occm)
 } else {
-  occm2 <- NA
+  occm <- NA
 }
-occ_specs <- c(occm1, occm2)
-if (OCC_NULL) {occ_specs <- c("1", occ_specs)}
-occ_specs <- occ_specs[!is.na(occ_specs)]
-occ_specs <- paste0("~ ", occ_specs) 
+
+if (OCC_NULL) {occm <- c("1", occm)}
+occm <- occm[!is.na(occm)]
+occm <- paste0("~ ", occm) 
 
 # If we want to include unstructured site random effects, add random site
 # intercepts using lme4 syntax
 if (SITE_RE_OCC == "unstructured") {
-  occ_specs <- paste0(occ_specs, " + (1 | site)")
+  occm <- paste0(occm, " + (1 | site)")
 }
 
 # If we want to include unstructured temporal random effects, add random yearly
 # intercepts using lme4 syntax
 if (TIME_RE_OCC == "unstructured") {
-  occ_specs <- paste0(occ_specs, " + (1 | years)")
+  occm <- paste0(occm, " + (1 | years)")
 }
 
 #------------------------------------------------------------------------------#
 # Create formulas for detection part of candidate models
 #------------------------------------------------------------------------------#
 
-if (exists("DET_MODELS1")) {
-  detm1 <- covariates$formula[covariates$short_name %in% DET_MODELS1 &
-                                covariates$park %in% c("all", PARK)]
-} else {
-  detm1 <- NA
-}
-if (exists("DET_MODELS2")) {
-  detm2 <- list()
-  for (i in 1:length(DET_MODELS2)) {
-    detm2[[i]] <- paste(covariates$formula[covariates$short_name %in% DET_MODELS2[[i]] &
-                                             covariates$park %in% c("all", PARK)],
-                        collapse = " + ")
+if (exists("DET_MODELS")) {
+  detm <- list()
+  for (i in 1:length(DET_MODELS)) {
+    detm[[i]] <- paste(covariates$formula[covariates$short_name %in% DET_MODELS[[i]] &
+                                            covariates$park %in% c("all", PARK)],
+                       collapse = " + ")
   }
-  detm2 <- unlist(detm2)
+  detm <- unlist(detm)
 } else {
-  detm2 <- NA
+  detm <- NA
 }
-det_specs <- c(detm1, detm2)
-if (DET_NULL) {det_specs <- c("1", det_specs)}
-det_specs <- det_specs[!is.na(det_specs)]
-det_specs <- paste0("~ ", det_specs) 
+
+if (DET_NULL) {detm <- c("1", detm)}
+detm <- detm[!is.na(detm)]
+detm <- paste0("~ ", detm) 
 
 # If we want to include unstructured site random effects, add random site
 # intercepts using lme4 syntax
 if (SITE_RE_DET == "unstructured") {
-  det_specs <- paste0(det_specs, " + (1 | site)")
+  detm <- paste0(detm, " + (1 | site)")
 }
 
 # If we want to include unstructured temporal random effects, add random yearly
 # intercepts using lme4 syntax
 if (TIME_RE_DET == "unstructured") {
-  det_specs <- paste0(det_specs, " + (1 | years)")
+  detm <- paste0(detm, " + (1 | years)")
 }
 
 #------------------------------------------------------------------------------#
@@ -91,8 +79,8 @@ if (TIME_RE_DET == "unstructured") {
 
 # Create a matrix that contains all combinations of occurrence and detection 
 # covariates for candidate models
-model_specs <- as.matrix(expand.grid(occ = occ_specs, 
-                                     det = det_specs,
+model_specs <- as.matrix(expand.grid(occ = occm, 
+                                     det = detm,
                                      KEEP.OUT.ATTRS = FALSE))
 
 # Create model formulas with R syntax
