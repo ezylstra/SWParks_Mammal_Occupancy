@@ -1,0 +1,70 @@
+---
+title: "Summary of camera trap data, SAGW, 2022"
+date: "2023-05-26"
+output: 
+  word_document:
+    reference_docx: "../../../word-styles-01.docx"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Effort
+
+Information about when cameras were deployed and retrieved 
+
+Information about sampling occasions (number, dates for each, proportion of time that cameras were operational?)
+
+Include a figure with camera deployment information, with sampling occasions denoted?
+
+# Detections
+
+Table with detection summaries
+
+- row for each species detected (common and scientific names)
+- number of photos, detections (max of one per day or sampling period per location)
+- number of locations
+- detection rate (denoting for which species we ran occupancy model)
+
+# Modeling approach
+
+Occupancy models
+
+- types of data used
+- parameters estimated
+
+spOccupancy package (that uses a Bayesian framework)
+
+Model selection
+
+- what covariates were considered (i.e., candidate model set)
+- how a model for inference was selected
+
+# Species 1 (create species sections in a loop since the number of species will change across parks and years?)
+
+## Model used for inference
+
+Brief description
+
+Table with parameter estimates (along with generic caption)
+
+
+Example:
+```{r cars}
+summary(cars)
+```
+
+## Estimated occurrence probabilities
+
+Map
+
+## Estimated covariate effects on occurrence and/or detection probabilities
+
+Figures with captions. Example: 
+
+```{r pressure, echo=FALSE}
+par(mar = c(4, 4, 1, 1))
+plot(pressure)
+```
+
