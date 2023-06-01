@@ -12,20 +12,39 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Effort
 
-Information about when cameras were deployed and retrieved 
+Going to start by running: 
+source("src/functions.R")
+source("src/photo-data/format-mammal-data.R")
 
-Information about sampling occasions (number, dates for each, proportion of time that cameras were operational?)
+Then using code from photo-data/summarize-deployments-photos.R:
 
-Include a figure with camera deployment information, with sampling occasions denoted?
+Information about when cameras were deployed and retrieved, regardless of how we
+delineate sampling occasions
+
+Text with information about sampling occasions (number, dates for each)
+
+Include a figure with camera deployment information, with sampling occasions.
+Use existing code to create the plot with horizontal lines for 
+each camera. Add vertical lines to denote sampling occasions. Then save/print
+(using NPS formatting?)
 
 # Detections
 
 Table with detection summaries
 
 - row for each species detected (common and scientific names)
-- number of photos, detections (max of one per day or sampling period per location)
+- number of photos, detections (max of one per day or sampling period per location).
+  If we want the number of photographs (so can have multiple on same day at 
+  same place), then can use count(dat[], Species_code). This is what they included
+  in reports previously. Alternatively, could report the number of detections, 
+  limiting it to one per day at each location (need to calculate). Or the 
+  nubmer of detections, limiting it to one per occasion at each location (what's
+  currently in the detects dataframe).
 - number of locations
-- detection rate (denoting for which species we ran occupancy model)
+- detection rate (denoting for which species we ran occupancy model). Rate = 
+  if each sampling occasion at a particular location is an opportunity for a 
+  detection, it's the proportion of these opportunties (occasion*location) with
+  a species detection
 
 # Modeling approach
 
