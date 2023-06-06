@@ -224,7 +224,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
     # (lower is better)
 
 #------------------------------------------------------------------------------#
-# Look at results and predictions from "best" model
+# Select "best" model of candidate set
 #------------------------------------------------------------------------------#
 
 # Identify a model to use for inferences.  Can base this on WAIC or deviance 
@@ -232,7 +232,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
 # "model_no" and specifying the "best_index" directly.
 
 # Specify STAT as either: waic, k.fold.dev, or model_no
-STAT <- "model_no"   
+STAT <- "waic"   
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
@@ -241,9 +241,51 @@ if (STAT == "model_no") {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
 }
-
-# Extract output and formulas from best model
+  
+# Extract output and formulas from best model in 
 best <- out_list[[best_index]]
+summary(best)
+
+  # IF it's clear that one of more covariates have no explanatory power (ie,
+  # credible intervals widely span 0) then run another model after removing those
+  # covariates.
+  
+  # OCC_NULL <- FALSE
+  # OCC_MODELS <- list(c("elev", "veg", "wash", "pois"),
+  #                    c("elev", "veg"))
+  # DET_NULL <- TRUE
+  # rm(DET_MODELS)
+  # 
+  # source("src/single-season-models/spOccupancy-create-model-formulas.R")
+  # message("Check candidate models:", sep = "\n")
+  # model_specs
+  # 
+  # source("src/single-season-models/spOccupancy-run-candidate-models.R")
+  # model_stats %>% arrange(waic)
+  # 
+  # # Specify STAT as either: waic, k.fold.dev, or model_no
+  # STAT <- "waic"   
+  # if (STAT == "model_no") {
+  #   # If STAT == "model_no", specify model of interest by model number in table
+  #   best_index <- 5  
+  # } else {
+  #   min_stat <- min(model_stats[,STAT])
+  #   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
+  # }
+  # 
+  # # Extract output and formulas from best model in 
+  # best <- out_list[[best_index]]
+  # summary(best)
+  
+# Save model object to file
+model_filename <- paste0("output/single-season-models/", PARK, "-", SPECIES,
+                         "-", YEAR, ".rds")
+saveRDS(best, file = model_filename)
+
+#------------------------------------------------------------------------------#
+# Evaluate best model and look at estimates
+#------------------------------------------------------------------------------#
+
 best_psi_model <- model_specs[best_index, 1]
 best_p_model <- model_specs[best_index, 2]
 
@@ -263,8 +305,6 @@ if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
   p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
 }
 
-# View parameter estimates
-summary(best)
 # Create table with summary stats that can be saved to file
 occ_estimates <- parameter_estimates(model = best, 
                                      parameter = "occ",
