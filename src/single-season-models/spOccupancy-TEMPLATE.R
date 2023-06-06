@@ -117,7 +117,7 @@ covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
 # View those pairs of continuous covariates that are highly correlated
 cor_df %>%
   arrange(desc(corr)) %>%
-  dplyr::filter(abs(corr) > 0.5)
+  dplyr::filter(abs(corr) >= 0.6)
 
 # See what covariates are available for occurrence part of model
 covariates %>%
@@ -129,11 +129,37 @@ covariates %>%
 # the candidate model set
 OCC_NULL <- TRUE
 
+# There are 3 categories of spatial covariates:
+  # topographic: aspect, elev, slope
+    # (using linear rather than quadratic forms of elev & slope because SAGW 
+    # doesn't span that large of a range and we often get nonsensical results 
+    # with highest probabilities at extreme values)
+  # veg: vegclasses + wash (for now, only available for SAGW)
+  # anthropogenic: roads, boundary, trails, pois, roadbound, trailpois
+
+# For occurrence part of the models, try including item(s) from each category of
+# spatial covariates, excluding any covariates that are highly correlated 
+# (|r| >= 0.6).
+
 # Pick covariates to include candidate models
-OCC_MODELS <- list("aspect", 
-                    "elev2", 
-                    "slope2",
-                    c("roadbound", "elev2"))
+OCC_MODELS <- list(c("aspect", "veg", "wash", "roads"),
+                   c("elev", "veg", "wash", "roads"),
+                   c("slope", "veg", "wash", "roads"),
+                   c("aspect", "veg", "wash", "boundary"),
+                   c("elev", "veg", "wash", "boundary"),
+                   c("slope", "veg", "wash", "boundary"),
+                   c("aspect", "veg", "wash", "trail"),
+                   c("elev", "veg", "wash", "trail"),
+                   c("slope", "veg", "wash", "trail"),
+                   c("aspect", "veg", "wash", "pois"),
+                   c("elev", "veg", "wash", "pois"),
+                   c("slope", "veg", "wash", "pois"),
+                   c("aspect", "veg", "wash", "roadbound"),
+                   c("elev", "veg", "wash", "roadbound"),
+                   c("slope", "veg", "wash", "roadbound"),
+                   c("aspect", "veg", "wash", "trailpoi"),
+                   c("elev", "veg", "wash", "trailpoi"),
+                   c("slope", "veg", "wash", "trailpoi"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
