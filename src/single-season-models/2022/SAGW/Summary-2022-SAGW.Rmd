@@ -1,50 +1,158 @@
 ---
 title: "Summary of camera trap data, SAGW, 2022"
-date: "2023-05-26"
+date: "2023-06-05"
 output: 
   word_document:
     reference_docx: "../../../word-styles-01.docx"
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include = FALSE}
+knitr::opts_knit$set(root.dir = "../../../../" )
 ```
 
 # Effort
+```{r effort, message = FALSE, warning = FALSE, echo = FALSE}
 
-Going to start by running: 
+library(lubridate)
+library(tidyverse)
+
 source("src/functions.R")
 source("src/photo-data/format-mammal-data.R")
 
-Then using code from photo-data/summarize-deployments-photos.R:
+# Select park ("CHIR", "ORPI", or "SAGW") and year of interest 
+PARK <- "SAGW"
+YEAR <- 2022
 
-Information about when cameras were deployed and retrieved, regardless of how we
-delineate sampling occasions
+# Subset events data and add a numeric camera ID
+events <- events %>%
+  filter(Park == PARK, d_yr == YEAR) %>%
+  mutate(locnum = as.numeric(as.factor(StdLocName))) %>%
+  as.data.frame()
 
-Text with information about sampling occasions (number, dates for each)
+# Load sampling occasion data
+occasions <- read.csv("data/occasions/occasions-all-parks.csv")
+occasions <- occasions %>%
+  filter(Park == PARK) %>%
+  filter(yr %in% YEAR) %>%
+  arrange(yr, occasion)
 
-Include a figure with camera deployment information, with sampling occasions.
-Use existing code to create the plot with horizontal lines for 
-each camera. Add vertical lines to denote sampling occasions. Then save/print
-(using NPS formatting?)
+# Function to create chart with deployments
+ggcust_segs <- function(dat, park, year, xlims, occ){
+  ggplot() +
+    geom_segment(filter(dat, Park == park & d_yr == year),
+                 mapping = aes(x = d_date, xend = r_date, y = locnum, yend = locnum),
+                 size = 0.3, color = "dodgerblue3") + 
+    geom_segment(filter(dat, Park == park & d_yr == year),
+                 mapping = aes(x = d_date, xend = d_date, y = locnum+0.4, yend = locnum-0.4),
+                 size = 0.3, color = "dodgerblue3") + 
+    geom_segment(filter(dat, Park == park & d_yr == year),
+                 mapping = aes(x = r_date, xend = r_date, y = locnum+0.4, yend = locnum-0.4),
+                 size = 0.3, color = "dodgerblue3") +
+    geom_vline(xintercept = as.Date(occ$start), color = "gray50") + 
+    geom_vline(xintercept = as.Date(occ$end[nrow(occ)]), color = "gray50") +
+    labs(x = "", y = "Camera number") + 
+    scale_x_date(limits = xlims, date_labels = "%b") +
+    theme(text=element_text(size = 10),
+          axis.title.x=element_blank(),
+          plot.margin = margin(0.1, 0.2, 0.2, 0.2, unit = "cm"))
+}
+
+xmin <- paste0(YEAR, "-01-01")
+if (PARK == "SAGW") {
+  xmax <- paste0(YEAR, "-03-15")
+} else {
+  xmax <- paste0(YEAR, "-12-31")
+}
+
+segs <- ggcust_segs(events, PARK, YEAR, xlims = as.Date(c(xmin, xmax)),
+                    occ = occasions)
+```
+
+A total of `r nrow(events)` cameras were deployed in SAGW between 
+`r min(events$d_date)` and `r max(events$d_date)`, and were retrieved between 
+`r min(events$r_date)` and `r max(events$r_date)`. We delineated a total of 
+`r nrow(occasions)` sampling occasions that were each `r occasions$duration[1]` 
+days long.\
+
+```{r deployment-table, echo = FALSE}
+occ_short <- occasions %>% 
+  select(c(occasion, start, end)) %>%
+  rename(Occasion = occasion,
+         Start = start,
+         End = end)
+
+knitr::kable(occ_short, align = "cll")
+```
+\
+In the figure below, each horizontal blue line represents a camera deployment. 
+The gray vertical lines denote the beginning and end of the `r nrow(occasions)`
+consecutive sampling occasions.\
+
+```{r deployment-plot, fig.width = 5, fig.height = 4, echo = FALSE}
+segs
+```
 
 # Detections
+```{r detections, message = FALSE, warning = FALSE, echo = FALSE}
 
-Table with detection summaries
+# Clean up species table
+species <- species %>%
+  select(-n)
+species$Species[species$Species_code == "SKUNK"] <- "Mephitidae"
+species$Species[species$Species_code == "UNCA"] <- "Canidae"
 
-- row for each species detected (common and scientific names)
-- number of photos, detections (max of one per day or sampling period per location).
-  If we want the number of photographs (so can have multiple on same day at 
-  same place), then can use count(dat[], Species_code). This is what they included
-  in reports previously. Alternatively, could report the number of detections, 
-  limiting it to one per day at each location (need to calculate). Or the 
-  nubmer of detections, limiting it to one per occasion at each location (what's
-  currently in the detects dataframe).
-- number of locations
-- detection rate (denoting for which species we ran occupancy model). Rate = 
-  if each sampling occasion at a particular location is an opportunity for a 
-  detection, it's the proportion of these opportunties (occasion*location) with
-  a species detection
+# Filter detection data
+dat <- dat %>%
+  filter(Park == PARK & yr == YEAR) %>%
+  filter(obsdate >= occasions$start[1] & 
+           obsdate <= occasions$end[nrow(occasions)])
+nphotos <- dat %>%
+  group_by(Species_code) %>%
+  summarize(n_photos = length(datetime),
+            n_locs = length(unique(LocationName))) %>%
+  arrange(desc(n_photos)) %>%
+  left_join(species, by = "Species_code") %>%
+  relocate(Common_name:Species, .before = n_photos) %>%
+  data.frame()
+
+# Look at detection data for various species
+# Where detection is max of one per sampling occasion at each location
+detects <- read.csv("output/species-detections-byparkyr.csv", header = TRUE)
+detects <- detects %>%
+  dplyr::filter(Park == PARK & yr == YEAR) %>%
+  select(c(spp, ndetects)) %>%
+  rename(Species_code = spp,
+         n_detects = ndetects)
+
+nphotos <- nphotos %>%
+  left_join(detects, by = "Species_code") %>%
+  relocate(n_detects, .after = n_photos) %>%
+  select(-Species_code)
+
+```
+
+We detected a total of `r nrow(nphotos)` mammal species on the `r nrow(events)`
+cameras during the `r nrow(occasions)` sampling occasions. For each species, we 
+present the total number of photographs obtained (multiple photos may occur at 
+the same camera location in the same day), the number of detections to be used 
+in an occupancy modeling framework (maximum of one detection per location per
+sampling period), and unique number of camera locations where the species was
+photographed.\
+
+```{r detections-table, echo = FALSE}
+knitr::kable(nphotos, 
+             align = "rrccc",
+             col.names = c("Common name", "Scientific name", "No. photos",
+                           "No. detections", "No.locations"), 
+             caption = paste0("Table 2. Mammal photographs obtained from ",
+                              nrow(events), 
+                              " remote cameras at Saguaro National Park, ", 
+                              format(as.Date(occasions$start[1]), "%b %d "), 
+                              "- ",
+                              format(as.Date(occasions$end[nrow(occasions)]), "%b %d"),
+                              ", 2022."))
+```
+\
 
 # Modeling approach
 
@@ -68,22 +176,11 @@ Brief description
 
 Table with parameter estimates (along with generic caption)
 
-
-Example:
-```{r cars}
-summary(cars)
-```
-
 ## Estimated occurrence probabilities
 
 Map
 
 ## Estimated covariate effects on occurrence and/or detection probabilities
 
-Figures with captions. Example: 
-
-```{r pressure, echo=FALSE}
-par(mar = c(4, 4, 1, 1))
-plot(pressure)
-```
+Figures with captions.
 
