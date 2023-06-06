@@ -8,20 +8,33 @@ output:
 
 ```{r setup, include = FALSE}
 knitr::opts_knit$set(root.dir = "../../../../" )
+
+library(lubridate)
+library(tidyverse)
+library(pander)
+
+panderOptions('table.alignment.default', function(df)
+    ifelse(sapply(df, is.numeric), 'right', 'left'))
+panderOptions('table.split.table', Inf)
+panderOptions('big.mark', ",")
+panderOptions('keep.trailing.zeros', TRUE)
+
 ```
 
 # Effort
 ```{r effort, message = FALSE, warning = FALSE, echo = FALSE}
-
-library(lubridate)
-library(tidyverse)
-
 source("src/functions.R")
 source("src/photo-data/format-mammal-data.R")
 
 # Select park ("CHIR", "ORPI", or "SAGW") and year of interest 
 PARK <- "SAGW"
 YEAR <- 2022
+
+# Park long name
+PARKL <- ifelse(PARK == "SAGW", 
+                "Saguaro National Park - Tucson Mountain District",
+                ifelse(PARK == "CHIR", "Chiricahua National Monument",
+                       "Organ Pipe Cactus National Monument"))
 
 # Subset events data and add a numeric camera ID
 events <- events %>%
@@ -81,8 +94,12 @@ occ_short <- occasions %>%
          Start = start,
          End = end)
 
-knitr::kable(occ_short, align = "cll")
+pander(occ_short,
+       justify = c("center", "left", "left"),
+       style = "simple")
+
 ```
+
 \
 In the figure below, each horizontal blue line represents a camera deployment. 
 The gray vertical lines denote the beginning and end of the `r nrow(occasions)`
@@ -140,17 +157,20 @@ sampling period), and unique number of camera locations where the species was
 photographed.\
 
 ```{r detections-table, echo = FALSE}
-knitr::kable(nphotos, 
-             align = "rrccc",
-             col.names = c("Common name", "Scientific name", "No. photos",
-                           "No. detections", "No.locations"), 
-             caption = paste0("Table 2. Mammal photographs obtained from ",
-                              nrow(events), 
-                              " remote cameras at Saguaro National Park, ", 
-                              format(as.Date(occasions$start[1]), "%b %d "), 
-                              "- ",
-                              format(as.Date(occasions$end[nrow(occasions)]), "%b %d"),
-                              ", 2022."))
+caption <- paste0("Table 2. Mammal photographs obtained from ",
+                  nrow(events), " remote cameras at ", PARKL, ", ", 
+                  format(as.Date(occasions$start[1]), "%B %d"), " - ",
+                  format(as.Date(occasions$end[nrow(occasions)]), "%b %d"),
+                  ", ", YEAR, ".")
+
+colnames(nphotos) <- c("Common name", "Scientific name", "No. photos",
+                       "No. detections", "No. locations")
+pander(nphotos, 
+       caption = caption,
+       justify = c("left", "left", "center", "center", "center"),
+       emphasize.italics.cols = 2,
+       style = "simple")
+
 ```
 \
 
