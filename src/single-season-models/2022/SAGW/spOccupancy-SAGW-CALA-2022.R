@@ -286,7 +286,8 @@ model_filename <- paste0("output/single-season-models/", PARK, "-", SPECIES,
                          "-", YEAR, ".rds")
 model_list <- list(model = best, 
                    psi_model = best_psi_model,
-                   p_model = best_p_model)
+                   p_model = best_p_model,
+                   data = data_list)
 saveRDS(model_list, file = model_filename)
   
 #------------------------------------------------------------------------------#
