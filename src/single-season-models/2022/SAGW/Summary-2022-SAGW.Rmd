@@ -35,7 +35,7 @@ YEAR <- 2022
 
 # Park long name
 PARKL <- ifelse(PARK == "SAGW", 
-                "Tucson Mountain District of Saguaro National Park",
+                "the Tucson Mountain District of Saguaro National Park",
                 ifelse(PARK == "CHIR", "Chiricahua National Monument",
                        "Organ Pipe Cactus National Monument"))
 
@@ -181,8 +181,10 @@ pander(nphotos,
 spp_rds <- list.files(path = "output/single-season-models/", 
                       pattern = ".rds",
                       full.names = FALSE)
-spp <- str_sub(spp_rds, 6, 9)
-nspp <- length(spp)
+spp_table <- data.frame(Species_code = str_sub(spp_rds, 6, 9))
+spp_table$common <- species$Common_name[match(spp_table$Species_code,
+                                              species$Species_code)]
+nspp <- nrow(spp_table)
 
 # Extract MCMC parameters from one of these model objects
 model_list <- readRDS(paste0("output/single-season-models/", spp_rds[1]))
@@ -202,6 +204,9 @@ names(park_raster)[names(park_raster) == "boundaryUP"] <- "boundary"
 
 # Extract dataframe with covariate values at each camera location
 spatial_covs <- model_list$data$occ.covs
+
+# Load general information about covariates
+covariates <- read.csv("data/covariates/covariates.csv")
 
 ```
 
@@ -241,74 +246,107 @@ Something about where we obtained spatial data?
 # Species 1 (create species sections in a loop since the number of species will change across parks and years?)
 
 
-```{r CALA-test-model, echo = FALSE}
+```{r CALA-test-model, echo = TRUE}
 
-# SPECIES <- spp[i]
+i = 1
+SPECIES <- spp_table$Species_code[i]
+spp_name <- tolower(spp_table$common[i])
+spp_plural <- paste0(spp_name, "s")
 
 # Load best model and attributes
-# model_list <- readRDS(paste0("output/single-season-models/", PARK, "-", 
-#                              SPECIES, "-", YEAR, ".rds"))
-# best <- model_list$model
-# psi_model <- model_list$psi_model
-# p_model <- model_list$p_model
-# 
-# 
-# # Extract names of covariates (with and without "_z" subscripts) from best model
-# psi_covs_z <- create_cov_list(psi_model)
-# if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
-#   psi_covs_z <- character(0)
-#   psi_covs <- character(0)
-# } else {
-#   psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
-# }
-# p_covs_z <- create_cov_list(p_model)
-# if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
-#   p_covs_z <- character(0)
-#   p_covs <- character(0)
-# } else {
-#   p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
-# }
-# 
-# # Create table with summary stats that can be saved to file
-# occ_estimates <- parameter_estimates(model = best, 
-#                                      parameter = "occ",
-#                                      lower_ci = 0.025,
-#                                      upper_ci = 0.975)
-# det_estimates <- parameter_estimates(model = best, 
-#                                      parameter = "det",
-#                                      lower_ci = 0.025,
-#                                      upper_ci = 0.975)
-# occ_estimates <- occ_estimates %>%
-#   rename(Covariate = Parameter) %>%
-#   mutate(Parameter = "Occurrence", .before = "Covariate")
-# det_estimates <- det_estimates %>%
-#   rename(Covariate = Parameter) %>%
-#   mutate(Parameter = "Detection", .before = "Covariate")
-# estimates <- rbind(occ_estimates, det_estimates)
-# # estimates2 <- estimates %>% 
-# #   rename(Lower95CI = "Lower95%",
-# #          Upper95CI = "Upper95%") %>%
-# #   select(-c(Median, exclude0)) %>%
-# #   mutate(across(Mean:Upper95CI, function(x) round(x, 2)))
-# 
-# estimates %>% 
-#   rename(Lower95CI = "Lower95%",
-#          Upper95CI = "Upper95%") %>%
-#   select(-c(Median, exclude0)) %>%
-#   mutate(across(Mean:Upper95CI, function(x) round(x, 2))) %>%
-#   pander(justify = "right",
-#          digits = 2,
-#          big.mark = "",
-#          style = "simple")
+model_list <- readRDS(paste0("output/single-season-models/", PARK, "-",
+                             SPECIES, "-", YEAR, ".rds"))
+best <- model_list$model
+psi_model <- model_list$psi_model
+p_model <- model_list$p_model
+
+
+# Extract names of covariates (with and without "_z" subscripts) from best model
+psi_covs_z <- create_cov_list(psi_model)
+if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
+  psi_covs_z <- character(0)
+  psi_covs <- character(0)
+} else {
+  psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
+}
+p_covs_z <- create_cov_list(p_model)
+if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
+  p_covs_z <- character(0)
+  p_covs <- character(0)
+} else {
+  p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
+}
+
+# Create table with summary stats that can be saved to file
+occ_estimates <- parameter_estimates(model = best,
+                                     parameter = "occ",
+                                     lower_ci = 0.025,
+                                     upper_ci = 0.975)
+det_estimates <- parameter_estimates(model = best,
+                                     parameter = "det",
+                                     lower_ci = 0.025,
+                                     upper_ci = 0.975)
+occ_estimates <- occ_estimates %>%
+  rename(Covariate = Parameter) %>%
+  mutate(Parameter = "Occurrence", .before = "Covariate")
+det_estimates <- det_estimates %>%
+  rename(Covariate = Parameter) %>%
+  mutate(Parameter = "Detection", .before = "Covariate")
+estimates <- rbind(occ_estimates, det_estimates)
+
+psi_model
+p_model
+psi_covs_z
+psi_covs
+p_covs_z
+p_covs
+head(covariates)
+
+# Add something to calculate the number of covariates for each parameter
+# Need to create wording to describe vegclasses and quadratic effects
 
 ```
 
 ## Model used for inference
 
-Brief description
+The highest-ranking model for `r spp_plural` included XX covariates in the 
+occurrence part of the model and XX covariates in the detection part of the
+model.
 
-Table with parameter estimates (along with generic caption)
+<br>
 
+**Table X.** Parameter estimates from a model for `r spp_name` in `r PARKL`, 
+`r YEAR`. SD = Standard deviation and 95% CI = 95% credible interval. Rhat
+values between 1 and 1.05 indicate that the model has converged. ESS = effective
+sample size; values > 400 are usually sufficient. f values indicate the
+proportion of posterior samples that are < 0 if the mean is < 0 or the
+proportion of samples that are > 0 if the mean is > 0. Estimates are on the 
+logit scale and all continuous covariates have been standardized by their 
+respective means and standard deviations.
+
+<br>
+
+```{r CALA-test-estimates, echo = FALSE}
+
+################################
+# Replace elev_z with elevation (note about standardizing in table or caption)
+# Replace vegclass2 with better name? Veg Class 2?
+
+estimates %>%
+  rename(LowerCI = "Lower95%",
+         UpperCI = "Upper95%") %>%
+  mutate(across(Mean:UpperCI, function(x) round(x, 2))) %>%
+  mutate("95% CI" = paste0(LowerCI, ", ", UpperCI)) %>%
+  select(-c(Median, LowerCI, UpperCI, exclude0)) %>%
+  relocate("95% CI", .after = SD) %>%
+  pander(justify = c(rep("right", 4), "center", rep("right", 3)),
+         digits = 2,
+         big.mark = "",
+         style = "simple")
+
+```
+
+\
 Table with overall estimate (or estimates by vegclass)
 
 ```{r CALA-test-predmap, echo = FALSE}
