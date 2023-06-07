@@ -244,6 +244,8 @@ if (STAT == "model_no") {
   
 # Extract output and formulas from best model in 
 best <- out_list[[best_index]]
+best_psi_model <- model_specs[best_index, 1]
+best_p_model <- model_specs[best_index, 2]
 summary(best)
 
   # IF it's clear that one of more covariates have no explanatory power (ie,
@@ -275,19 +277,21 @@ summary(best)
   # 
   # # Extract output and formulas from best model in 
   # best <- out_list[[best_index]]
+  # best_psi_model <- model_specs[best_index, 1]
+  # best_p_model <- model_specs[best_index, 2]
   # summary(best)
-  
+
 # Save model object to file
 model_filename <- paste0("output/single-season-models/", PARK, "-", SPECIES,
                          "-", YEAR, ".rds")
-saveRDS(best, file = model_filename)
+model_list <- list(model = best, 
+                   psi_model = best_psi_model,
+                   p_model = best_p_model)
+saveRDS(model_list, file = model_filename)
 
 #------------------------------------------------------------------------------#
 # Evaluate best model and look at estimates
 #------------------------------------------------------------------------------#
-
-best_psi_model <- model_specs[best_index, 1]
-best_p_model <- model_specs[best_index, 2]
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(best_psi_model)
