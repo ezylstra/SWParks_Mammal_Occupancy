@@ -35,7 +35,7 @@ YEAR <- 2022
 
 # Park long name
 PARKL <- ifelse(PARK == "SAGW", 
-                "Saguaro National Park - Tucson Mountain District",
+                "Tucson Mountain District of Saguaro National Park",
                 ifelse(PARK == "CHIR", "Chiricahua National Monument",
                        "Organ Pipe Cactus National Monument"))
 
@@ -174,87 +174,132 @@ pander(nphotos,
 
 ## Occupancy models
 
-For each species with a sufficient number of detections (\ge 5% detection rate), 
-we used single-season occupancy models to estimate the probability of occurrence
-and the probability of detection given occurrence (MacKenzie et al. 2002). To 
-estimate these parameters, we generate encounter histories for each camera
-location, where a "1" denotes that the species was detected at least once during 
-a sampling occasion and a "0" indicates that the species was not detected. For
-example, an encounter history of "10011" would indicate that a species was
-photographed at least once during the 1st, 4th, and 5th sampling occasions and 
-was not photographed during the 2nd and 3rd sampling occasions. 
+```{r data-prep, echo = FALSE}
 
-We used a Bayesian framework to estimate model parameters as this made it easier
-to estimate derived parameters (e.g., proportion of area occupied across the
-entire park) with associated uncertainties and incorporate random effects to
-account for uncertainties beyond that explained by covariates in the model. We
-ran analysis in R using the spOccupancy package (CITES).  
+# Get list of species that we ran occupancy models for (and list of files with 
+# model output)
+spp_rds <- list.files(path = "output/single-season-models/", 
+                      pattern = ".rds",
+                      full.names = FALSE)
+spp <- str_sub(spp_rds, 6, 9)
+nspp <- length(spp)
 
-For each model, we used 3 chains, each with 8000 samples including 4000 burn, 
-thinning by 8. Left with 1500 samples across all chains for posterior inference.
+# Extract MCMC parameters from one of these model objects
+model_list <- readRDS(paste0("output/single-season-models/", spp_rds[1]))
+n_samples <- model_list$model$n.samples
+n_thin <- model_list$model$n.thin
+n_burn <- model_list$model$n.burn
+n_chains <- model_list$model$n.chains
+n_post <- model_list$model$n.post
+
+# Load multi-layer raster with spatial data for park
+park_raster <- readRDS(paste0("data/covariates/spatial-cov-", PARK, ".rds"))
+# We have two distance-to-boundary layers, one that applies to the entire park
+# boundary and one that applies to boundaries that are adjacent to unprotected
+# lands (boundaryUP). For now, we'll remove the original boundary layer.
+park_raster <- subset(park_raster, "boundary", negate = TRUE)
+names(park_raster)[names(park_raster) == "boundaryUP"] <- "boundary"
+
+# Extract dataframe with covariate values at each camera location
+spatial_covs <- model_list$data$occ.covs
+
+```
+
+For each species with a sufficient number of detections ($\ge 5$% detection
+rate; here, `r nspp` species), we used single-season occupancy models to 
+estimate the probability of occurrence and the probability of detection given 
+occurrence (MacKenzie et al. 2002). To estimate these parameters, we generated 
+encounter histories for each camera location, where a "1" denotes that the 
+species was detected at least once during a sampling occasion and a "0" 
+indicates that the species was not detected. For example, an encounter history 
+of "10011" would indicate that a species was photographed at least once during 
+the first, fourth, and fifth sampling occasions and was not photographed during 
+the second and third sampling occasions. 
+
+We used a Bayesian framework to estimate model parameters, as this made it 
+easier to estimate derived parameters (e.g., proportion of area occupied across 
+the entire park) with associated uncertainties and to incorporate random effects 
+that can account for uncertainties beyond that explained by covariates in the 
+model. We fit models in R using the spOccupancy package (Doser et al. 2022). For 
+each model, we ran `r n_chains` Markov chains initiated at random values for 
+`r n_samples` iterations. We discarded the first `r n_burn` iterations and 
+retained 1 of every `r n_thin` iterations thereafter, using the remaining 
+`r n_chains * n_post` samples (across all the chains) to summarize the posterior 
+distribution.
 
 ## Model selection
 
-We characterized ...
-
-We extracted a number of spatial covariates for `r PARKL` that could explain
+We identifed a number of spatial covariates for `r PARKL` that could explain
 variation in occurrence probabilities, detection probabilities, or both.
+
+Something about where we obtained spatial data?
 
 - candidate model set (general)
 - how a model for inference was selected
+
 
 # Species 1 (create species sections in a loop since the number of species will change across parks and years?)
 
 
 ```{r CALA-test-model, echo = FALSE}
 
+# SPECIES <- spp[i]
+
 # Load best model and attributes
-model_list <- readRDS(paste0("output/single-season-models/", PARK, "-CALA-", 
-                             YEAR, ".rds"))
-model <- model_list$model
-psi_model <- model_list$psi_model
-p_model <- model_list$p_model
-
-
-# Extract names of covariates (with and without "_z" subscripts) from best model
-psi_covs_z <- create_cov_list(psi_model)
-if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
-  psi_covs_z <- character(0)
-  psi_covs <- character(0)
-} else {
-  psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
-}
-p_covs_z <- create_cov_list(p_model)
-if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
-  p_covs_z <- character(0)
-  p_covs <- character(0)
-} else {
-  p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
-}
-
-# Create table with summary stats that can be saved to file
-occ_estimates <- parameter_estimates(model = model, 
-                                     parameter = "occ",
-                                     lower_ci = 0.025,
-                                     upper_ci = 0.975)
-det_estimates <- parameter_estimates(model = model, 
-                                     parameter = "det",
-                                     lower_ci = 0.025,
-                                     upper_ci = 0.975)
-occ_estimates <- occ_estimates %>%
-  rename(Covariate = Parameter) %>%
-  mutate(Parameter = "Occurrence", .before = "Covariate")
-det_estimates <- det_estimates %>%
-  rename(Covariate = Parameter) %>%
-  mutate(Parameter = "Detection", .before = "Covariate")
-estimates <- rbind(occ_estimates, det_estimates)
-
-pander(estimates, 
-       justify = "right",
-       style = "simple")
-########## This is too wide. Could reduce digits to 2, remove comma in ESS.
-########## Remove exclude0
-########## remove Rhat and ESS if necessary.
+# model_list <- readRDS(paste0("output/single-season-models/", PARK, "-", 
+#                              SPECIES, "-", YEAR, ".rds"))
+# best <- model_list$model
+# psi_model <- model_list$psi_model
+# p_model <- model_list$p_model
+# 
+# 
+# # Extract names of covariates (with and without "_z" subscripts) from best model
+# psi_covs_z <- create_cov_list(psi_model)
+# if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
+#   psi_covs_z <- character(0)
+#   psi_covs <- character(0)
+# } else {
+#   psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
+# }
+# p_covs_z <- create_cov_list(p_model)
+# if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
+#   p_covs_z <- character(0)
+#   p_covs <- character(0)
+# } else {
+#   p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
+# }
+# 
+# # Create table with summary stats that can be saved to file
+# occ_estimates <- parameter_estimates(model = best, 
+#                                      parameter = "occ",
+#                                      lower_ci = 0.025,
+#                                      upper_ci = 0.975)
+# det_estimates <- parameter_estimates(model = best, 
+#                                      parameter = "det",
+#                                      lower_ci = 0.025,
+#                                      upper_ci = 0.975)
+# occ_estimates <- occ_estimates %>%
+#   rename(Covariate = Parameter) %>%
+#   mutate(Parameter = "Occurrence", .before = "Covariate")
+# det_estimates <- det_estimates %>%
+#   rename(Covariate = Parameter) %>%
+#   mutate(Parameter = "Detection", .before = "Covariate")
+# estimates <- rbind(occ_estimates, det_estimates)
+# # estimates2 <- estimates %>% 
+# #   rename(Lower95CI = "Lower95%",
+# #          Upper95CI = "Upper95%") %>%
+# #   select(-c(Median, exclude0)) %>%
+# #   mutate(across(Mean:Upper95CI, function(x) round(x, 2)))
+# 
+# estimates %>% 
+#   rename(Lower95CI = "Lower95%",
+#          Upper95CI = "Upper95%") %>%
+#   select(-c(Median, exclude0)) %>%
+#   mutate(across(Mean:Upper95CI, function(x) round(x, 2))) %>%
+#   pander(justify = "right",
+#          digits = 2,
+#          big.mark = "",
+#          style = "simple")
 
 ```
 
@@ -272,13 +317,7 @@ Table with overall estimate (or estimates by vegclass)
 # part of the model. NOTE: this can take several minutes to run.
 
 # if (length(psi_covs) > 0) {
-#   # Load multi-layer raster with spatial data ############# ONLY NEED TO DO THIS ONCE -- put in earlier chunk
-#   park_raster <- readRDS(paste0("data/covariates/spatial-cov-", PARK, ".rds"))
-#   
-#   # Actually need a bunch of stuff that's in the data-prep script 
-#   # (eg, spatial_covs, locs_park), but that was created once a species was 
-#   # selected.  Need to figure out how best to do this...
-#   
+  
 #   source("src/single-season-models/spOccupancy-predictions.R")
 # }
 
@@ -295,9 +334,6 @@ Map
 ## Estimated covariate effects on occurrence and/or detection probabilities
 
 Figures with captions
-
-
-
 
 Two examples of how to do things in a loop:
 
