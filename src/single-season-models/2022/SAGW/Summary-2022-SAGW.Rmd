@@ -24,6 +24,8 @@ panderOptions('keep.trailing.zeros', TRUE)
 
 ```
 
+<br>
+
 # Effort
 ```{r effort, echo = FALSE}
 source("src/functions.R")
@@ -88,7 +90,12 @@ A total of `r nrow(events)` cameras were deployed in SAGW between
 `r min(events$d_date)` and `r max(events$d_date)` and were retrieved between 
 `r min(events$r_date)` and `r max(events$r_date)`. We delineated a total of 
 `r nrow(occasions)` sampling occasions that were each `r occasions$duration[1]` 
-days long.\
+days long.
+
+<br>
+
+**Table 1.** Start and end dates for each sampling occasion in `r PARKL`, 
+`r YEAR`.
 
 ```{r deployment-table, echo = FALSE}
 occ_short <- occasions %>% 
@@ -103,12 +110,15 @@ pander(occ_short,
 
 ```
 
-\
-In the figure below, each horizontal blue line represents a camera deployment. 
-The gray vertical lines denote the beginning and end of the `r nrow(occasions)`
-consecutive sampling occasions.\
+<br>
 
-```{r deployment-plot, fig.width = 5, fig.height = 4, echo = FALSE}
+**Figure 1.** Camera deployments and sampling occasions in `r PARKL`, 
+`r YEAR`. Each horizontal blue line represents the period over which a camera 
+was operational, from the date the camera was deployed through the date the
+camera was retrieved. Gray vertical lines denote the beginning and end of 
+the `r nrow(occasions)` consecutive sampling occasions.
+
+```{r deployment-plot, fig.width = 5, fig.height = 3.5, echo = FALSE}
 segs
 ```
 
@@ -152,12 +162,16 @@ nphotos <- nphotos %>%
 ```
 
 We detected a total of `r nrow(nphotos)` mammal species on the `r nrow(events)`
-cameras during the `r nrow(occasions)` sampling occasions. For each species in 
-the table below, we list the total number of photographs obtained (multiple 
-photos may occur at the same camera location in the same day), the number of 
-detections to be used in an occupancy modeling framework (maximum of one 
-detection per location per sampling period), and unique number of camera 
-locations where the species was photographed.\
+cameras during the `r nrow(occasions)` sampling occasions. 
+
+<br>
+
+**Table 2.** Mammal species detected in `r PARKL`, `r YEAR`. No. photos is the 
+the total number of photographs obtained (multiple photos may occur at the same 
+camera location in the same day). No. detections is the number of detections to 
+be used in an occupancy modeling framework (maximum of one photographic
+detection per camera location per sampling period). No. locations is the unique 
+number of camera locations where the species was photographed in `r YEAR`.
 
 ```{r detections-table, echo = FALSE}
 
@@ -210,16 +224,16 @@ covariates <- read.csv("data/covariates/covariates.csv")
 
 ```
 
-For each species with a sufficient number of detections ($\ge 5$% detection
-rate; here, `r nspp` species), we used single-season occupancy models to 
-estimate the probability of occurrence and the probability of detection given 
-occurrence (MacKenzie et al. 2002). To estimate these parameters, we generated 
-encounter histories for each camera location, where a "1" denotes that the 
-species was detected at least once during a sampling occasion and a "0" 
-indicates that the species was not detected. For example, an encounter history 
-of "10011" would indicate that a species was photographed at least once during 
-the first, fourth, and fifth sampling occasions and was not photographed during 
-the second and third sampling occasions. 
+For each species with a sufficient number of detections (here, `r nspp` 
+species), we used single-season occupancy models to estimate the probability of 
+occurrence and the probability of detection given occurrence (MacKenzie et al. 
+2002). To estimate these parameters, we generated encounter histories for each 
+camera location, where a "1" denotes that the species was detected at least once 
+during a sampling occasion and a "0" indicates that the species was not 
+detected. For example, an encounter history of "10011" would indicate that a 
+species was photographed at least once during the first, fourth, and fifth 
+sampling occasions and was not photographed during the second and third sampling 
+occasions. 
 
 We used a Bayesian framework to estimate model parameters, as this made it 
 easier to estimate derived parameters (e.g., proportion of area occupied across 
@@ -243,10 +257,9 @@ Something about where we obtained spatial data?
 - how a model for inference was selected
 
 
-# Species 1 (create species sections in a loop since the number of species will change across parks and years?)
+# Species 1 (create species sections in a loop)
 
-
-```{r CALA-test-model, echo = TRUE}
+```{r CALA-test-model, echo = FALSE}
 
 i = 1
 SPECIES <- spp_table$Species_code[i]
@@ -300,7 +313,7 @@ psi_covs_z
 psi_covs
 p_covs_z
 p_covs
-head(covariates)
+# head(covariates)
 
 # Add something to calculate the number of covariates for each parameter
 # Need to create wording to describe vegclasses and quadratic effects
@@ -324,8 +337,6 @@ proportion of samples that are > 0 if the mean is > 0. Estimates are on the
 logit scale and all continuous covariates have been standardized by their 
 respective means and standard deviations.
 
-<br>
-
 ```{r CALA-test-estimates, echo = FALSE}
 
 ################################
@@ -346,7 +357,8 @@ estimates %>%
 
 ```
 
-\
+<br>
+
 Table with overall estimate (or estimates by vegclass)
 
 ```{r CALA-test-predmap, echo = FALSE}
