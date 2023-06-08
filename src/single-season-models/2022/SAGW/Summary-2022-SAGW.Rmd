@@ -1,13 +1,14 @@
 ---
 title: "Summary of camera trap data, SAGW, 2022"
-date: "2023-06-06"
-output: 
+date: "2023-06-08"
+output:
   word_document:
     reference_docx: "../../../word-styles-01.docx"
 ---
 
 ```{r setup, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
 knitr::opts_knit$set(root.dir = "../../../../" )
+knitr::opts_chunk$set(dev = "ragg_png")
 
 library(lubridate)
 library(tidyverse)
@@ -46,6 +47,10 @@ events <- events %>%
   filter(Park == PARK, d_yr == YEAR) %>%
   mutate(locnum = as.numeric(as.factor(StdLocName))) %>%
   as.data.frame()
+deploy_start <- format(min(events$d_date), "%d %B")
+deploy_end <- format(max(events$d_date), "%d %B")
+retr_start <- format(min(events$r_date), "%d %B")
+retr_end <- format(max(events$r_date), "%d %B")
 
 # Load sampling occasion data
 occasions <- read.csv("data/occasions/occasions-all-parks.csv")
@@ -53,6 +58,8 @@ occasions <- occasions %>%
   filter(Park == PARK) %>%
   filter(yr %in% YEAR) %>%
   arrange(yr, occasion)
+season_start <- format(as.Date(occasions$start[1]), "%d %B")
+season_end <- format(as.Date(occasions$end[nrow(occasions)]), "%d %B")
 
 # Function to create chart with deployments
 ggcust_segs <- function(dat, park, year, xlims, occ){
@@ -87,8 +94,8 @@ segs <- ggcust_segs(events, PARK, YEAR, xlims = as.Date(c(xmin, xmax)),
 ```
 
 A total of `r nrow(events)` cameras were deployed in SAGW between 
-`r min(events$d_date)` and `r max(events$d_date)` and were retrieved between 
-`r min(events$r_date)` and `r max(events$r_date)`. We delineated a total of 
+`r deploy_start` and `r deploy_end` and were retrieved between 
+`r retr_start` and `r retr_end`, `r YEAR`. We delineated a total of 
 `r nrow(occasions)` sampling occasions that were each `r occasions$duration[1]` 
 days long.
 
@@ -118,7 +125,7 @@ was operational, from the date the camera was deployed through the date the
 camera was retrieved. Gray vertical lines denote the beginning and end of 
 the `r nrow(occasions)` consecutive sampling occasions.
 
-```{r deployment-plot, fig.width = 5, fig.height = 3.5, echo = FALSE}
+```{r deployment-plot, fig.width = 5, fig.height = 3.5, dpi = 300, echo = FALSE}
 segs
 ```
 
@@ -166,12 +173,13 @@ cameras during the `r nrow(occasions)` sampling occasions.
 
 <br>
 
-**Table 2.** Mammal species detected in `r PARKL`, `r YEAR`. No. photos is the 
-the total number of photographs obtained (multiple photos may occur at the same 
-camera location in the same day). No. detections is the number of detections to 
-be used in an occupancy modeling framework (maximum of one photographic
-detection per camera location per sampling period). No. locations is the unique 
-number of camera locations where the species was photographed in `r YEAR`.
+**Table 2.** Mammal species detected in `r PARKL` between `r season_start` and
+`r season_end`, `r YEAR`. No. photos is the total number of photographs obtained 
+(multiple photos may occur at the same camera location in the same day). No. 
+detections is the number of detections to be used in an occupancy modeling 
+framework (maximum of one photographic detection per camera location per 
+sampling period). No. locations is the unique number of camera locations where 
+the species was photographed.
 
 ```{r detections-table, echo = FALSE}
 
@@ -273,7 +281,6 @@ best <- model_list$model
 psi_model <- model_list$psi_model
 p_model <- model_list$p_model
 
-
 # Extract names of covariates (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(psi_model)
 if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
@@ -307,6 +314,7 @@ det_estimates <- det_estimates %>%
   mutate(Parameter = "Detection", .before = "Covariate")
 estimates <- rbind(occ_estimates, det_estimates)
 
+###################################################
 psi_model
 p_model
 psi_covs_z
@@ -314,7 +322,16 @@ psi_covs
 p_covs_z
 p_covs
 # head(covariates)
+###################################################
 
+# Create spatial predictions IF there are spatial covariates in the occurrence
+# part of the model. NOTE: this can take several minutes to run.
+
+if (length(psi_covs) > 0) {
+  source("src/single-season-models/spOccupancy-predictions.R")
+}
+
+# TODO: 
 # Add something to calculate the number of covariates for each parameter
 # Need to create wording to describe vegclasses and quadratic effects
 
@@ -328,14 +345,14 @@ model.
 
 <br>
 
-**Table X.** Parameter estimates from a model for `r spp_name` in `r PARKL`, 
-`r YEAR`. SD = Standard deviation and 95% CI = 95% credible interval. Rhat
+**Table X.** Parameter estimates from a model for `r spp_plural` in `r PARKL`, 
+`r YEAR`. SD = Standard deviation; 95% CI = 95% credible interval. Rhat
 values between 1 and 1.05 indicate that the model has converged. ESS = effective
 sample size; values > 400 are usually sufficient. f values indicate the
 proportion of posterior samples that are < 0 if the mean is < 0 or the
 proportion of samples that are > 0 if the mean is > 0. Estimates are on the 
-logit scale and all continuous covariates have been standardized by their 
-respective means and standard deviations.
+logit scale and all continuous covariates were standardized by their 
+respective means and standard deviations prior to analysis.
 
 ```{r CALA-test-estimates, echo = FALSE}
 
@@ -359,31 +376,51 @@ estimates %>%
 
 <br>
 
-Table with overall estimate (or estimates by vegclass)
+## Estimated detection probabilities
 
-```{r CALA-test-predmap, echo = FALSE}
+Text about overall estimate(s).
 
-# Create spatial predictions IF there are spatial covariates in the occurrence
-# part of the model. NOTE: this can take several minutes to run.
-
-# if (length(psi_covs) > 0) {
-  
-#   source("src/single-season-models/spOccupancy-predictions.R")
-# }
-
-```
+Probably don't need figures, just a description of covariate effects?
+(maybe if day2 is significant, can provide day when detection probabilities
+are at a maximum or minimum)
 
 ## Estimated occurrence probabilities
 
-Map
+Text about overall estimate(s) [by vegclass if relevant]
+
+<br>
+
+**Figure X.** Predicted occurrence probabilities for `r spp_plural` in 
+`r PARKL`, `r YEAR`.
+
+```{r CALA-test-map, fig.width = 5, fig.height = 3.5, dpi = 300, echo = FALSE}
+
+map <- ggplot() +
+  geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) + 
+  scale_fill_viridis_c(na.value = "transparent") +
+  labs(fill = "", x = NULL, y = NULL, title = NULL) +
+  theme_bw()
+map + theme(axis.title = element_blank(),
+            title = element_blank())
+
+# Cannot get plot.margin argument in theme to work:
+# map + theme(plot.margin = unit(c(0,0,0,0), "lines"))
+# This makes all of them too small..
+# plot.margin = unit(c(-1, -1, -1, -1), "cm")
+
+# But maybe keep as is, since this is just a reference doc to find 1-2 figs
+# they'll want to include in final reports.
+
+```
+
+## Estimated covariate effects on occurrence probabilities
+
+Figures with captions
 
 ```{r CALA-test-covariate-effects, echo = FALSE}
 
 ```
 
-## Estimated covariate effects on occurrence and/or detection probabilities
-
-Figures with captions
 
 Two examples of how to do things in a loop:
 
@@ -421,9 +458,6 @@ Two examples of how to do things in a loop:
 #   }
 # }
 ```
-
-
-
 
 
 
