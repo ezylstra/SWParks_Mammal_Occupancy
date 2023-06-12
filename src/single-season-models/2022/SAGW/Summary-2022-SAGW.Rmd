@@ -175,11 +175,11 @@ cameras during the `r nrow(occasions)` sampling occasions.
 
 **Table 2.** Mammal species detected in `r PARKL` between `r season_start` and
 `r season_end`, `r YEAR`. No. photos is the total number of photographs obtained 
-(multiple photos may occur at the same camera location in the same day). No. 
-detections is the number of detections to be used in an occupancy modeling 
-framework (maximum of one photographic detection per camera location per 
-sampling period). No. locations is the unique number of camera locations where 
-the species was photographed.
+(multiple photos may occur at the same camera location in the same day). No.
+detections is the number of detections that could be used in an occupancy 
+modeling framework (maximum of one photographic detection per camera location 
+per sampling period). No. locations is the unique number of camera locations 
+where the species was photographed.
 
 ```{r detections-table, echo = FALSE}
 
@@ -314,51 +314,40 @@ det_estimates <- det_estimates %>%
   mutate(Parameter = "Detection", .before = "Covariate")
 estimates <- rbind(occ_estimates, det_estimates)
 
-###################################################
-psi_model
-p_model
-psi_covs_z
-psi_covs
-p_covs_z
-p_covs
-# head(covariates)
-###################################################
+# Calculate the number of covariates in each part of the model:
+n_covs_occ <- length(psi_covs)
+n_covs_occt <- ifelse(n_covs_occ > 1, paste0(n_covs_occ, " covariates"), 
+                      ifelse(n_covs_occ == 1, "1 covariate", "no covariates"))
+n_covs_det <- length(p_covs)
+n_covs_dett <- ifelse(n_covs_det > 1, paste0(n_covs_det, " covariates"), 
+                      ifelse(n_covs_det == 1, "1 covariate", "no covariates"))
 
 # Create spatial predictions IF there are spatial covariates in the occurrence
 # part of the model. NOTE: this can take several minutes to run.
-
 if (length(psi_covs) > 0) {
   source("src/single-season-models/spOccupancy-predictions.R")
 }
-
-# TODO: 
-# Add something to calculate the number of covariates for each parameter
-# Need to create wording to describe vegclasses and quadratic effects
 
 ```
 
 ## Model used for inference
 
-The highest-ranking model for `r spp_plural` included XX covariates in the 
-occurrence part of the model and XX covariates in the detection part of the
+The highest-ranking model for `r spp_plural` included `r n_covs_occt` in the 
+occurrence part of the model and `r n_covs_dett` in the detection part of the
 model.
 
 <br>
 
-**Table X.** Parameter estimates from a model for `r spp_plural` in `r PARKL`, 
-`r YEAR`. SD = Standard deviation; 95% CI = 95% credible interval. Rhat
-values between 1 and 1.05 indicate that the model has converged. ESS = effective
-sample size; values > 400 are usually sufficient. f values indicate the
-proportion of posterior samples that are < 0 if the mean is < 0 or the
-proportion of samples that are > 0 if the mean is > 0. Estimates are on the 
-logit scale and all continuous covariates were standardized by their 
-respective means and standard deviations prior to analysis.
+**Table X.** Parameter estimates (on the logit scale) from a model for 
+`r spp_plural` in `r PARKL`, `r YEAR`. SD = Standard deviation; 95% CI = 95% 
+credible interval. Rhat values between 1 and 1.05 indicate that the model has 
+converged. ESS = effective sample size; values > 400 are usually sufficient. f 
+values indicate the proportion of posterior samples that are < 0 if the mean is 
+< 0 or the proportion of samples that are > 0 if the mean is > 0. All continuous 
+covariates were standardized by their respective means and standard deviations 
+prior to analysis.
 
 ```{r CALA-test-estimates, echo = FALSE}
-
-################################
-# Replace elev_z with elevation (note about standardizing in table or caption)
-# Replace vegclass2 with better name? Veg Class 2?
 
 estimates %>%
   rename(LowerCI = "Lower95%",
@@ -371,6 +360,7 @@ estimates %>%
          digits = 2,
          big.mark = "",
          style = "simple")
+# Replace entries in the covariate column? (elevation instead of elev_z?)
 
 ```
 
@@ -378,11 +368,54 @@ estimates %>%
 
 ## Estimated detection probabilities
 
-Text about overall estimate(s).
+```{r CALA-test-det-estimates, echo = FALSE}
 
-Probably don't need figures, just a description of covariate effects?
-(maybe if day2 is significant, can provide day when detection probabilities
-are at a maximum or minimum)
+# Calculate overall detection probability (for experienced deployment 
+# personnel if that was included in the model)
+if ("deploy_exp" %in% p_covs) {
+  alpha_samples <- model_list$model$alpha.samples[ ,c("(Intercept)", "deploy_exp")]
+  X0 <- as.vector(c(1, 2))
+  probs_logit <- alpha_samples %*% X0
+} else {
+  probs_logit <- model_list$model$alpha.samples[ ,"(Intercept)"]
+}
+det_probs <- exp(probs_logit) / (1 + exp(probs_logit))
+mean_det <- round(mean(det_probs), 2)
+lcl_det <- round(quantile(det_probs, 0.025), 2)
+ucl_det <- round(quantile(det_probs, 0.975), 2)
+
+# If covariates are in the model, create objects to describe the effect.
+if ("effort" %in% p_covs) {
+  if (estimates$Mean[estimates$Covariate == "effort_z"] > 0) {
+    effortpos <- TRUE
+  } else {
+    effortneg <- TRUE
+  }
+} else {
+  effortpos <- FALSE
+  effortneg <- FALSE
+}
+
+# if ("day2" %in% p_covs) { ########################################
+
+# Find day @ max/min
+
+
+# if (day but not day2) #####################
+
+# pos or neg association
+
+```
+
+Overall detection probability `r if("deploy_exp" %in% p_covs) {"with experienced 
+deployment personnel "}`for `r spp_plural` was `r mean_det` (95% credible 
+interval [CI] = `r lcl_det`, `r ucl_det`). 
+
+`r if(effortpos) {"Detection probability was positively associated with the 
+number of days a camera was operational during each sampling occasion. "}` 
+`r if(effortneg) {"Detection probability was negatively associated with the 
+number of days a camera was operational during each sampling occasion. "}`
+
 
 ## Estimated occurrence probabilities
 
