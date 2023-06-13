@@ -57,7 +57,10 @@ occasions <- read.csv("data/occasions/occasions-all-parks.csv")
 occasions <- occasions %>%
   filter(Park == PARK) %>%
   filter(yr %in% YEAR) %>%
-  arrange(yr, occasion)
+  mutate(start_yday = yday(start),
+         end_yday = yday(end),
+         mid_yday = round((start_yday + end_yday)/2)) %>%
+  arrange(yr, occasion) 
 season_start <- format(as.Date(occasions$start[1]), "%d %B")
 season_end <- format(as.Date(occasions$end[nrow(occasions)]), "%d %B")
 
@@ -370,14 +373,16 @@ estimates %>%
 
 ```{r CALA-test-det-estimates, echo = FALSE}
 
+alpha_samples <- model_list$model$alpha.samples
+
 # Calculate overall detection probability (for experienced deployment 
 # personnel if that was included in the model)
 if ("deploy_exp" %in% p_covs) {
-  alpha_samples <- model_list$model$alpha.samples[ ,c("(Intercept)", "deploy_exp")]
+  alpha_deploy <- alpha_samples[ ,c("(Intercept)", "deploy_exp")]
   X0 <- as.vector(c(1, 2))
-  probs_logit <- alpha_samples %*% X0
+  probs_logit <- alpha_deploy %*% X0
 } else {
-  probs_logit <- model_list$model$alpha.samples[ ,"(Intercept)"]
+  probs_logit <- alpha_samples[ ,"(Intercept)"]
 }
 det_probs <- exp(probs_logit) / (1 + exp(probs_logit))
 mean_det <- round(mean(det_probs), 2)
@@ -386,7 +391,7 @@ ucl_det <- round(quantile(det_probs, 0.975), 2)
 
 # If covariates are in the model, create objects to describe the effect.
 if ("effort" %in% p_covs) {
-  if (estimates$Mean[estimates$Covariate == "effort_z"] > 0) {
+  if (mean(alpha_samples[,"effort_z"]) > 0) {
     effortpos <- TRUE
   } else {
     effortneg <- TRUE
@@ -396,28 +401,81 @@ if ("effort" %in% p_covs) {
   effortneg <- FALSE
 }
 
-# if ("day2" %in% p_covs) { ########################################
+if ("I(day_z^2)" %in% colnames(alpha_samples)) {
+  a <- mean(alpha_samples[,"I(day_z^2)"])
+  b <- mean(alpha_samples[,"day_z"])
+  inflect <- -b / (2 * a)
+  inflectdn <- inflect * sd(rep(occasions$mid_yday, nrow(events))) + mean(occasions$mid_yday)
+  inflectday <- parse_date_time(x = paste(YEAR, round(inflectd)), orders = "yj")
+  inflectday <- format(as.Date(inflectday), "%d %B")
+  if (a < 0) {
+    day2max <- TRUE
+  } else {
+    day2min <- TRUE
+  }
+} else {
+  day2max <- FALSE
+  day2min <- FALSE
+}
 
-# Find day @ max/min
+if ("day_z" %in% colnames(alpha_samples) & !"I(day_z^2)" %in% colnames(alpha_samples)) {
+  if (mean(alpha_samples[,"day_z"]) > 0) {
+    daypos <- TRUE
+  } else {
+    dayneg <- TRUE
+  }
+} else {
+  daypos <- FALSE
+  dayneg <- FALSE
+}
 
+# Overall detection probability `r if("deploy_exp" %in% p_covs) {"with experienced
+# deployment personnel "}`for `r spp_plural` was `r mean_det` (95% credible
+# interval [CI] = `r lcl_det`, `r ucl_det`).
+# `r if (day2max) {"Detection probability varied seasonally, increasing initially
+# and then decreasing, reaching a maximum on `r inflectday`. "}`
+# `r if (day2min) {"Detection probability varied seasonally, decreasing initially
+# and then increasing, with minimum detection probabilities on `r inflectday`. "}`
+# `r if (daypos) {"Detection probability increased over the course of the
+# season. "}`
+# `r if (dayneg) {"Detection probability decreased over the course of the
+# season. "}`
+# `r if(effortpos) {"Detection probability was positively associated with the 
+# number of days a camera was operational during each sampling occasion. "}` 
+# `r if(effortneg) {"Detection probability was negatively associated with the 
+# number of days a camera was operational during each sampling occasion. "}`
 
-# if (day but not day2) #####################
-
-# pos or neg association
 
 ```
 
-Overall detection probability `r if("deploy_exp" %in% p_covs) {"with experienced 
-deployment personnel "}`for `r spp_plural` was `r mean_det` (95% credible 
-interval [CI] = `r lcl_det`, `r ucl_det`). 
-
-`r if(effortpos) {"Detection probability was positively associated with the 
-number of days a camera was operational during each sampling occasion. "}` 
-`r if(effortneg) {"Detection probability was negatively associated with the 
-number of days a camera was operational during each sampling occasion. "}`
 
 
 ## Estimated occurrence probabilities
+
+```{r CALA-test-occ-estimates, echo = FALSE}
+
+beta_samples <- model_list$model$beta.samples
+
+# Calculate overall detection probability (or for each vegetation class if 
+# that's in the model)
+
+# if ("vegclass2" %in% psi_covs) {
+#   vegclass_table <- vegclass_estimates(model_list$model,
+#                                        parameter = "occ",
+#                                        lower_ci = 0.025,
+#                                        upper_ci = 0.975)
+#   print(vegclas_table)
+# } else {
+#   probs_logit <- beta_samples[ ,"(Intercept)"]
+#   occ_probs <- exp(probs_logit) / (1 + exp(probs_logit))
+#   mean_occ <- round(mean(occ_probs), 2)
+#   lcl_occ <- round(quantile(occ_probs, 0.025), 2)
+#   ucl_occ <- round(quantile(occ_probs, 0.975), 2)
+#   paste0("Overall occurrence probability was ", 
+#          mean_occ, " (", lcl_occ, ", ", ucl_occ, ").")
+# }
+
+```
 
 Text about overall estimate(s) [by vegclass if relevant]
 
