@@ -369,7 +369,7 @@ estimates %>%
 
 <br>
 
-## Estimated detection probabilities
+## Estimated detection probabilities?
 
 ```{r CALA-test-det-estimates, echo = FALSE}
 
@@ -449,14 +449,13 @@ if ("day_z" %in% colnames(alpha_samples) & !"I(day_z^2)" %in% colnames(alpha_sam
 ```
 
 
-
 ## Estimated occurrence probabilities
 
 ```{r CALA-test-occ-estimates, echo = FALSE}
 
 beta_samples <- model_list$model$beta.samples
 
-# Calculate overall detection probability (or for each vegetation class if 
+# Calculate overall occurrence probability (or for each vegetation class if 
 # that's in the model)
 
 # if ("vegclass2" %in% psi_covs) {
@@ -464,7 +463,7 @@ beta_samples <- model_list$model$beta.samples
 #                                        parameter = "occ",
 #                                        lower_ci = 0.025,
 #                                        upper_ci = 0.975)
-#   print(vegclas_table)
+#   print(vegclass_table)
 # } else {
 #   probs_logit <- beta_samples[ ,"(Intercept)"]
 #   occ_probs <- exp(probs_logit) / (1 + exp(probs_logit))
@@ -477,14 +476,10 @@ beta_samples <- model_list$model$beta.samples
 
 ```
 
-Text about overall estimate(s) [by vegclass if relevant]
-
-<br>
-
 **Figure X.** Predicted occurrence probabilities for `r spp_plural` in 
 `r PARKL`, `r YEAR`.
 
-```{r CALA-test-map, fig.width = 5, fig.height = 3.5, dpi = 300, echo = FALSE}
+```{r CALA-test-map, fig.width = 5, fig.height = 3.5, dpi = 150, echo = FALSE}
 
 map <- ggplot() +
   geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) + 
@@ -499,21 +494,68 @@ map + theme(axis.title = element_blank(),
 # This makes all of them too small..
 # plot.margin = unit(c(-1, -1, -1, -1), "cm")
 
-# But maybe keep as is, since this is just a reference doc to find 1-2 figs
-# they'll want to include in final reports.
-
 ```
 
 ## Estimated covariate effects on occurrence probabilities
 
-Figures with captions
-
 ```{r CALA-test-covariate-effects, echo = FALSE}
+
+# Identify continuous covariates in occurrence part of the best model
+  psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
+  psi_cont_unique <- unique(psi_continuous)
+  psi_n_cont <- length(psi_cont_unique)
+  
+  data_list <- model_list$data
+
+# If there are any continuous covariates, create a figure for each:
+  if (psi_n_cont > 0) {
+    # Loop through each covariate
+    for (cov in psi_cont_unique) {
+      # Create name of plot:
+      plotname <- paste0("marginal_psi_", str_remove(cov, "_z"))
+      # Create plot
+      assign(plotname, 
+             marginal_plot_occ(covariate = cov, 
+                               model = best, 
+                               data_list = data_list,
+                               covariate_table = covariates,
+                               central_meas = mean))
+    } 
+  }
+
+# Can view these plots, calling them by name. Available plots listed here:
+  # str_subset(ls(), "marginal_psi_")
+
+# If vegetation classes were included as covariates in the model, extract
+# occurrence probabilities for each class
+  if (sum(str_detect(psi_covs, "veg")) > 0) {
+    occprobs_veg <- vegclass_estimates(model = best, 
+                                       parameter = "occ")
+  }
+
+# If there are no covariates in the model (ie, a null model), print overall 
+# occurrence probability
+  if (psi_n_cont == 0 & length(psi_covs) == 0) {
+    overall_occ <- mean_estimate(model = best, 
+                                 parameter = "occ",
+                                 lower_ci = 0.025,
+                                 upper_ci = 0.975)
+  }  
+
+```
+
+**Figure X.** Effect of XXX on occurrence probabilities for `r spp_plural` in 
+`r PARKL`, `r YEAR`.
+
+```{r CALA-test-marginal-psi1, fig.width = 5, fig.height = 3.5, dpi = 150, echo = FALSE}
+
+marginal_psi_elev
 
 ```
 
 
-Two examples of how to do things in a loop:
+
+
 
 ```{r echo = FALSE, results = "asis"}
 # input <- data.frame(
