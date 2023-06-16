@@ -8,9 +8,9 @@
 
 # Need to load these packages if not calling this script via source()
 
-# library(dplyr)
-# library(lubridate)
-# library(stringr)
+library(dplyr)
+library(lubridate)
+library(stringr)
 
 #------------------------------------------------------------------------------#
 # Import data
@@ -378,6 +378,5 @@ summary(dat$locdate %in% eventvec)
 # Remove objects that are no longer needed
 #-----------------------------------------------------------------------------------# 
 
-# Note: need to include lsf.str() to ensure that functions aren't removed.
-rm(list = setdiff(ls(all.names=TRUE), 
-                  c(lsf.str(), "dat", "locs", "events", "event_mat", "species")))
+rm(deploys, mowe_add, temp, birds, eventlocs, eventvec, exp1, exp2, herps, i, j,
+   mammals_to_exclude, mowe_locs, n.backslashes, n.strings, obslocs, other)
