@@ -1,12 +1,26 @@
 ---
-title: "Summary of camera trap data, SAGW, 2022"
-date: "2023-06-08"
+date: "2023-06-16"
 output:
-  word_document:
-    reference_docx: "../../../word-styles-01.docx"
+  officedown::rdocx_document:
+    reference_docx: "../../../NRR_Template_Simple.docx"
+    tables:
+      style: nrps Table cells
+      caption: 
+        style: nrps Table caption
+    plots:
+      style: Normal
+      align: center
+      caption:
+        style: Image Caption
+        pre: 'Figure'
+        sep: '. '
+params:
+  PARK: "SAGW"
+  YEAR: 2022
 ---
 
 ```{r setup, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+
 knitr::opts_knit$set(root.dir = "../../../../" )
 knitr::opts_chunk$set(dev = "ragg_png")
 
@@ -16,25 +30,32 @@ library(pander)
 library(terra)
 library(spOccupancy)
 library(tidyterra)
+library(officer)
+library(officedown)
+library(flextable)
 
-panderOptions('table.alignment.default', function(df)
-    ifelse(sapply(df, is.numeric), 'right', 'left'))
-panderOptions('table.split.table', Inf)
-panderOptions('big.mark', ",")
-panderOptions('keep.trailing.zeros', TRUE)
+# set_flextable_defaults(font.family = "Arial",
+#                        font.size = 9)
+
 
 ```
 
-<br>
+```{r data-formatting, echo = FALSE}
 
-# Effort
-```{r effort, echo = FALSE}
 source("src/functions.R")
 source("src/photo-data/format-mammal-data.R")
 
-# Select park ("CHIR", "ORPI", or "SAGW") and year of interest 
-PARK <- "SAGW"
-YEAR <- 2022
+PARK <- params$PARK
+YEAR <- params$YEAR
+
+```
+
+---
+title: "Summary of camera trap data, `r PARK`, `r YEAR`"
+---
+
+# Effort
+```{r effort, echo = FALSE}
 
 # Park long name
 PARKL <- ifelse(PARK == "SAGW", 
@@ -102,21 +123,25 @@ A total of `r nrow(events)` cameras were deployed in SAGW between
 `r nrow(occasions)` sampling occasions that were each `r occasions$duration[1]` 
 days long.
 
-<br>
-
-**Table 1.** Start and end dates for each sampling occasion in `r PARKL`, 
-`r YEAR`.
-
 ```{r deployment-table, echo = FALSE}
+
 occ_short <- occasions %>% 
   select(c(occasion, start, end)) %>%
   rename(Occasion = occasion,
          Start = start,
          End = end)
+occ_ftable <- flextable(occ_short)
+occ_ftable <- flextable::align(occ_ftable, align = "left", part = "all")
+autonum = run_autonum(seq_id = "table", bkm = NULL)
+occ_ftable <- set_caption(occ_ftable, 
+                          caption = paste0("Start and end dates for each sampling occasion in ",
+                                 PARKL, ", ", YEAR, "."))
 
-pander(occ_short,
-       justify = c("center", "left", "left"),
-       style = "simple")
+```
+
+```{r tabplot, echo = FALSE, ft.align = "left", tab.id = "table"}
+
+occ_ftable %>% autofit()
 
 ```
 
@@ -328,7 +353,7 @@ n_covs_dett <- ifelse(n_covs_det > 1, paste0(n_covs_det, " covariates"),
 # Create spatial predictions IF there are spatial covariates in the occurrence
 # part of the model. NOTE: this can take several minutes to run.
 if (length(psi_covs) > 0) {
-  source("src/single-season-models/spOccupancy-predictions.R")
+  # source("src/single-season-models/spOccupancy-predictions.R")
 }
 
 ```
@@ -481,13 +506,13 @@ beta_samples <- model_list$model$beta.samples
 
 ```{r CALA-test-map, fig.width = 5, fig.height = 3.5, dpi = 150, echo = FALSE}
 
-map <- ggplot() +
-  geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) + 
-  scale_fill_viridis_c(na.value = "transparent") +
-  labs(fill = "", x = NULL, y = NULL, title = NULL) +
-  theme_bw()
-map + theme(axis.title = element_blank(),
-            title = element_blank())
+# map <- ggplot() +
+#   geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) + 
+#   scale_fill_viridis_c(na.value = "transparent") +
+#   labs(fill = "", x = NULL, y = NULL, title = NULL) +
+#   theme_bw()
+# map + theme(axis.title = element_blank(),
+#             title = element_blank())
 
 # Cannot get plot.margin argument in theme to work:
 # map + theme(plot.margin = unit(c(0,0,0,0), "lines"))
