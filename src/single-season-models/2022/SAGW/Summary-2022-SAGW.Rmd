@@ -2,11 +2,7 @@
 date: "2023-06-16"
 output:
   officedown::rdocx_document:
-    reference_docx: "../../../NRR_Template_Simple.docx"
-    tables:
-      style: nrps Table cells
-      caption: 
-        style: nrps Table caption
+    reference_docx: "../../../word-styles-02.docx"
     plots:
       style: Normal
       align: center
@@ -21,9 +17,6 @@ params:
 
 ```{r setup, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
 
-knitr::opts_knit$set(root.dir = "../../../../" )
-knitr::opts_chunk$set(dev = "ragg_png")
-
 library(lubridate)
 library(tidyverse)
 library(pander)
@@ -34,9 +27,23 @@ library(officer)
 library(officedown)
 library(flextable)
 
-# set_flextable_defaults(font.family = "Arial",
-#                        font.size = 9)
+knitr::opts_knit$set(root.dir = "../../../../" )
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  dev = "ragg_png",
+  fig.cap = TRUE,
+  tab.cap.style = "Caption",
+  tab.cap.pre = "Table ",
+  tab.cap.sep = ": ",
+  tab.cap.fp_text = fp_text_lite(bold = TRUE))
 
+set_flextable_defaults(
+  font.family = "Arial", 
+  font.size = 9, 
+  big.mark = "", 
+  table.layout = "autofit")
 
 ```
 
@@ -123,25 +130,27 @@ A total of `r nrow(events)` cameras were deployed in SAGW between
 `r nrow(occasions)` sampling occasions that were each `r occasions$duration[1]` 
 days long.
 
-```{r deployment-table, echo = FALSE}
+```{r deployment-table}
 
-occ_short <- occasions %>% 
+occ_short <- occasions %>%
   select(c(occasion, start, end)) %>%
   rename(Occasion = occasion,
          Start = start,
          End = end)
 occ_ftable <- flextable(occ_short)
 occ_ftable <- flextable::align(occ_ftable, align = "left", part = "all")
-autonum = run_autonum(seq_id = "table", bkm = NULL)
-occ_ftable <- set_caption(occ_ftable, 
+tab_num = run_autonum(seq_id = "table", bkm = NULL)
+occ_ftable <- set_caption(occ_ftable,
                           caption = paste0("Start and end dates for each sampling occasion in ",
-                                 PARKL, ", ", YEAR, "."))
+                                 PARKL, ", ", YEAR, "."),
+                          autonum = tab_num)
+occ_ftable <- bold(occ_ftable, bold = TRUE, part = "header")
 
 ```
 
-```{r tabplot, echo = FALSE, ft.align = "left", tab.id = "table"}
+```{r tab-deploy, ft.align = "left", tab.id = "table"}
 
-occ_ftable %>% autofit()
+occ_ftable
 
 ```
 
@@ -209,14 +218,15 @@ modeling framework (maximum of one photographic detection per camera location
 per sampling period). No. locations is the unique number of camera locations 
 where the species was photographed.
 
-```{r detections-table, echo = FALSE}
+```{r detections-table, echo = FALSE, results = "asis"}
 
 colnames(nphotos) <- c("Common name", "Scientific name", "No. photos",
-                       "No. detections", "No. locations")
+                       "No. detects", "No. locs")
 pander(nphotos, 
        justify = c("left", "left", "center", "center", "center"),
        emphasize.italics.cols = 2,
-       style = "simple")
+       style = "simple",
+       split.cells = c(5,5,2,2,2))
 
 ```
 
