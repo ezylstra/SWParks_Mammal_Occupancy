@@ -11,7 +11,7 @@
   # Method used to select a "best" model for inferences: STAT
 
 # ER Zylstra
-# Updated 2023-05-26
+# Updated 2023-06-21
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -47,7 +47,7 @@ source("src/photo-data/format-mammal-data.R")
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "CHIR"
+PARK <- "SAGW"
 
 # Select year of interest
 YEAR <- 2022
@@ -65,10 +65,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "URCI"
-
-# Save this script as: 
-# src/single-season-models/YEAR/spOccupancy-PARK-YEAR-SPECIES.R
+SPECIES <- "SYAU"
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -143,11 +140,11 @@ OCC_NULL <- TRUE
 
 # Pick covariates to include candidate models
 OCC_MODELS <- list(c("aspect", "veg", "wash", "roads"),
-                   c("elev", "veg", "wash", "roads"),
+                   # c("elev", "veg", "wash", "roads"),
                    c("slope", "veg", "wash", "roads"),
                    c("aspect", "veg", "wash", "boundary"),
-                   c("elev", "veg", "wash", "boundary"),
-                   c("slope", "veg", "wash", "boundary"),
+                   # c("elev", "veg", "wash", "boundary"),
+                   # c("slope", "veg", "wash", "boundary"),
                    c("aspect", "veg", "wash", "trail"),
                    c("elev", "veg", "wash", "trail"),
                    c("slope", "veg", "wash", "trail"),
@@ -155,8 +152,8 @@ OCC_MODELS <- list(c("aspect", "veg", "wash", "roads"),
                    c("elev", "veg", "wash", "pois"),
                    c("slope", "veg", "wash", "pois"),
                    c("aspect", "veg", "wash", "roadbound"),
-                   c("elev", "veg", "wash", "roadbound"),
-                   c("slope", "veg", "wash", "roadbound"),
+                   # c("elev", "veg", "wash", "roadbound"),
+                   # c("slope", "veg", "wash", "roadbound"),
                    c("aspect", "veg", "wash", "trailpoi"),
                    c("elev", "veg", "wash", "trailpoi"),
                    c("slope", "veg", "wash", "trailpoi"))
@@ -231,11 +228,11 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
 # "model_no" and specifying the "best_index" directly.
 
 # Specify STAT as either: waic, k.fold.dev, or model_no
-STAT <- "waic"   
+STAT <- "model_no"   
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 5  
+  best_index <- 9  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -251,34 +248,33 @@ summary(best)
   # credible intervals widely span 0) then run another model after removing those
   # covariates.
   
-  # OCC_NULL <- FALSE
-  # OCC_MODELS <- list(c("elev", "veg", "wash", "pois"),
-  #                    c("elev", "veg"))
-  # DET_NULL <- TRUE
-  # rm(DET_MODELS)
-  # 
-  # source("src/single-season-models/spOccupancy-create-model-formulas.R")
-  # message("Check candidate models:", sep = "\n")
-  # model_specs
-  # 
-  # source("src/single-season-models/spOccupancy-run-candidate-models.R")
-  # model_stats %>% arrange(waic)
-  # 
-  # # Specify STAT as either: waic, k.fold.dev, or model_no
-  # STAT <- "waic"   
-  # if (STAT == "model_no") {
-  #   # If STAT == "model_no", specify model of interest by model number in table
-  #   best_index <- 5  
-  # } else {
-  #   min_stat <- min(model_stats[,STAT])
-  #   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
-  # }
-  # 
-  # # Extract output and formulas from best model in 
-  # best <- out_list[[best_index]]
-  # best_psi_model <- model_specs[best_index, 1]
-  # best_p_model <- model_specs[best_index, 2]
-  # summary(best)
+  OCC_NULL <- FALSE
+  OCC_MODELS <- list("pois", "veg", c("pois", "veg"))
+  DET_NULL <- FALSE
+  DET_MODELS <- list("deploy_exp")
+
+  source("src/single-season-models/spOccupancy-create-model-formulas.R")
+  message("Check candidate models:", sep = "\n")
+  model_specs
+
+  source("src/single-season-models/spOccupancy-run-candidate-models.R")
+  model_stats %>% arrange(waic)
+
+  # Specify STAT as either: waic, k.fold.dev, or model_no
+  STAT <- "waic"
+  if (STAT == "model_no") {
+    # If STAT == "model_no", specify model of interest by model number in table
+    best_index <- 1
+  } else {
+    min_stat <- min(model_stats[,STAT])
+    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
+  }
+
+  # Extract output and formulas from best model in
+  best <- out_list[[best_index]]
+  best_psi_model <- model_specs[best_index, 1]
+  best_p_model <- model_specs[best_index, 2]
+  summary(best)
 
 # Save model object to file
 model_filename <- paste0("output/single-season-models/", PARK, "-", YEAR, 
