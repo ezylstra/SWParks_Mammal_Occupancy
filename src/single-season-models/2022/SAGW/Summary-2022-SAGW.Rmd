@@ -1,8 +1,8 @@
 ---
-date: "2023-06-16"
+date: "2023-06-21"
 output:
   officedown::rdocx_document:
-    reference_docx: "../../../word-styles-02.docx"
+    reference_docx: "../../../NRR_Template_Simple.docx"
     plots:
       style: Normal
       align: center
@@ -208,27 +208,37 @@ nphotos <- nphotos %>%
 We detected a total of `r nrow(nphotos)` mammal species on the `r nrow(events)`
 cameras during the `r nrow(occasions)` sampling occasions. 
 
-<br>
+```{r detections-table}
 
-**Table 2.** Mammal species detected in `r PARKL` between `r season_start` and
-`r season_end`, `r YEAR`. No. photos is the total number of photographs obtained 
-(multiple photos may occur at the same camera location in the same day). No.
-detections is the number of detections that could be used in an occupancy 
-modeling framework (maximum of one photographic detection per camera location 
-per sampling period). No. locations is the unique number of camera locations 
-where the species was photographed.
+nphotos_cap <- paste0("Mammal species detected in ",
+  PARKL, " between ", season_start, " and ", season_end, ", ", YEAR, 
+  ". No. photos is the total number of photographs obtained (multiple photos ",
+  "may occur at the same camera location in the same day). No. detections is ",
+  "the number of detections that could be used in an occupancy modeling ",
+  "framework (maximum of one photographic detection per camera location per ",
+  "sampling period). No. locations is the unique number of camera locations ",
+  "where the species was photographed.")
 
-```{r detections-table, echo = FALSE, results = "asis"}
-
-colnames(nphotos) <- c("Common name", "Scientific name", "No. photos",
-                       "No. detects", "No. locs")
-pander(nphotos, 
-       justify = c("left", "left", "center", "center", "center"),
-       emphasize.italics.cols = 2,
-       style = "simple",
-       split.cells = c(5,5,2,2,2))
+nphotos_ft <- flextable(nphotos) %>%
+  align(j = 1:2, align = "left") %>%
+  align(j = 3:5, align = "center") %>%
+  italic(j = 2, italic = TRUE, part = "body") %>%
+  bold(bold = TRUE, part = "header") %>%
+  set_header_labels(Common_name = "Common name",
+                    Species = "Scientific name",
+                    n_photos = "No. photos",
+                    n_detects = "No. detections",
+                    n_locs = "No. locations") %>%
+  set_caption(caption = nphotos_cap, autonum = tab_num)
 
 ```
+
+```{r tab-detects, ft.align = "left", tab.id = "table"}
+
+nphotos_ft
+
+```
+
 
 # Modeling approach
 
@@ -305,7 +315,7 @@ Something about where we obtained spatial data?
 
 # Species 1 (create species sections in a loop)
 
-```{r CALA-test-model, echo = FALSE}
+```{r CALA-test-model}
 
 i = 1
 SPECIES <- spp_table$Species_code[i]
@@ -374,31 +384,37 @@ The highest-ranking model for `r spp_plural` included `r n_covs_occt` in the
 occurrence part of the model and `r n_covs_dett` in the detection part of the
 model.
 
-<br>
+```{r estimates-table}
 
-**Table X.** Parameter estimates (on the logit scale) from a model for 
-`r spp_plural` in `r PARKL`, `r YEAR`. SD = Standard deviation; 95% CI = 95% 
-credible interval. Rhat values between 1 and 1.05 indicate that the model has 
-converged. ESS = effective sample size; values > 400 are usually sufficient. f 
-values indicate the proportion of posterior samples that are < 0 if the mean is 
-< 0 or the proportion of samples that are > 0 if the mean is > 0. All continuous 
-covariates were standardized by their respective means and standard deviations 
-prior to analysis.
-
-```{r CALA-test-estimates, echo = FALSE}
-
-estimates %>%
+estimates <- estimates %>%
   rename(LowerCI = "Lower95%",
          UpperCI = "Upper95%") %>%
   mutate(across(Mean:UpperCI, function(x) round(x, 2))) %>%
   mutate("95% CI" = paste0(LowerCI, ", ", UpperCI)) %>%
   select(-c(Median, LowerCI, UpperCI, exclude0)) %>%
-  relocate("95% CI", .after = SD) %>%
-  pander(justify = c(rep("right", 4), "center", rep("right", 3)),
-         digits = 2,
-         big.mark = "",
-         style = "simple")
-# Replace entries in the covariate column? (elevation instead of elev_z?)
+  relocate("95% CI", .after = SD)
+
+estimates_cap <- paste0("Parameter estimates (on the logit scale) from a ",
+  "model for ", spp_plural, " in ", PARKL, ", ",  YEAR, ". SD = Standard ",
+  "deviation; 95% CI = 95% credible interval. Rhat values between 1 and 1.05 ",
+  "indicate that the model has converged. ESS = effective sample size; values ",
+  "> 400 are usually sufficient. f values indicate the proportion of posterior ",
+  "samples that are < 0 if the mean is < 0 or the proportion of samples that ",
+  "are > 0 if the mean is > 0. All continuous covariates were standardized by ",
+  "their respective means and standard deviations prior to analysis.")
+
+estimates_ft <- flextable(estimates) %>%
+  align(j = 1:2, align = "left") %>%
+  align(j = 3:8, align = "center") %>%
+  bold(bold = TRUE, part = "header") %>%
+  colformat_double(j = c(3:4, 6, 8), digits = 2) %>%
+  set_caption(caption = estimates_cap, autonum = tab_num)
+
+```
+
+```{r tab-estimates, ft.align = "left", tab.id = "table"}
+
+estimates_ft
 
 ```
 
