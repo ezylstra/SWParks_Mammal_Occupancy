@@ -3,15 +3,15 @@
 # a given park, year, and species (using the spOccupancy package)
 
 # Objects that need to be specified to run models (ie, to create 
-# src/single-season-model/YEAR/spOccupancy-PARK-SPECIES-YEAR.R)
+# src/single-season-model/YEAR/spOccupancy-PARK-YEAR-SPECIES.R)
   # PARK, YEAR, SPECIES (lines 50, 53, 67)
-  # Specifications for occurrence models: OCC_NULL, OCC_MODELS
-  # Specifications for detection models: DET_NULL, DET_MODELS
+  # Specifications for occurrence models: OCC_NULL, OCC_MODELS1, OCC_MODELS2
+  # Specifications for detection models: DET_NULL, DET_MODELS1, DET_MODELS2
   # MCMC parameters: N_SAMPLES, N_BURN, N_THIN, N_CHAINS
   # Method used to select a "best" model for inferences: STAT
 
 # ER Zylstra
-# Updated 2023-05-26
+# Updated 2023-04-20
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -47,7 +47,7 @@ source("src/photo-data/format-mammal-data.R")
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "SAGW"
+PARK <- "CHIR"
 
 # Select year of interest
 YEAR <- 2022
@@ -65,10 +65,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "CALA"
-
-# Save this script as: 
-# src/single-season-models/YEAR/spOccupancy-PARK-SPECIES-YEAR.R
+SPECIES <- "URCI"
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -85,39 +82,17 @@ source("src/single-season-models/spOccupancy-data-prep.R")
   # covariates are matrices (no. sites * no. occasions). Named objects that end
   # with "_z" are standardized)
 
-# Load dataframe with information about covariates:
-covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
-
-#------------------------------------------------------------------------------#
-# Information about how to build candidate model sets
-#------------------------------------------------------------------------------#
-
-# To specify which covariates to include in models for occurrence or detection,
-# we'll use the short_name column in the covariates dataframe.
-
-# To create candidate model sets for occurrence, we'll define 1 or 2 objects:
-
-  # OCC_NULL: a logical indicating whether a null model should be included the 
-  # candidate model set
-  
-  # OCC_MODELS: a list, where each element is a vector listing one of more 
-  # covariates to include in a single candidate model. For instance, 
-  # OCC_MODELS <- list(c("years"), c("years", "roads")) indicates that we will 
-  # include two models in our candidate set, one in which occurrence 
-  # probabilities vary with year, and one in which occurrence probabilities vary
-  # with both year and distance to roads (occ prob ~ years + roads).
-
-  # We'll use the same process to create candidate model sets for detection:
-  # DET_NULL, DET_MODELS
-
 #------------------------------------------------------------------------------#
 # Specify the occurrence portion of candidate models
 #------------------------------------------------------------------------------#
 
+# Load dataframe with information about covariates:
+covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
+
 # View those pairs of continuous covariates that are highly correlated
 cor_df %>%
   arrange(desc(corr)) %>%
-  dplyr::filter(abs(corr) >= 0.6)
+  dplyr::filter(abs(corr) > 0.5)
 
 # See what covariates are available for occurrence part of model
 covariates %>%
@@ -129,37 +104,17 @@ covariates %>%
 # the candidate model set
 OCC_NULL <- TRUE
 
-# There are 3 categories of spatial covariates:
-  # topographic: aspect, elev, slope
-    # (using linear rather than quadratic forms of elev & slope because SAGW 
-    # doesn't span that large of a range and we often get nonsensical results 
-    # with highest probabilities at extreme values)
-  # veg: vegclasses + wash (for now, only available for SAGW)
-  # anthropogenic: roads, boundary, trails, pois, roadbound, trailpois
+# Pick covariates to include in simple candidate models via the short_name 
+# column in the covariates dataframe
+OCC_MODELS1 <- c("aspect", "elev2", "slope2", "burn", "roadbound")
 
-# For occurrence part of the models, try including item(s) from each category of
-# spatial covariates, excluding any covariates that are highly correlated 
-# (|r| >= 0.6)
-
-# Pick covariates to include candidate models
-OCC_MODELS <- list(c("aspect", "veg", "wash", "roads"),
-                   # c("elev", "veg", "wash", "roads"),
-                   c("slope", "veg", "wash", "roads"),
-                   c("aspect", "veg", "wash", "boundary"),
-                   # c("elev", "veg", "wash", "boundary"),
-                   # c("slope", "veg", "wash", "boundary"),
-                   c("aspect", "veg", "wash", "trail"),
-                   c("elev", "veg", "wash", "trail"),
-                   c("slope", "veg", "wash", "trail"),
-                   c("aspect", "veg", "wash", "pois"),
-                   c("elev", "veg", "wash", "pois"),
-                   c("slope", "veg", "wash", "pois"),
-                   c("aspect", "veg", "wash", "roadbound"),
-                   # c("elev", "veg", "wash", "roadbound"),
-                   # c("slope", "veg", "wash", "roadbound"),
-                   c("aspect", "veg", "wash", "trailpoi"),
-                   c("elev", "veg", "wash", "trailpoi"),
-                   c("slope", "veg", "wash", "trailpoi"))
+# To combine covariates in a single candidate model, provide a vector of 
+# short_names. Compile these vectors into a list.
+# e.g., c("aspect", "boundary") would create the following model for occurrence: 
+# psi ~ east + north + boundary
+OCC_MODELS2 <- list(c("burn", "elev2"),
+                    c("burn", "slope2"),
+                    c("burn", "roadbound"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -175,9 +130,13 @@ covariates %>%
 # the candidate model set
 DET_NULL <- FALSE
 
-# Pick covariates to include candidate models
-DET_MODELS <- list("effort",
-                   c("day2", "deploy_exp", "effort"))
+# Pick covariates to include in simple candidate models via the short_name 
+# column in the covariates dataframe
+DET_MODELS1 <- c("effort")
+
+# To combine different covariates in a candidate model, provide a vector of 
+# short_names. Compile those vectors into a list.
+DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models
@@ -224,7 +183,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
     # (lower is better)
 
 #------------------------------------------------------------------------------#
-# Select "best" model of candidate set
+# Look at results and predictions from "best" model
 #------------------------------------------------------------------------------#
 
 # Identify a model to use for inferences.  Can base this on WAIC or deviance 
@@ -232,67 +191,20 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
 # "model_no" and specifying the "best_index" directly.
 
 # Specify STAT as either: waic, k.fold.dev, or model_no
-STAT <- "waic"   
+STAT <- "model_no"   
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 5  
+  best_index <- 6  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
 }
 
-# Extract output and formulas from best model in 
+# Extract output and formulas from best model
 best <- out_list[[best_index]]
 best_psi_model <- model_specs[best_index, 1]
 best_p_model <- model_specs[best_index, 2]
-summary(best)
-
-# IF it's clear that one of more covariates have no explanatory power (ie,
-# credible intervals widely span 0) then run another model after removing those
-# covariates.
-  
-  OCC_NULL <- FALSE
-  OCC_MODELS <- list(c("elev", "veg", "wash", "pois"),
-                     c("elev", "veg"))
-  DET_NULL <- TRUE
-  rm(DET_MODELS)
-  
-  source("src/single-season-models/spOccupancy-create-model-formulas.R")
-  message("Check candidate models:", sep = "\n")
-  model_specs
-  
-  source("src/single-season-models/spOccupancy-run-candidate-models.R")
-  model_stats %>% arrange(waic)
-  
-  # Specify STAT as either: waic, k.fold.dev, or model_no
-  STAT <- "waic"   
-  if (STAT == "model_no") {
-    # If STAT == "model_no", specify model of interest by model number in table
-    best_index <- 5  
-  } else {
-    min_stat <- min(model_stats[,STAT])
-    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
-  }
-  
-  # Extract output and formulas from best model in 
-  best <- out_list[[best_index]]
-  best_psi_model <- model_specs[best_index, 1]
-  best_p_model <- model_specs[best_index, 2]
-  summary(best)
-
-# Save model object to file
-model_filename <- paste0("output/single-season-models/", PARK, "-", SPECIES,
-                         "-", YEAR, ".rds")
-model_list <- list(model = best, 
-                   psi_model = best_psi_model,
-                   p_model = best_p_model,
-                   data = data_list)
-saveRDS(model_list, file = model_filename)
-  
-#------------------------------------------------------------------------------#
-# Evaluate best model and look at estimates
-#------------------------------------------------------------------------------#
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(best_psi_model)
@@ -328,7 +240,6 @@ det_estimates <- det_estimates %>%
   rename(Covariate = Parameter) %>%
   mutate(Parameter = "Detection", .before = "Covariate")
 estimates <- rbind(occ_estimates, det_estimates)
-estimates
 
 # Can save this table to file with amended version of code below
 # write.csv(estimates,

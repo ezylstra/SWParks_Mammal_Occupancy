@@ -3,7 +3,7 @@
 # a given park, year, and species (using the spOccupancy package)
 
 # Objects that need to be specified to run models (ie, to create 
-# src/single-season-model/YEAR/spOccupancy-PARK-SPECIES-YEAR.R)
+# src/single-season-model/YEAR/spOccupancy-PARK-YEAR-SPECIES.R)
   # PARK, YEAR, SPECIES (lines 50, 53, 67)
   # Specifications for occurrence models: OCC_NULL, OCC_MODELS
   # Specifications for detection models: DET_NULL, DET_MODELS
@@ -68,7 +68,7 @@ detects %>%
 SPECIES <- "URCI"
 
 # Save this script as: 
-# src/single-season-models/YEAR/spOccupancy-PARK-SPECIES-YEAR.R
+# src/single-season-models/YEAR/spOccupancy-PARK-YEAR-SPECIES.R
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -282,8 +282,8 @@ summary(best)
   # summary(best)
 
 # Save model object to file
-model_filename <- paste0("output/single-season-models/", PARK, "-", SPECIES,
-                         "-", YEAR, ".rds")
+model_filename <- paste0("output/single-season-models/", PARK, "-", YEAR, 
+                         "-", SPECIES, ".rds")
 model_list <- list(model = best, 
                    psi_model = best_psi_model,
                    p_model = best_p_model,
