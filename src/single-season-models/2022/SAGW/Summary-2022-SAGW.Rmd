@@ -3,23 +3,15 @@ date: "2023-06-21"
 output:
   officedown::rdocx_document:
     reference_docx: "../../../NRR_Template_Simple.docx"
-    plots:
-      style: Normal
-      align: center
-      caption:
-        style: Image Caption
-        pre: 'Figure'
-        sep: '. '
 params:
   PARK: "SAGW"
   YEAR: 2022
 ---
 
-```{r setup, include = FALSE, echo = FALSE, message = FALSE, warning = FALSE}
+```{r setup, include = FALSE}
 
 library(lubridate)
 library(tidyverse)
-library(pander)
 library(terra)
 library(spOccupancy)
 library(tidyterra)
@@ -33,10 +25,18 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   dev = "ragg_png",
-  fig.cap = TRUE,
+  fig.align = "left",
+  fig.width = 5, 
+  fig.height = 3.5, 
+  fig.dpi = 150, 
+  fig.cap.style = "Caption",
+  fig.cap.pre = "Figure ",
+  fig.cap.sep = ". ",
+  fig.cap.fp_text = fp_text_lite(bold = TRUE),
+  tab.align = "left",
   tab.cap.style = "Caption",
   tab.cap.pre = "Table ",
-  tab.cap.sep = ": ",
+  tab.cap.sep = ". ",
   tab.cap.fp_text = fp_text_lite(bold = TRUE))
 
 set_flextable_defaults(
@@ -45,9 +45,12 @@ set_flextable_defaults(
   big.mark = "", 
   table.layout = "autofit")
 
+tab_num = run_autonum(seq_id = "table", bkm = NULL)
+fig_num = run_autonum(seq_id = "figure", bkm = NULL)
+
 ```
 
-```{r data-formatting, echo = FALSE}
+```{r data-formatting}
 
 source("src/functions.R")
 source("src/photo-data/format-mammal-data.R")
@@ -62,7 +65,7 @@ title: "Summary of camera trap data, `r PARK`, `r YEAR`"
 ---
 
 # Effort
-```{r effort, echo = FALSE}
+```{r effort}
 
 # Park long name
 PARKL <- ifelse(PARK == "SAGW", 
@@ -139,7 +142,7 @@ occ_short <- occasions %>%
          End = end)
 occ_ftable <- flextable(occ_short)
 occ_ftable <- flextable::align(occ_ftable, align = "left", part = "all")
-tab_num = run_autonum(seq_id = "table", bkm = NULL)
+
 occ_ftable <- set_caption(occ_ftable,
                           caption = paste0("Start and end dates for each sampling occasion in ",
                                  PARKL, ", ", YEAR, "."),
@@ -156,18 +159,20 @@ occ_ftable
 
 <br>
 
-**Figure 1.** Camera deployments and sampling occasions in `r PARKL`, 
-`r YEAR`. Each horizontal blue line represents the period over which a camera 
-was operational, from the date the camera was deployed through the date the
-camera was retrieved. Gray vertical lines denote the beginning and end of 
-the `r nrow(occasions)` consecutive sampling occasions.
+```{r deployment-plot, fig.id = "figure", fig.cap = segs_cap}
 
-```{r deployment-plot, fig.width = 5, fig.height = 3.5, dpi = 300, echo = FALSE}
+segs_cap <- paste0("Camera deployments and sampling occasions in ", PARKL, ", ",
+  YEAR, ". Each horizontal blue line represents the period over which a ",
+  "camera was operational, from the date the camera was deployed through the ", 
+  "date the camera was retrieved. Gray vertical lines denote the beginning ",
+  "and end of the ", nrow(occasions), " consecutive sampling occasions.")
+
 segs
+
 ```
 
 # Detections
-```{r detections, message = FALSE, warning = FALSE, echo = FALSE}
+```{r detections}
 
 # Clean up species table
 species <- species %>%
@@ -244,7 +249,7 @@ nphotos_ft
 
 ## Occupancy models
 
-```{r data-prep, echo = FALSE}
+```{r data-prep}
 
 # Get list of species that we ran occupancy models for (and list of files with 
 # model output)
@@ -422,7 +427,7 @@ estimates_ft
 
 ## Estimated detection probabilities?
 
-```{r CALA-test-det-estimates, echo = FALSE}
+```{r CALA-test-det-estimates}
 
 alpha_samples <- model_list$model$alpha.samples
 
@@ -502,7 +507,7 @@ if ("day_z" %in% colnames(alpha_samples) & !"I(day_z^2)" %in% colnames(alpha_sam
 
 ## Estimated occurrence probabilities
 
-```{r CALA-test-occ-estimates, echo = FALSE}
+```{r CALA-test-occ-estimates}
 
 beta_samples <- model_list$model$beta.samples
 
@@ -549,7 +554,7 @@ beta_samples <- model_list$model$beta.samples
 
 ## Estimated covariate effects on occurrence probabilities
 
-```{r CALA-test-covariate-effects, echo = FALSE}
+```{r CALA-test-covariate-effects}
 
 # Identify continuous covariates in occurrence part of the best model
   psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
@@ -595,17 +600,14 @@ beta_samples <- model_list$model$beta.samples
 
 ```
 
-**Figure X.** Effect of XXX on occurrence probabilities for `r spp_plural` in 
-`r PARKL`, `r YEAR`.
+```{r CALA-test-marginal-psi1, fig.id = "figure", fig.cap = marg_cap}
 
-```{r CALA-test-marginal-psi1, fig.width = 5, fig.height = 3.5, dpi = 150, echo = FALSE}
+marg_cap <- paste0("Effect of XXX on occurrence probabilities for ", spp_plural,
+                   " in ", PARKL, ", ", YEAR, ".")
 
 marginal_psi_elev
 
 ```
-
-
-
 
 
 ```{r echo = FALSE, results = "asis"}
