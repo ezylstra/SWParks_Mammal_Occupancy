@@ -287,8 +287,8 @@ marginal_plot_occ <- function(covariate,
                               line_color = "forestgreen",
                               transparency = 0.2) {
   
-  cols <- str_subset(colnames(best$beta.samples), pattern = covariate)
-  beta_samples <- best$beta.samples[,c("(Intercept)", cols)]
+  cols <- str_subset(colnames(model$beta.samples), pattern = covariate)
+  beta_samples <- model$beta.samples[,c("(Intercept)", cols)]
   X_cov <- seq(from = min(data_list$occ.covs[[covariate]]), 
                to = max(data_list$occ.covs[[covariate]]),
                length = 100)
@@ -380,8 +380,8 @@ marginal_plot_det <- function(covariate,
                               line_color = "forestgreen",
                               transparency = 0.2) {
   
-  cols <- str_subset(colnames(best$alpha.samples), pattern = covariate)
-  alpha_samples <- best$alpha.samples[,c("(Intercept)", cols)]
+  cols <- str_subset(colnames(model$alpha.samples), pattern = covariate)
+  alpha_samples <- model$alpha.samples[,c("(Intercept)", cols)]
   X_cov <- seq(from = min(data_list$det.covs[[covariate]], na.rm = TRUE), 
                to = max(data_list$det.covs[[covariate]], na.rm = TRUE),
                length = 100)
@@ -471,8 +471,8 @@ trend_plot_occ <- function(model,
                            line_color = "forestgreen",
                            transparency = 0.2) {
   
-  cols <- str_subset(colnames(best$beta.samples), pattern = "years_z")
-  beta_samples <- best$beta.samples[,c("(Intercept)", cols)]
+  cols <- str_subset(colnames(model$beta.samples), pattern = "years_z")
+  beta_samples <- model$beta.samples[,c("(Intercept)", cols)]
   X_cov <- seq(from = min(data_list$occ.covs[["years_z"]]), 
                to = max(data_list$occ.covs[["years_z"]]),
                length = 100)
