@@ -1,8 +1,19 @@
 
 ```{r}
 
-spp_name <- tolower(spp_table$common[spp_table$Species_code == SPECIES])
-spp_plural <- paste0(spp_name, "s")
+spp_name <- spp_table$common[spp_table$Species_code == SPECIES]
+cap_exceptions <- c("American", "Arizona", "North", "Sonoran")
+spp_name <- paste(sapply(unlist(str_split(spp_name, " ")),
+                         function(x) {ifelse(x %in% cap_exceptions,
+                                             x,
+                                             tolower(x))}),
+                  collapse = " ")
+spp_plural <- ifelse(str_detect(string = spp_name, 
+                                pattern = "sheep|deer|pronghorn|elk"),
+                     spp_name, ifelse(str_detect(string = spp_name,
+                                                 pattern = "fox"),
+                                      paste0(spp_name, "es"), 
+                                      paste0(spp_name, "s")))
 
 best <- model_list$model
 psi_model <- model_list$psi_model
