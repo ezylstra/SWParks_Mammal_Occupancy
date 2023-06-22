@@ -1,0 +1,93 @@
+
+```{r}
+
+spp_name <- tolower(spp_table$common[spp_table$Species_code == SPECIES])
+spp_plural <- paste0(spp_name, "s")
+
+best <- model_list$model
+psi_model <- model_list$psi_model
+p_model <- model_list$p_model
+
+# Extract names of covariates (with and without "_z" subscripts) from best model
+psi_covs_z <- create_cov_list(psi_model)
+if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
+  psi_covs_z <- character(0)
+  psi_covs <- character(0)
+} else {
+  psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
+}
+p_covs_z <- create_cov_list(p_model)
+if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
+  p_covs_z <- character(0)
+  p_covs <- character(0)
+} else {
+  p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
+}
+
+# Create table with summary stats that can be saved to file
+occ_estimates <- parameter_estimates(model = best,
+                                     parameter = "occ",
+                                     lower_ci = 0.025,
+                                     upper_ci = 0.975)
+det_estimates <- parameter_estimates(model = best,
+                                     parameter = "det",
+                                     lower_ci = 0.025,
+                                     upper_ci = 0.975)
+occ_estimates <- occ_estimates %>%
+  rename(Covariate = Parameter) %>%
+  mutate(Parameter = "Occurrence", .before = "Covariate")
+det_estimates <- det_estimates %>%
+  rename(Covariate = Parameter) %>%
+  mutate(Parameter = "Detection", .before = "Covariate")
+estimates <- rbind(occ_estimates, det_estimates)
+
+
+# Calculate the number of covariates in each part of the model:
+n_covs_occ <- length(psi_covs)
+n_covs_occt <- ifelse(n_covs_occ > 1, paste0(n_covs_occ, " covariates"), 
+                      ifelse(n_covs_occ == 1, "1 covariate", "no covariates"))
+n_covs_det <- length(p_covs)
+n_covs_dett <- ifelse(n_covs_det > 1, paste0(n_covs_det, " covariates"), 
+                      ifelse(n_covs_det == 1, "1 covariate", "no covariates"))
+
+```
+
+## Output for `r SPECIES`
+
+<br>
+
+```{r}
+
+estimates <- estimates %>%
+  rename(LowerCI = "Lower95%",
+         UpperCI = "Upper95%") %>%
+  mutate(across(Mean:UpperCI, function(x) round(x, 2))) %>%
+  mutate("95% CI" = paste0(LowerCI, ", ", UpperCI)) %>%
+  select(-c(Median, LowerCI, UpperCI, exclude0)) %>%
+  relocate("95% CI", .after = SD)
+
+estimates_cap <- paste0("Parameter estimates (on the logit scale) from a ",
+  "model for ", spp_plural, " in ", PARKL, ", ",  YEAR, ". SD = Standard ",
+  "deviation; 95% CI = 95% credible interval. Rhat values between 1 and 1.05 ",
+  "indicate that the model has converged. ESS = effective sample size; values ",
+  "> 400 are usually sufficient. f values indicate the proportion of posterior ",
+  "samples that are < 0 if the mean is < 0 or the proportion of samples that ",
+  "are > 0 if the mean is > 0. All continuous covariates were standardized by ",
+  "their respective means and standard deviations prior to analysis.")
+
+estimates_ft <- flextable(estimates) %>%
+  align(j = 1:2, align = "left") %>%
+  align(j = 3:8, align = "center") %>%
+  bold(bold = TRUE, part = "header") %>%
+  colformat_double(j = c(3:4, 6, 8), digits = 2) %>%
+  set_caption(caption = estimates_cap, autonum = tab_num)
+
+```
+
+```{r, ft.align = "left", tab.id = "table"}
+
+estimates_ft
+
+```
+
+
