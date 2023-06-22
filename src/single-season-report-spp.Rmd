@@ -52,7 +52,6 @@ det_estimates <- det_estimates %>%
   mutate(Parameter = "Detection", .before = "Covariate")
 estimates <- rbind(occ_estimates, det_estimates)
 
-
 # Calculate the number of covariates in each part of the model:
 n_covs_occ <- length(psi_covs)
 n_covs_occt <- ifelse(n_covs_occ > 1, paste0(n_covs_occ, " covariates"), 
@@ -63,9 +62,13 @@ n_covs_dett <- ifelse(n_covs_det > 1, paste0(n_covs_det, " covariates"),
 
 ```
 
-## Output for `r SPECIES`
+# Output for `r SPECIES`
 
-<br>
+## Model used for inference
+
+The highest-ranking model for `r spp_plural` included `r n_covs_occt` in the 
+occurrence part of the model and `r n_covs_dett` in the detection part of the
+model.
 
 ```{r}
 
@@ -101,4 +104,100 @@ estimates_ft
 
 ```
 
+<br>
+
+## Estimated detection probabilities
+
+```{r}
+
+alpha_samples <- best$alpha.samples
+
+# Calculate overall detection probability (for experienced deployment personnel
+# if that was included in the model)
+if ("deploy_exp" %in% p_covs) {
+  alpha_deploy <- alpha_samples[ ,c("(Intercept)", "deploy_exp")]
+  X0 <- as.vector(c(1, 2))
+  probs_logit <- alpha_deploy %*% X0
+} else {
+  probs_logit <- alpha_samples[ ,"(Intercept)"]
+}
+det_probs <- exp(probs_logit) / (1 + exp(probs_logit))
+mean_det <- mean(det_probs)
+lcl_det <- quantile(det_probs, 0.025)
+ucl_det <- quantile(det_probs, 0.975)
+
+# Right now, we can't produce figures for day or effort effect because 
+# we don't day/effort values on the original scale in model_list$data
+# We'd need to add this to the model_list somewhere.
+
+```
+
+Overall detection probability for `r spp_plural` `r if("deploy_exp" %in% p_covs) 
+{"with experienced deployment personnel "}`was `r sprintf("%.2f", mean_det)` 
+(95% credible interval [CI] = `r sprintf("%.2f", lcl_det)`, 
+`r sprintf("%.2f", ucl_det)`). 
+
+## Estimated occurrence probabilities
+
+```{r}
+
+beta_samples <- best$beta.samples
+
+# Calculate overall occurrence probability (or for each vegetation class if 
+# that's in the model)
+
+if ("vegclass2" %in% psi_covs) {
+  vegclass_table <- vegclass_estimates(model_list$model,
+                                       parameter = "occ",
+                                       lower_ci = 0.025,
+                                       upper_ci = 0.975) %>%
+    mutate(across(ci_lower:ci_upper, function(x) round(x, 2))) %>%
+    mutate("95% CI" = paste0(ci_lower, ", ", ci_upper)) %>%
+    select(-c(ci_lower, ci_upper)) %>%
+    relocate("95% CI", .after = sd_prob)
+
+  vegocc_cap <- paste0("Occurrence estimates for ", spp_plural, " for each ",
+    "vegetation class in ", PARKL, ", ",  YEAR, ".")
+
+  vegocc_ft <- flextable(vegclass_table) %>%
+    align(j = 1, align = "left") %>%
+    align(j = 2:4, align = "center", part = "all") %>%
+    bold(bold = TRUE, part = "header") %>%
+    colformat_double(j = 2:3, digits = 2) %>%
+    set_caption(caption = vegocc_cap, autonum = tab_num) %>%
+    set_header_labels(vegclass = "Veg class",
+                      mean_prob = "Mean",
+                      sd_prob = "SD")
+  mean_occ <- NULL
+  lcl_occ <- NULL
+  ucl_occ <- NULL
+
+} else {
+  probs_logit <- beta_samples[ ,"(Intercept)"]
+  occ_probs <- exp(probs_logit) / (1 + exp(probs_logit))
+  mean_occ <- mean(occ_probs)
+  lcl_occ <- quantile(occ_probs, 0.025)
+  ucl_occ <- quantile(occ_probs, 0.975)
+  vegocc_ft <- NULL
+}
+
+```
+
+```{r, include = ("vegclass2" %in% psi_covs), ft.align = "left", tab.id = "table"}
+
+vegocc_ft
+
+```
+
+```{r, include = (!"vegclass2" %in% psi_covs), results = "asis"}
+
+res <- knitr::knit_child(text = paste0("Overall occurrence probability for ",
+                                       spp_plural, " was ", 
+                                       sprintf("%.2f", mean_occ), " (", 
+                                       sprintf("%.2f", lcl_occ), ", ", 
+                                       sprintf("%.2f", ucl_occ), ")."),
+                         envir = globalenv())
+cat(unlist(res))
+
+```
 

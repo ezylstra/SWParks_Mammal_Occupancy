@@ -308,6 +308,16 @@ retained 1 of every `r n_thin` iterations thereafter, using the remaining
 `r n_chains * n_post` samples (across all the chains) to summarize the posterior 
 distribution.
 
+## Model selection
+
+We identified a number of spatial covariates for `r PARKL` that could explain
+variation in occurrence probabilities, detection probabilities, or both.
+
+Something about where we obtained spatial data?
+
+- candidate model set (general)
+- how a model for inference was selected
+
 ```{r spp-loop, results = "asis"}
 
 modelfile_base <- paste0(getwd(), "/output/single-season-models/")
