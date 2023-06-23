@@ -145,7 +145,6 @@ beta_samples <- best$beta.samples
 
 # Calculate overall occurrence probability (or for each vegetation class if 
 # that's in the model)
-
 if ("vegclass2" %in% psi_covs) {
   vegclass_table <- vegclass_estimates(model_list$model,
                                        parameter = "occ",
@@ -155,10 +154,8 @@ if ("vegclass2" %in% psi_covs) {
     mutate("95% CI" = paste0(ci_lower, ", ", ci_upper)) %>%
     select(-c(ci_lower, ci_upper)) %>%
     relocate("95% CI", .after = sd_prob)
-
   vegocc_cap <- paste0("Occurrence estimates for ", spp_plural, " for each ",
     "vegetation class in ", PARKL, ", ",  YEAR, ".")
-
   vegocc_ft <- flextable(vegclass_table) %>%
     align(j = 1, align = "left") %>%
     align(j = 2:4, align = "center", part = "all") %>%
@@ -171,7 +168,6 @@ if ("vegclass2" %in% psi_covs) {
   mean_occ <- NULL
   lcl_occ <- NULL
   ucl_occ <- NULL
-
 } else {
   probs_logit <- beta_samples[ ,"(Intercept)"]
   occ_probs <- exp(probs_logit) / (1 + exp(probs_logit))
@@ -179,6 +175,21 @@ if ("vegclass2" %in% psi_covs) {
   lcl_occ <- quantile(occ_probs, 0.025)
   ucl_occ <- quantile(occ_probs, 0.975)
   vegocc_ft <- NULL
+}
+  
+# Create spatial predictions IF there are spatial covariates in the occurrence
+# part of the model. NOTE: this can take several minutes to run.
+if (length(psi_covs) > 0) {
+  source("src/single-season-models/spOccupancy-predictions.R")
+  map <- ggplot() +
+    geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) +
+    scale_fill_viridis_c(na.value = "transparent") +
+    labs(fill = "", x = NULL, y = NULL, title = NULL) +
+    theme_bw() + 
+    theme(axis.title = element_blank(), title = element_blank())
+  
+} else {
+  map <- NULL
 }
 
 ```
@@ -200,4 +211,14 @@ res <- knitr::knit_child(text = paste0("Overall occurrence probability for ",
 cat(unlist(res))
 
 ```
+
+```{r, include = (!is.null(map)), fig.id = "figure", fig.cap = occmap_cap}
+
+occmap_cap <- paste0("Predicted probability of ", spp_name, " occurrence in ", 
+                     PARKL, " in ", YEAR, ". ")
+map
+
+```
+
+## Covariate effects
 
