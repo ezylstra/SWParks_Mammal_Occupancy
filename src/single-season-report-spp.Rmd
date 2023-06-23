@@ -154,8 +154,8 @@ if ("vegclass2" %in% psi_covs) {
     mutate("95% CI" = paste0(ci_lower, ", ", ci_upper)) %>%
     select(-c(ci_lower, ci_upper)) %>%
     relocate("95% CI", .after = sd_prob)
-  vegocc_cap <- paste0("Occurrence estimates for ", spp_plural, " for each ",
-    "vegetation class in ", PARKL, ", ",  YEAR, ".")
+  vegocc_cap <- paste0("Mean occurrence estimates for ", spp_plural, 
+    " for each vegetation class in ", PARKL, ", ",  YEAR, ".")
   vegocc_ft <- flextable(vegclass_table) %>%
     align(j = 1, align = "left") %>%
     align(j = 2:4, align = "center", part = "all") %>%
@@ -177,20 +177,7 @@ if ("vegclass2" %in% psi_covs) {
   vegocc_ft <- NULL
 }
   
-# Create spatial predictions IF there are spatial covariates in the occurrence
-# part of the model. NOTE: this can take several minutes to run.
-if (length(psi_covs) > 0) {
-  source("src/single-season-models/spOccupancy-predictions.R")
-  map <- ggplot() +
-    geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) +
-    scale_fill_viridis_c(na.value = "transparent") +
-    labs(fill = "", x = NULL, y = NULL, title = NULL) +
-    theme_bw() + 
-    theme(axis.title = element_blank(), title = element_blank())
-  
-} else {
-  map <- NULL
-}
+
 
 ```
 
@@ -212,13 +199,27 @@ cat(unlist(res))
 
 ```
 
-```{r, include = (!is.null(map)), fig.id = "figure", fig.cap = occmap_cap}
-
-occmap_cap <- paste0("Predicted probability of ", spp_name, " occurrence in ", 
-                     PARKL, " in ", YEAR, ". ")
-map
+```{r code = readLines("src/single-season-models/spOccupancy-predictions.R"), include = length(psi_covs) > 0}
 
 ```
 
+```{r, include = length(psi_covs) > 0, fig.id = "figure", fig.cap = occmap_cap}
+
+occmap_cap <- paste0("Predicted probability of ", spp_name, " occurrence in ", 
+                     PARKL, " in ", YEAR, ". ")
+occmap_base <- ggplot() +
+  geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) +
+  scale_fill_viridis_c(na.value = "transparent") +
+  labs(fill = "", x = NULL, y = NULL, title = NULL) +
+  theme_bw()
+occmap_base + theme(axis.title = element_blank(), 
+                    title = element_blank())
+
+```
+
+<br>
+
 ## Covariate effects
+
+
 
