@@ -7,12 +7,15 @@ Using camera trap data to assess occupancy of mammals in Southwestern National P
 
 + downloader
 + dplyr
++ flextable (for creating reports)
 + geojsonsf
 + ggplot2
 + gridExtra
 + httr
 + leaflet (mapping spatial data)
 + lubridate
++ officedown (for creating reports)
++ officer (for creating reports)
 + raster
 + sf
 + spOccupancy
@@ -20,6 +23,7 @@ Using camera trap data to assess occupancy of mammals in Southwestern National P
 + terra
 + tidyr
 + tidyterra
++ tidyverse
 + tigris (for downloading TIGER road files)
 + tmap (mapping spatial data)
 + unmarked (optional)
