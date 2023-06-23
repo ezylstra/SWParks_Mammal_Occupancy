@@ -12,11 +12,13 @@ Using camera trap data to assess occupancy of mammals in Southwestern National P
 + ggplot2
 + gridExtra
 + httr
++ knitr
 + leaflet (mapping spatial data)
 + lubridate
 + officedown (for creating reports)
 + officer (for creating reports)
 + raster
++ rmarkdown
 + sf
 + spOccupancy
 + stringr (v 1.5.0 or higher)
