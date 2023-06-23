@@ -18,6 +18,7 @@ spp_plural <- ifelse(str_detect(string = spp_name,
 best <- model_list$model
 psi_model <- model_list$psi_model
 p_model <- model_list$p_model
+data_list <- model_list$data
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(psi_model)
@@ -90,11 +91,12 @@ estimates_cap <- paste0("Parameter estimates (on the logit scale) from a ",
   "their respective means and standard deviations prior to analysis.")
 
 estimates_ft <- flextable(estimates) %>%
-  align(j = 1:2, align = "left") %>%
-  align(j = 3:8, align = "center") %>%
+  align(j = 1:2, align = "left", part = "all") %>%
+  align(j = 3:8, align = "center", part = "all") %>%
   bold(bold = TRUE, part = "header") %>%
   colformat_double(j = c(3:4, 6, 8), digits = 2) %>%
-  set_caption(caption = estimates_cap, autonum = tab_num)
+  set_caption(caption = estimates_cap, autonum = tab_num) %>%
+  add_footer_lines("")
 
 ```
 
@@ -103,8 +105,6 @@ estimates_ft <- flextable(estimates) %>%
 estimates_ft
 
 ```
-
-<br>
 
 ## Estimated detection probabilities
 
@@ -164,7 +164,8 @@ if ("vegclass2" %in% psi_covs) {
     set_caption(caption = vegocc_cap, autonum = tab_num) %>%
     set_header_labels(vegclass = "Veg class",
                       mean_prob = "Mean",
-                      sd_prob = "SD")
+                      sd_prob = "SD") %>%
+    add_footer_lines("")
   mean_occ <- NULL
   lcl_occ <- NULL
   ucl_occ <- NULL
@@ -176,8 +177,6 @@ if ("vegclass2" %in% psi_covs) {
   ucl_occ <- quantile(occ_probs, 0.975)
   vegocc_ft <- NULL
 }
-  
-
 
 ```
 
@@ -199,11 +198,11 @@ cat(unlist(res))
 
 ```
 
-```{r code = readLines("src/single-season-models/spOccupancy-predictions.R"), include = length(psi_covs) > 0}
+```{r code = readLines("src/single-season-models/spOccupancy-predictions.R"), include = length(psi_covs) > 0, eval = TRUE}
 
 ```
 
-```{r, include = length(psi_covs) > 0, fig.id = "figure", fig.cap = occmap_cap}
+```{r, include = length(psi_covs) > 0, fig.id = "figure", fig.cap = occmap_cap, eval = TRUE}
 
 occmap_cap <- paste0("Predicted probability of ", spp_name, " occurrence in ", 
                      PARKL, " in ", YEAR, ". ")
@@ -217,9 +216,50 @@ occmap_base + theme(axis.title = element_blank(),
 
 ```
 
-<br>
-
 ## Covariate effects
+
+```{r}
+
+# Identify continuous covariates in occurrence part of the model
+  psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
+  psi_cont_unique <- unique(psi_continuous)
+  psi_n_cont <- length(psi_cont_unique)
+
+# If there are any continuous covariates, create a figure for each:
+  if (psi_n_cont > 0) {
+    # Loop through each covariate
+    for (cov in psi_cont_unique) {
+      # Create name of plot:
+      plotname <- paste0("marginal_psi_", str_remove(cov, "_z"))
+      # Create plot
+      assign(plotname, 
+             marginal_plot_occ(covariate = cov, 
+                               model = best, 
+                               data_list = data_list,
+                               covariate_table = covariates,
+                               central_meas = mean))
+    } 
+  }
+
+  marg_figs <- str_subset(ls(), "marginal_psi_")
+
+```
+
+```{r, include = length(marg_figs) > 0, fig.id = "figure", fig.cap = margfig_cap}
+
+for (marg_fig in marg_figs) {
+  cov_name <- str_remove(marg_fig, "marginal_psi_")
+  cov_name <- ifelse(cov == "burn_severity_2011",
+                     "burn",
+                     str_remove(cov, "_z"))
+  cov_name <- tolower(covariates$axis_label[covariates$short_name == cov_name])
+  margfig_cap <- paste0("Effect of ", cov_name, 
+                        " on occurrence probability of ", spp_plural, " in ", 
+                        PARKL, ", ", YEAR, ".")
+  print(get(marg_fig))
+}
+
+```
 
 
 

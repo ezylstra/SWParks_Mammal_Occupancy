@@ -32,12 +32,12 @@ knitr::opts_chunk$set(
   fig.width = 5, 
   fig.height = 3.5, 
   fig.dpi = 150, 
-  fig.cap.style = "Caption",
+  fig.cap.style = "Figure caption",
   fig.cap.pre = "Figure ",
   fig.cap.sep = ". ",
   fig.cap.fp_text = fp_text_lite(bold = TRUE),
   tab.align = "left",
-  tab.cap.style = "Caption",
+  tab.cap.style = "Table Caption",
   tab.cap.pre = "Table ",
   tab.cap.sep = ". ",
   tab.cap.fp_text = fp_text_lite(bold = TRUE))
@@ -139,14 +139,15 @@ occ_short <- occasions %>%
   rename(Occasion = occasion,
          Start = start,
          End = end)
-occ_ftable <- flextable(occ_short)
-occ_ftable <- flextable::align(occ_ftable, align = "left", part = "all")
 
-occ_ftable <- set_caption(occ_ftable,
-                          caption = paste0("Start and end dates for each sampling occasion in ",
-                                 PARKL, ", ", YEAR, "."),
-                          autonum = tab_num)
-occ_ftable <- bold(occ_ftable, bold = TRUE, part = "header")
+occtable_cap <- paste0("Start and end dates for each sampling occasion in ",
+                       PARKL, ", ", YEAR, ".")
+
+occ_ftable <- flextable(occ_short) %>%
+  align(align = "left", part = "all") %>%
+  bold(bold = TRUE, part = "header") %>%
+  set_caption(caption = occtable_cap, autonum = tab_num) %>%
+  add_footer_lines("")
 
 ```
 
@@ -155,8 +156,6 @@ occ_ftable <- bold(occ_ftable, bold = TRUE, part = "header")
 occ_ftable
 
 ```
-
-<br>
 
 ```{r deployment-plot, fig.id = "figure", fig.cap = segs_cap}
 
@@ -169,7 +168,6 @@ segs_cap <- paste0("Camera deployments and sampling occasions in ", PARKL, ", ",
 segs
 
 ```
-
 
 # Detections
 ```{r detections}
@@ -234,7 +232,8 @@ nphotos_ft <- flextable(nphotos) %>%
                     n_photos = "No. photos",
                     n_detects = "No. detections",
                     n_locs = "No. locations") %>%
-  set_caption(caption = nphotos_cap, autonum = tab_num)
+  set_caption(caption = nphotos_cap, autonum = tab_num) %>%
+  add_footer_lines("")
 
 ```
 
@@ -243,7 +242,6 @@ nphotos_ft <- flextable(nphotos) %>%
 nphotos_ft
 
 ```
-
 
 # Modeling approach
 

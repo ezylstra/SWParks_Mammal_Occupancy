@@ -1,4 +1,4 @@
-# Create single-season report for a specified park and year
+# Create a single-season report for a specified park and year
 
 park <- "SAGW"
 year <- 2022
