@@ -61,6 +61,9 @@ n_covs_det <- length(p_covs)
 n_covs_dett <- ifelse(n_covs_det > 1, paste0(n_covs_det, " covariates"), 
                       ifelse(n_covs_det == 1, "1 covariate", "no covariates"))
 
+# Set run flag to True for length(psi_covs) > 0
+psi_cov_run <- ifelse(length(psi_covs>0),TRUE, FALSE)
+
 ```
 
 # Output for `r SPECIES`
@@ -198,11 +201,11 @@ cat(unlist(res))
 
 ```
 
-```{r code = readLines("src/single-season-models/spOccupancy-predictions.R"), include = length(psi_covs) > 0, eval = TRUE}
+```{r, file="../src/single-season-models/spOccupancy-predictions.R", include = length(psi_covs) > 0, eval = psi_cov_run}
 
 ```
 
-```{r, include = length(psi_covs) > 0, fig.id = "figure", fig.cap = occmap_cap, eval = TRUE}
+```{r, include = length(psi_covs) > 0, fig.id = "figure", fig.cap = occmap_cap, eval = psi_cov_run}
 
 occmap_cap <- paste0("Predicted probability of ", spp_name, " occurrence in ", 
                      PARKL, " in ", YEAR, ". ")
@@ -245,21 +248,31 @@ occmap_base + theme(axis.title = element_blank(),
 
 ```
 
-```{r, include = length(marg_figs) > 0, fig.id = "figure", fig.cap = margfig_cap}
+```{r, results='asis', eval=!psi_cov_run}
+cat(paste0("The best model did not include covariates for the probability of occurrence of ", spp_plural, "."))
+```
+
+
+```{r, include = length(marg_figs) > 0, fig.id = "figure", fig.cap = margfig_cap, results='asis', eval=psi_cov_run}
 
 for (marg_fig in marg_figs) {
   cov_name <- str_remove(marg_fig, "marginal_psi_")
-  cov_name <- ifelse(cov == "burn_severity_2011",
+  cov_name <- ifelse(cov_name == "burn_severity_2011",
                      "burn",
-                     str_remove(cov, "_z"))
+                     str_remove(cov_name, "_z"))
   cov_name <- tolower(covariates$axis_label[covariates$short_name == cov_name])
   margfig_cap <- paste0("Effect of ", cov_name, 
                         " on occurrence probability of ", spp_plural, " in ", 
                         PARKL, ", ", YEAR, ".")
   print(get(marg_fig))
+  cat(paste0("**Figure .**", " Effect of ", cov_name, 
+                        " on occurrence probability of ", spp_plural, " in ", 
+                        PARKL, ", ", YEAR, "."))
+  #double-printing figure captions for testing. 
+  #Fig.cap in the code chunk header only prints the last caption.
+  #Printing using cat() works but the text is formatted as main text and not as a figure caption
 }
 
 ```
-
 
 
