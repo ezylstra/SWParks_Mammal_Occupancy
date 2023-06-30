@@ -1,0 +1,13 @@
+```{r, fig.id = "figure", fig.cap = margfig_cap}
+
+cov_name <- str_remove(marg_fig, "marginal_psi_")
+cov_name <- ifelse(cov_name == "burn_severity_2011",
+                   "burn",
+                   str_remove(cov_name, "_z"))
+cov_name <- tolower(covariates$axis_label[covariates$short_name == cov_name])
+margfig_cap <- paste0("Effect of ", cov_name, 
+                      " on occurrence probability of ", spp_plural, " in ", 
+                      PARKL, ", ", YEAR, ".")
+print(get(marg_fig))
+
+```
