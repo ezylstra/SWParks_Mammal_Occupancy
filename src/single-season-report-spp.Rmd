@@ -201,7 +201,7 @@ cat(unlist(res))
 
 ```
 
-```{r, code = readLines("src/single-season-models/spOccupancy-predictions.R"), eval = psi_cov_run}
+```{r, file = "src/single-season-models/spOccupancy-predictions.R", eval = psi_cov_run}
 
 ```
 
