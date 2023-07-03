@@ -1,13 +1,14 @@
 
 ```{r}
 
-spp_name <- spp_table$common[spp_table$Species_code == SPECIES]
+spp_name <- species$Common_name[species$Species_code == SPECIES]
 cap_exceptions <- c("American", "Arizona", "North", "Sonoran")
 spp_name <- paste(sapply(unlist(str_split(spp_name, " ")),
                          function(x) {ifelse(x %in% cap_exceptions,
                                              x,
                                              tolower(x))}),
                   collapse = " ")
+spp_name <- str_replace(spp_name, "unknown", "all")
 spp_plural <- ifelse(str_detect(string = spp_name, 
                                 pattern = "sheep|deer|pronghorn|elk"),
                      spp_name, ifelse(str_detect(string = spp_name,
@@ -66,7 +67,7 @@ psi_cov_run <- ifelse(length(psi_covs > 0), TRUE, FALSE)
 
 ```
 
-# Output for `r SPECIES`
+# Output for `r spp_plural`
 
 ## Model used for inference
 

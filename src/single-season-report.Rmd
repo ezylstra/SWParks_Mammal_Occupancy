@@ -251,7 +251,10 @@ nphotos_ft
 spp_rds <- list.files(path = "output/single-season-models/", 
                       pattern = paste0(PARK, "-", YEAR),
                       full.names = FALSE)
-spp_table <- data.frame(Species_code = str_sub(spp_rds, 11, 14))
+species_rds <- str_remove(spp_rds, ".rds")
+spp_table <- data.frame(Species_code = str_sub(species_rds, 
+                                               11, 
+                                               nchar(species_rds)))
 spp_table$common <- species$Common_name[match(spp_table$Species_code,
                                               species$Species_code)]
 nspp <- nrow(spp_table)
@@ -329,4 +332,3 @@ child <- lapply(spp_code, function(x) {
 cat(unlist(child), sep = "\n")
 
 ```
-
