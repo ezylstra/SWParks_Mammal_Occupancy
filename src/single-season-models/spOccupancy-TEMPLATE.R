@@ -11,7 +11,7 @@
   # Method used to select a "best" model for inferences: STAT
 
 # ER Zylstra
-# Updated 2023-05-26
+# Updated 2023-07-03
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -127,14 +127,16 @@ covariates %>%
 
 # Logical indicating whether a null model for occurrence should be included in 
 # the candidate model set
-OCC_NULL <- TRUE
+OCC_NULL <- FALSE
 
-# There are 3 categories of spatial covariates:
+# There are 4 categories of spatial covariates (though each park only has 
+# covariates in 2 or 3 of the categories):
   # topographic: aspect, elev, slope
     # (using linear rather than quadratic forms of elev & slope because SAGW 
     # doesn't span that large of a range and we often get nonsensical results 
     # with highest probabilities at extreme values)
   # veg: vegclasses + wash (for now, only available for SAGW)
+  # burn: burn severity classes for 2011 fire (only available in CHIR)
   # anthropogenic: roads, boundary, trails, pois, roadbound, trailpois
 
 # For occurrence part of the models, try including item(s) from each category of
@@ -142,24 +144,24 @@ OCC_NULL <- TRUE
 # (|r| >= 0.6).
 
 # Pick covariates to include candidate models
-OCC_MODELS <- list(c("aspect", "veg", "wash", "roads"),
-                   c("elev", "veg", "wash", "roads"),
-                   c("slope", "veg", "wash", "roads"),
-                   c("aspect", "veg", "wash", "boundary"),
-                   c("elev", "veg", "wash", "boundary"),
-                   c("slope", "veg", "wash", "boundary"),
-                   c("aspect", "veg", "wash", "trail"),
-                   c("elev", "veg", "wash", "trail"),
-                   c("slope", "veg", "wash", "trail"),
-                   c("aspect", "veg", "wash", "pois"),
-                   c("elev", "veg", "wash", "pois"),
-                   c("slope", "veg", "wash", "pois"),
-                   c("aspect", "veg", "wash", "roadbound"),
-                   c("elev", "veg", "wash", "roadbound"),
-                   c("slope", "veg", "wash", "roadbound"),
-                   c("aspect", "veg", "wash", "trailpoi"),
-                   c("elev", "veg", "wash", "trailpoi"),
-                   c("slope", "veg", "wash", "trailpoi"))
+OCC_MODELS <- list(c("aspect", "veg", "wash", "burn", "roads"),
+                   c("elev", "veg", "wash", "burn", "roads"),
+                   c("slope", "veg", "wash", "burn", "roads"),
+                   c("aspect", "veg", "wash", "burn", "boundary"),
+                   c("elev", "veg", "wash", "burn", "boundary"),
+                   c("slope", "veg", "wash", "burn", "boundary"),
+                   c("aspect", "veg", "wash", "burn", "trail"),
+                   c("elev", "veg", "wash", "burn", "trail"),
+                   c("slope", "veg", "wash", "burn", "trail"),
+                   c("aspect", "veg", "wash", "burn", "pois"),
+                   c("elev", "veg", "wash", "burn", "pois"),
+                   c("slope", "veg", "wash", "burn", "pois"),
+                   c("aspect", "veg", "wash", "burn", "roadbound"),
+                   c("elev", "veg", "wash", "burn", "roadbound"),
+                   c("slope", "veg", "wash", "burn", "roadbound"),
+                   c("aspect", "veg", "wash", "burn", "trailpoi"),
+                   c("elev", "veg", "wash", "burn", "trailpoi"),
+                   c("slope", "veg", "wash", "burn", "trailpoi"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -227,15 +229,15 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
 #------------------------------------------------------------------------------#
 
 # Identify a model to use for inferences.  Can base this on WAIC or deviance 
-# from k-fold CV.  Alternatively, can select another model by setting STAT equal
+# from k-fold CV.  Alternatively, can select another model by setting STAT to
 # "model_no" and specifying the "best_index" directly.
 
 # Specify STAT as either: waic, k.fold.dev, or model_no
-STAT <- "waic"   
+STAT <- "model_no"   
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 5  
+  best_index <- 10  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
