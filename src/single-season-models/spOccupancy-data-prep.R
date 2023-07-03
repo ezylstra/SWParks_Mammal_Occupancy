@@ -31,7 +31,7 @@ for (i in 1:nrow(occasions)) {
 # Extract photo observations for park, species, year
 # Retain a maximum of one observation per day at each location
 obs <- dat %>% 
-  filter(Park == PARK & Species_code == SPECIES & yr == YEAR) %>%
+  filter(Park == PARK & Species_code %in% SPECIES & yr == YEAR) %>%
   select(StdLocName, obsdate, yr, o_day) %>%
   arrange(StdLocName, obsdate) %>%
   distinct
