@@ -1,5 +1,5 @@
 parameter,park,temporal_variation,short_name,formula,axis_label
-either,all,none,boundary,boundary_z,Distance to unprotected park boundary (m)
+either,all,none,boundary,boundary_z,Distance to nearest unprotected park boundary (m)
 either,all,none,aspect,east_z + north_z,NA
 either,all,none,east,east_z,Eastness
 either,all,none,north,north_z,Northness
