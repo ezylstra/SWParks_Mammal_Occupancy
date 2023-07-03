@@ -5,13 +5,13 @@
 # Objects that need to be specified to run models (ie, to create 
 # src/single-season-model/YEAR/spOccupancy-PARK-YEAR-SPECIES.R)
   # PARK, YEAR, SPECIES (lines 50, 53, 67)
-  # Specifications for occurrence models: OCC_NULL, OCC_MODELS1, OCC_MODELS2
-  # Specifications for detection models: DET_NULL, DET_MODELS1, DET_MODELS2
+  # Specifications for occurrence models: OCC_NULL, OCC_MODELS
+  # Specifications for detection models: DET_NULL, DET_MODELS
   # MCMC parameters: N_SAMPLES, N_BURN, N_THIN, N_CHAINS
   # Method used to select a "best" model for inferences: STAT
 
 # ER Zylstra
-# Updated 2023-04-20
+# Updated 2023-07-03
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -82,17 +82,39 @@ source("src/single-season-models/spOccupancy-data-prep.R")
   # covariates are matrices (no. sites * no. occasions). Named objects that end
   # with "_z" are standardized)
 
+# Load dataframe with information about covariates:
+covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
+
+#------------------------------------------------------------------------------#
+# Information about how to build candidate model sets
+#------------------------------------------------------------------------------#
+
+# To specify which covariates to include in models for occurrence or detection,
+# we'll use the short_name column in the covariates dataframe.
+
+# To create candidate model sets for occurrence, we'll define 1 or 2 objects:
+
+  # OCC_NULL: a logical indicating whether a null model should be included the 
+  # candidate model set
+  
+  # OCC_MODELS: a list, where each element is a vector listing one of more 
+  # covariates to include in a single candidate model. For instance, 
+  # OCC_MODELS <- list(c("years"), c("years", "roads")) indicates that we will 
+  # include two models in our candidate set, one in which occurrence 
+  # probabilities vary with year, and one in which occurrence probabilities vary
+  # with both year and distance to roads (occ prob ~ years + roads).
+
+  # We'll use the same process to create candidate model sets for detection:
+  # DET_NULL, DET_MODELS
+
 #------------------------------------------------------------------------------#
 # Specify the occurrence portion of candidate models
 #------------------------------------------------------------------------------#
 
-# Load dataframe with information about covariates:
-covariates <- read.csv("data/covariates/covariates.csv", header = TRUE)
-
 # View those pairs of continuous covariates that are highly correlated
 cor_df %>%
   arrange(desc(corr)) %>%
-  dplyr::filter(abs(corr) > 0.5)
+  dplyr::filter(abs(corr) >= 0.6)
 
 # See what covariates are available for occurrence part of model
 covariates %>%
@@ -102,19 +124,41 @@ covariates %>%
 
 # Logical indicating whether a null model for occurrence should be included in 
 # the candidate model set
-OCC_NULL <- TRUE
+OCC_NULL <- FALSE
 
-# Pick covariates to include in simple candidate models via the short_name 
-# column in the covariates dataframe
-OCC_MODELS1 <- c("aspect", "elev2", "slope2", "burn", "roadbound")
+# There are 4 categories of spatial covariates (though each park only has 
+# covariates in 2 or 3 of the categories):
+  # topographic: aspect, elev, slope
+    # (using linear rather than quadratic forms of elev & slope because SAGW 
+    # doesn't span that large of a range and we often get nonsensical results 
+    # with highest probabilities at extreme values)
+  # veg: vegclasses + wash (for now, only available for SAGW)
+  # burn: burn severity classes for 2011 fire (only available in CHIR)
+  # anthropogenic: roads, boundary, trails, pois, roadbound, trailpois
 
-# To combine covariates in a single candidate model, provide a vector of 
-# short_names. Compile these vectors into a list.
-# e.g., c("aspect", "boundary") would create the following model for occurrence: 
-# psi ~ east + north + boundary
-OCC_MODELS2 <- list(c("burn", "elev2"),
-                    c("burn", "slope2"),
-                    c("burn", "roadbound"))
+# For occurrence part of the models, try including item(s) from each category of
+# spatial covariates, excluding any covariates that are highly correlated 
+# (|r| >= 0.6).
+
+# Pick covariates to include candidate models
+OCC_MODELS <- list(c("aspect", "veg", "wash", "burn", "roads"),
+                   c("elev", "veg", "wash", "burn", "roads"),
+                   c("slope", "veg", "wash", "burn", "roads"),
+                   c("aspect", "veg", "wash", "burn", "boundary"),
+                   # c("elev", "veg", "wash", "burn", "boundary"),
+                   c("slope", "veg", "wash", "burn", "boundary"),
+                   c("aspect", "veg", "wash", "burn", "trail"),
+                   c("elev", "veg", "wash", "burn", "trail"),
+                   c("slope", "veg", "wash", "burn", "trail"),
+                   c("aspect", "veg", "wash", "burn", "pois"),
+                   c("elev", "veg", "wash", "burn", "pois"),
+                   c("slope", "veg", "wash", "burn", "pois"),
+                   c("aspect", "veg", "wash", "burn", "roadbound"),
+                   c("elev", "veg", "wash", "burn", "roadbound"),
+                   c("slope", "veg", "wash", "burn", "roadbound"),
+                   c("aspect", "veg", "wash", "burn", "trailpoi"),
+                   c("elev", "veg", "wash", "burn", "trailpoi"),
+                   c("slope", "veg", "wash", "burn", "trailpoi"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -130,13 +174,8 @@ covariates %>%
 # the candidate model set
 DET_NULL <- FALSE
 
-# Pick covariates to include in simple candidate models via the short_name 
-# column in the covariates dataframe
-DET_MODELS1 <- c("effort")
-
-# To combine different covariates in a candidate model, provide a vector of 
-# short_names. Compile those vectors into a list.
-DET_MODELS2 <- list(c("day2", "deploy_exp", "effort"))
+# Pick covariates to include candidate models
+DET_MODELS <- list(c("day2", "deploy_exp", "effort"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models
@@ -183,11 +222,11 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
     # (lower is better)
 
 #------------------------------------------------------------------------------#
-# Look at results and predictions from "best" model
+# Select "best" model of candidate set
 #------------------------------------------------------------------------------#
 
 # Identify a model to use for inferences.  Can base this on WAIC or deviance 
-# from k-fold CV.  Alternatively, can select another model by setting STAT equal
+# from k-fold CV.  Alternatively, can select another model by setting STAT to
 # "model_no" and specifying the "best_index" directly.
 
 # Specify STAT as either: waic, k.fold.dev, or model_no
@@ -195,16 +234,62 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 6  
+  best_index <- 10  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
 }
-
-# Extract output and formulas from best model
+  
+# Extract output and formulas from best model in 
 best <- out_list[[best_index]]
 best_psi_model <- model_specs[best_index, 1]
 best_p_model <- model_specs[best_index, 2]
+summary(best)
+
+  # IF it's clear that one of more covariates have no explanatory power (ie,
+  # credible intervals widely span 0) then run another model after removing those
+  # covariates.
+  
+  OCC_NULL <- FALSE
+  OCC_MODELS <- list(c("burn"))
+  DET_NULL <- TRUE
+  rm(DET_MODELS)
+
+  source("src/single-season-models/spOccupancy-create-model-formulas.R")
+  message("Check candidate models:", sep = "\n")
+  model_specs
+
+  source("src/single-season-models/spOccupancy-run-candidate-models.R")
+  model_stats %>% arrange(waic)
+
+  # Specify STAT as either: waic, k.fold.dev, or model_no
+  STAT <- "waic"
+  if (STAT == "model_no") {
+    # If STAT == "model_no", specify model of interest by model number in table
+    best_index <- 5
+  } else {
+    min_stat <- min(model_stats[,STAT])
+    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
+  }
+
+  # Extract output and formulas from best model in
+  best <- out_list[[best_index]]
+  best_psi_model <- model_specs[best_index, 1]
+  best_p_model <- model_specs[best_index, 2]
+  summary(best)
+
+# Save model object to file
+model_filename <- paste0("output/single-season-models/", PARK, "-", YEAR, 
+                         "-", SPECIES, ".rds")
+model_list <- list(model = best, 
+                   psi_model = best_psi_model,
+                   p_model = best_p_model,
+                   data = data_list)
+saveRDS(model_list, file = model_filename)
+
+#------------------------------------------------------------------------------#
+# Evaluate best model and look at estimates
+#------------------------------------------------------------------------------#
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(best_psi_model)
@@ -222,8 +307,6 @@ if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
   p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
 }
 
-# View parameter estimates
-summary(best)
 # Create table with summary stats that can be saved to file
 occ_estimates <- parameter_estimates(model = best, 
                                      parameter = "occ",
