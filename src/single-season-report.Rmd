@@ -109,24 +109,20 @@ ggcust_segs <- function(dat, park, year, xlims, occ){
     geom_vline(xintercept = as.Date(occ$start), color = "gray50") + 
     geom_vline(xintercept = as.Date(occ$end[nrow(occ)]), color = "gray50") +
     labs(x = "", y = "Camera number") + 
-    scale_x_date(limits = xlims, date_labels = "%b") +
+    scale_x_date(limits = xlims, date_labels = "%d-%b") +
     theme(text=element_text(size = 10),
           axis.title.x=element_blank(),
           plot.margin = margin(0.1, 0.2, 0.2, 0.2, unit = "cm"))
 }
 
-xmin <- paste0(YEAR, "-01-01")
-if (PARK == "SAGW") {
-  xmax <- paste0(YEAR, "-03-15")
-} else {
-  xmax <- paste0(YEAR, "-12-31")
-}
+xmin <- as.Date(occasions$start[1]) - 15
+xmax <- as.Date(occasions$end[nrow(occasions)]) + 15
 
 segs <- ggcust_segs(events, PARK, YEAR, xlims = as.Date(c(xmin, xmax)),
                     occ = occasions)
 ```
 
-A total of `r nrow(events)` cameras were deployed in SAGW between 
+A total of `r nrow(events)` cameras were deployed in `r PARKL` between 
 `r deploy_start` and `r deploy_end` and were retrieved between 
 `r retr_start` and `r retr_end`, `r YEAR`. We delineated a total of 
 `r nrow(occasions)` sampling occasions that were each `r occasions$duration[1]` 
@@ -177,6 +173,7 @@ species <- species %>%
   select(-n)
 species$Species[species$Species_code == "SKUNK"] <- "Mephitidae"
 species$Species[species$Species_code == "UNCA"] <- "Canidae"
+species$Species[species$Species_code == "FOX"] <- "Vulpes or Urocyon sp."
 
 # Filter detection data
 dat <- dat %>%
@@ -219,7 +216,7 @@ nphotos_cap <- paste0("Mammal species detected in ",
   "may occur at the same camera location in the same day). No. detections is ",
   "the number of detections that could be used in an occupancy modeling ",
   "framework (maximum of one photographic detection per camera location per ",
-  "sampling period). No. locations is the unique number of camera locations ",
+  "sampling occasion). No. locations is the unique number of camera locations ",
   "where the species was photographed.")
 
 nphotos_ft <- flextable(nphotos) %>%
