@@ -297,24 +297,42 @@ occasions.
 
 We used a Bayesian framework to estimate model parameters, as this made it 
 easier to estimate derived parameters (e.g., proportion of area occupied across 
-the entire park) with associated uncertainties and to incorporate random effects 
-that can account for uncertainties beyond that explained by covariates in the 
-model. We fit models in R using the spOccupancy package (Doser et al. 2022). For 
-each model, we ran `r n_chains` Markov chains initiated at random values for 
-`r n_samples` iterations. We discarded the first `r n_burn` iterations and 
-retained 1 of every `r n_thin` iterations thereafter, using the remaining 
-`r n_chains * n_post` samples (across all the chains) to summarize the posterior 
-distribution.
+the entire park) with associated uncertainties. We fit models in R using the 
+spOccupancy package (Doser et al. 2022). For each model, we ran `r n_chains` 
+Markov chains initiated at random values for `r n_samples` iterations. We 
+discarded the first `r n_burn` iterations and retained 1 of every `r n_thin` 
+iterations thereafter, using the remaining `r n_chains * n_post` samples (across 
+all the chains) to summarize the posterior distribution.
 
 ## Model selection
 
-We identified a number of spatial covariates for `r PARKL` that could explain
-variation in occurrence probabilities, detection probabilities, or both.
+```{r covariates-by-park}
 
-Something about where we obtained spatial data?
+topo <- "topographic (aspect, elevation, slope)"
+anthro <- "anthropogenic (distance to nearest road, park boundary, trail, point-of-interest)"
+veg_related <- "vegetation-related (vegetation classes and distance to nearest wash)"
+burn_related <- "burn-related (burn severity during 2011 fire)"
 
-- candidate model set (general)
-- how a model for inference was selected
+cov_list <- ifelse(PARK == "SAGW",
+                   paste0(topo, ", ", veg_related, ", and ", anthro),
+                   ifelse(PARK == "ORPI",
+                          paste0(topo, " and ", anthro),
+                          paste0(topo, ", ", burn_related, ", and ", anthro)))
+
+```
+
+We identified a number of `r cov_list` spatial covariates for `r PARKL` that 
+could explain variation in occurrence probabilities. For each species, we 
+assembled a set of candidate models where each model included one element from 
+each covariate category, excluding any combination of covariates that were 
+highly correlated (pairwise correlation coefficient, |r| > 0.6). In each 
+candidate model, we allowed detection probability to vary as a function of day 
+(using linear and quadratic terms), effort (proportion of days during each 
+sampling occasion that the camera was operational), and the experience of 
+deployment personnel. We used widely applicable information criterion (WAIC) to 
+identify the best supported candidate model, and then removed any covariates 
+with little to no explanatory power (95% credible intervals that widely 
+overlapped zero). We used the resulting model for all inferences.
 
 ```{r spp-loop, results = "asis"}
 
