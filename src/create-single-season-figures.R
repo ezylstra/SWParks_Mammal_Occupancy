@@ -16,14 +16,14 @@ library(tidyterra)
 # Park, year, and species
 PARK <- "SAGW"
 YEAR <- 2022
-SPECIES <- "URCI"
+SPECIES <- "CALA"
 
 # Logical indicating whether to create a map with mean occurrence probabilities 
 MAP <- TRUE
 # Logical indicating whether to create a map with SD of occurrence probabilities
-MAP_SD <- FALSE
+MAP_SD <- TRUE
   # If creating maps, indicate whether to include lat/long axes labels
-  LATLONG <- TRUE
+  LATLONG <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the occurrence part of the model

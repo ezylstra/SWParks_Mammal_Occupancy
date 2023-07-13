@@ -130,10 +130,6 @@ mean_det <- mean(det_probs)
 lcl_det <- quantile(det_probs, 0.025)
 ucl_det <- quantile(det_probs, 0.975)
 
-# Right now, we can't produce figures for day or effort effect because 
-# we don't have day/effort values on the original scale in model_list$data
-# We'd need to add this to the model_list somewhere.
-
 ```
 
 Overall detection probability for `r spp_plural` `r if("deploy_exp" %in% p_covs) 
