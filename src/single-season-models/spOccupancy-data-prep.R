@@ -230,8 +230,10 @@ cor_df <- cor_df %>%
 # First put covariates that could be used in the detection model in a list
 # Elements can be n_sites * n_occasions matrices (for survey covariates)
 # or vectors of length n_sites (for spatial covariates)
-det_covs <- list(day_z = day_z,
+det_covs <- list(day = day,
+                 day_z = day_z,
                  deploy_exp = deploy_exp,
+                 effort = effort, 
                  effort_z = effort_z,
                  boundary_z = spatial_covs$boundary_z, 
                  east_z = spatial_covs$east_z,
