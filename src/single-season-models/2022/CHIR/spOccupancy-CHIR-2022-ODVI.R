@@ -144,24 +144,24 @@ OCC_NULL <- FALSE
 # (|r| >= 0.6).
 
 # Pick covariates to include candidate models
-OCC_MODELS <- list(c("aspect", "wash", "burn", "roads"),
-                   c("elev",  "wash", "burn", "roads"),
-                   c("slope",  "wash", "burn", "roads"),
-                   c("aspect",  "wash", "burn", "boundary"),
-                   #c("elev",  "wash", "burn", "boundary"),
-                   c("slope",  "wash", "burn", "boundary"),
-                   c("aspect",  "wash", "burn", "trail"),
-                   c("elev",  "wash", "burn", "trail"),
-                   c("slope",  "wash", "burn", "trail"),
-                   c("aspect",  "wash", "burn", "pois"),
-                   c("elev",  "wash", "burn", "pois"),
-                   c("slope",  "wash", "burn", "pois"),
-                   c("aspect",  "wash", "burn", "roadbound"),
-                   c("elev",  "wash", "burn", "roadbound"),
-                   c("slope",  "wash", "burn", "roadbound"),
-                   c("aspect",  "wash", "burn", "trailpoi"),
-                   c("elev",  "wash", "burn", "trailpoi"),
-                   c("slope",  "wash", "burn", "trailpoi"))
+OCC_MODELS <- list(c("aspect", "veg", "wash", "burn", "roads"),
+                   c("elev", "veg", "wash", "burn", "roads"),
+                   c("slope", "veg", "wash", "burn", "roads"),
+                   c("aspect", "veg", "wash", "burn", "boundary"),
+                   # c("elev", "veg", "wash", "burn", "boundary"),
+                   c("slope", "veg", "wash", "burn", "boundary"),
+                   c("aspect", "veg", "wash", "burn", "trail"),
+                   c("elev", "veg", "wash", "burn", "trail"),
+                   c("slope", "veg", "wash", "burn", "trail"),
+                   c("aspect", "veg", "wash", "burn", "pois"),
+                   c("elev", "veg", "wash", "burn", "pois"),
+                   c("slope", "veg", "wash", "burn", "pois"),
+                   c("aspect", "veg", "wash", "burn", "roadbound"),
+                   c("elev", "veg", "wash", "burn", "roadbound"),
+                   c("slope", "veg", "wash", "burn", "roadbound"),
+                   c("aspect", "veg", "wash", "burn", "trailpoi"),
+                   c("elev", "veg", "wash", "burn", "trailpoi"),
+                   c("slope", "veg", "wash", "burn", "trailpoi"))
 
 #------------------------------------------------------------------------------#
 # Specify the detection portion of candidate models
@@ -237,7 +237,7 @@ STAT <- "model_no"
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 2  
+  best_index <- 13  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -253,35 +253,35 @@ summary(best)
   # credible intervals widely span 0) then run another model after removing those
   # covariates.
   
-   OCC_NULL <- FALSE
-   OCC_MODELS <- list(c("burn", "roadbound"),
-                      c("burn", "elev", "roads"))
-   DET_NULL <- FALSE
-   DET_MODELS <- list(c("day2", "deploy_exp"), c("deploy_exp"))
-  # rm(DET_MODELS)
-  # 
+  OCC_NULL <- FALSE
+  OCC_MODELS <- list(c("slope", "burn", "roadbound"),
+                     c("burn", "roadbound"),
+                     c("burn", "elev", "roads"))
+  DET_NULL <- FALSE
+  DET_MODELS <- list(c("day", "deploy_exp"))
+
    source("src/single-season-models/spOccupancy-create-model-formulas.R")
    message("Check candidate models:", sep = "\n")
    model_specs
-  # 
+   
    source("src/single-season-models/spOccupancy-run-candidate-models.R")
    model_stats %>% arrange(waic)
-  # 
-  # # Specify STAT as either: waic, k.fold.dev, or model_no
-   STAT <- "model_no"   
-   if (STAT == "model_no") {
-  #   # If STAT == "model_no", specify model of interest by model number in table
-     best_index <- 1 
-   } else {
-     min_stat <- min(model_stats[,STAT])
-     best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
-   }
-  # 
-  # # Extract output and formulas from best model in 
-   best <- out_list[[best_index]]
-   best_psi_model <- model_specs[best_index, 1]
-   best_p_model <- model_specs[best_index, 2]
-   summary(best)
+   
+  # Specify STAT as either: waic, k.fold.dev, or model_no
+  STAT <- "waic"   
+  if (STAT == "model_no") {
+    # If STAT == "model_no, specify model of interest by model number in table
+    best_index <- 1 
+  } else {
+    min_stat <- min(model_stats[,STAT])
+    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
+  }
+  
+  # Extract output and formulas from best model in 
+  best <- out_list[[best_index]]
+  best_psi_model <- model_specs[best_index, 1]
+  best_p_model <- model_specs[best_index, 2]
+  summary(best)
 
 # Save model object to file
 model_filename <- paste0("output/single-season-models/", PARK, "-", YEAR, 

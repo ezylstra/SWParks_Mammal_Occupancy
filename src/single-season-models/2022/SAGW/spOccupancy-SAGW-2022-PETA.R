@@ -124,7 +124,7 @@ covariates %>%
 
 # Logical indicating whether a null model for occurrence should be included in 
 # the candidate model set
-OCC_NULL <- TRUE
+OCC_NULL <- FALSE
 
 # There are 3 categories of spatial covariates:
   # topographic: aspect, elev, slope
@@ -173,8 +173,7 @@ covariates %>%
 DET_NULL <- FALSE
 
 # Pick covariates to include candidate models
-DET_MODELS <- list("effort",
-                   c("day2", "deploy_exp", "effort"))
+DET_MODELS <- list(c("day2", "deploy_exp", "effort"))
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models

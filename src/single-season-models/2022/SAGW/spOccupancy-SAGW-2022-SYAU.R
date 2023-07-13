@@ -124,7 +124,7 @@ covariates %>%
 
 # Logical indicating whether a null model for occurrence should be included in 
 # the candidate model set
-OCC_NULL <- TRUE
+OCC_NULL <- FALSE
 
 # There are 3 categories of spatial covariates:
   # topographic: aspect, elev, slope
