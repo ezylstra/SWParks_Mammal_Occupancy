@@ -3,7 +3,7 @@
 # a given park, set of years, and species (using the spOccupancy package)
 
 # ER Zylstra
-# Updated 2023-05-24
+# Updated 2023-07-14
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -62,7 +62,7 @@ detects %>%
 SPECIES <- "PETA"
 
 # Save this script as: 
-# src/multi-season-models/PARK/spOccupancy-PARK-SPECIES-FIRSTYEAR-LASTYEAR.R
+# src/multi-season-models/PARK/spOccupancy-PARK-FIRSTYEAR-LASTYEAR-SPECIES.R
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -179,12 +179,14 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
 # View summary table, ranked by WAIC
 model_stats %>% arrange(waic)
 
-# Save to file:
+# Save summary table to file:
 # write.table(model_stats, "clipboard", sep = "\t", row.names = FALSE)
 
 # Select the annual covariate (years, visits, traffic, monsoon_ppt, or ppt10) 
 # that should be included in the next set of candidate models. Typically, we'll
-# select the covariate included in the model with the lowest WAIC.
+# select the covariate included in the model with the lowest WAIC. If none are 
+# better than the null model, select "years" as this will should estimate
+# a non-significant trend.
 BEST_ANNUAL <- "years"
 
 # Look at parameter estimates for detection part of highest-ranking model and 
@@ -195,9 +197,10 @@ summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
 
 # To use a null model for detection:
   # DET_NULL <- TRUE
+  # rm(DET_MODELS)
 # To use a model with a subset of those covariates, like day2 and effort:
-  # DET_MODELS2 <- list(c("day2", "effort"))
-# To use the same model, we can leave DET_MODELS as is
+  DET_MODELS <- list(c("day2", "effort"))
+# To use the same model, we can leave DET_MODELS as is.
 
 #------------------------------------------------------------------------------#
 # Specify and run second set of candidate models, where we will evaluate:
@@ -213,26 +216,31 @@ summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
   # anthropogenic: roads, boundary, trails, pois, roadbound, trailpois
 
 # For occurrence part of the models, try including item(s) from each category of
-# spatial covariates + the annual covariate selected above
+# spatial covariates + the annual covariate selected above, after removing
+# any combinations that are highly correlated
 
-scov_combos <- list(c("aspect", "veg", "wash", "roads"),
-                    c("elev", "veg", "wash", "roads"),
-                    c("slope", "veg", "wash", "roads"),
-                    c("aspect", "veg", "wash", "boundary"),
-                    c("elev", "veg", "wash", "boundary"),
-                    c("slope", "veg", "wash", "boundary"),
-                    c("aspect", "veg", "wash", "trail"),
-                    c("elev", "veg", "wash", "trail"),
-                    c("slope", "veg", "wash", "trail"),
-                    c("aspect", "veg", "wash", "pois"),
-                    c("elev", "veg", "wash", "pois"),
-                    c("slope", "veg", "wash", "pois"),
-                    c("aspect", "veg", "wash", "roadbound"),
-                    c("elev", "veg", "wash", "roadbound"),
-                    c("slope", "veg", "wash", "roadbound"),
-                    c("aspect", "veg", "wash", "trailpoi"),
-                    c("elev", "veg", "wash", "trailpoi"),
-                    c("slope", "veg", "wash", "trailpoi"))
+cor_df %>%
+  arrange(desc(corr)) %>%
+  filter(abs(corr) >= 0.7)
+  
+scov_combos <- list(c("aspect", "veg", "wash", "burn", "roads"),
+                    c("elev", "veg", "wash", "burn", "roads"),
+                    c("slope", "veg", "wash", "burn", "roads"),
+                    c("aspect", "veg", "wash", "burn", "boundary"),
+                    c("elev", "veg", "wash", "burn", "boundary"),
+                    c("slope", "veg", "wash", "burn", "boundary"),
+                    c("aspect", "veg", "wash", "burn", "trail"),
+                    c("elev", "veg", "wash", "burn", "trail"),
+                    c("slope", "veg", "wash", "burn", "trail"),
+                    c("aspect", "veg", "wash", "burn", "pois"),
+                    c("elev", "veg", "wash", "burn", "pois"),
+                    c("slope", "veg", "wash", "burn", "pois"),
+                    c("aspect", "veg", "wash", "burn", "roadbound"),
+                    c("elev", "veg", "wash", "burn", "roadbound"),
+                    c("slope", "veg", "wash", "burn", "roadbound"),
+                    c("aspect", "veg", "wash", "burn", "trailpoi"),
+                    c("elev", "veg", "wash", "burn", "trailpoi"),
+                    c("slope", "veg", "wash", "burn", "trailpoi"))
 OCC_MODELS <- lapply(scov_combos, function(x) c(x, BEST_ANNUAL))
 OCC_NULL <- FALSE
 
@@ -271,12 +279,29 @@ model_stats %>% arrange(waic)
 # need to re-run after increasing N_BATCH or removing site REs. If problem
 # persists, may need to remove some covariate combinations from consideration.
 
-# Look at estimates from top model: are all coefficients significant (or close)?
-  # Note: if one coefficient in group is significant, leave all in (eg, if 
-  # vegclass2 is significant, leave in vegclass3 and wash regardless of whether
-  # they're significant)
-min_waic <- min(model_stats$waic)
-summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
+#------------------------------------------------------------------------------#
+# Select "best" model
+#------------------------------------------------------------------------------#
+
+# Identify a model to use for inferences.  Can base this on WAIC or select 
+# another model by setting STAT to "model_no" and specifying the 
+# "best_index" directly.
+
+# Specify STAT as either: waic or model_no
+STAT <- "waic"   
+if (STAT == "model_no") {
+  # If STAT == "model_no", specify model of interest by model number in table
+  best_index <- 10  
+} else {
+  min_stat <- min(model_stats[,STAT])
+  best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
+}
+
+# Extract output and formulas from best model in 
+best <- out_list[[best_index]]
+best_psi_model <- model_specs[best_index, 1]
+best_p_model <- model_specs[best_index, 2]
+summary(best)
 
 # If all the covariates have sufficient explanatory power, then move on to the 
 # next step (looking at results from best model, below). If not, run a model 
@@ -284,7 +309,7 @@ summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
 # occurrence.
 
   # Identify new set of spatial covariates to include in a model for inference:
-  scov_new <- list(c("slope", "veg", "wash"))
+  scov_new <- list(c("north", "veg"))
   OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
   source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
   message("Check candidate models:", sep = "\n")
@@ -293,37 +318,36 @@ summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
   # Run final model
   source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
   model_stats
+
+  # Specify STAT as either: waic or model_no
+  STAT <- "waic"   
+  if (STAT == "model_no") {
+    # If STAT == "model_no", specify model of interest by model number in table
+    best_index <- 1  
+  } else {
+    min_stat <- min(model_stats[,STAT])
+    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
+  }
+    
+  # Extract output and formulas from best model in 
+  best <- out_list[[best_index]]
+  best_psi_model <- model_specs[best_index, 1]
+  best_p_model <- model_specs[best_index, 2]
+  summary(best)
   
-  # Save to file:
-  # write.table(model_stats, "clipboard", sep = "\t", row.names = FALSE)
+  # Save model object to file
+  model_filename <- paste0("output/multi-season-models/", PARK, "-", 
+                           YEARS[1], "-", YEARS[length(YEARS)],
+                           "-", SPECIES, ".rds")
+  model_list <- list(model = best, 
+                     psi_model = best_psi_model,
+                     p_model = best_p_model,
+                     data = data_list)
+  saveRDS(model_list, file = model_filename)  
 
 #------------------------------------------------------------------------------#
-# Look at results and predictions from "best" model
+# Evaluate best model and look at estimates
 #------------------------------------------------------------------------------#
-
-# To look at the estimates from any model in the list, use the following,
-# replacing "X" with the model_no of interest
-# summary(out_list[[X]]) 
-
-# Identify a model to use for inferences.  Can base this on WAIC or can select 
-# any model by setting STAT equal to "model_no" and specifying the "best_index" 
-# directly.
-
-# Specify STAT as either: waic or model_no
-STAT <- "waic"   
-
-if (STAT == "model_no") {
-  # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 9 
-} else {
-  min_stat <- min(model_stats[,STAT])
-  best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
-}
-
-# Extract output and formulas from best model
-best <- out_list[[best_index]]
-best_psi_model <- model_specs[best_index, 1]
-best_p_model <- model_specs[best_index, 2]
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
 # And for occurrence, extract names of spatial covariates
