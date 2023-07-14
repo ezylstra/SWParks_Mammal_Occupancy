@@ -436,8 +436,20 @@ cor_df <- cor_df %>%
 # First, put covariates that could be used in the occurrence part of the model 
 # in a list. Elements can be vectors with length equal to the number of sites 
 # (for spatial covariates), or they can be n_sites * n_years matrices (for 
-# annual varying covariates that may or may not vary spatially)
-occ_covs <- list(boundary_z = spatial_covs$boundary_z, 
+# annual varying covariates that may or may not vary spatially). Including
+# unstandardized covariates in case they're needed for backtransforming if the 
+# model object is saved and loaded later.
+occ_covs <- list(boundary = spatial_covs$boundary, 
+                 east = spatial_covs$east,
+                 elev = spatial_covs$elev,
+                 north = spatial_covs$north,
+                 pois = spatial_covs$pois,
+                 roads = spatial_covs$roads,
+                 slope = spatial_covs$slope,
+                 trail = spatial_covs$trail,
+                 roadbound = spatial_covs$roadbound,
+                 trailpoi = spatial_covs$trailpoi,
+                 boundary_z = spatial_covs$boundary_z, 
                  east_z = spatial_covs$east_z,
                  elev_z = spatial_covs$elev_z,
                  north_z = spatial_covs$north_z,
@@ -450,6 +462,7 @@ occ_covs <- list(boundary_z = spatial_covs$boundary_z,
                  site = spatial_covs$site,
                  years = years,
                  years_z = years_z,
+                 monsoon_ppt = monsoon_ppt,
                  monsoon_ppt_z = monsoon_ppt_z)
 if (PARK == "CHIR") {
   occ_covs <- c(occ_covs, 
@@ -457,15 +470,20 @@ if (PARK == "CHIR") {
 }
 if (PARK == "ORPI") {
   occ_covs <- c(occ_covs,
-                list(ppt10_z = ppt10_z))
+                list(ppt10 = ppt10,
+                     ppt10_z = ppt10_z))
 }
 if (PARK == "SAGW") {
   occ_covs <- c(occ_covs,
-                list(wash_z = spatial_covs$wash_z,
+                list(wash = spatial_covs$wash,
+                     wash_z = spatial_covs$wash_z,
                      vegclass2 = spatial_covs$vegclass2,
                      vegclass3 = spatial_covs$vegclass3,
+                     ppt10 = ppt10,
                      ppt10_z = ppt10_z,
+                     visits = visits,
                      visits_z = visits_z,
+                     traffic = traffic,
                      traffic_z = traffic_z))
 }
 
@@ -488,8 +506,10 @@ det_covs <- list(boundary_z = spatial_covs$boundary_z,
                  camera_2022 = camera_2022,
                  years = years,
                  years_z = years_z,
+                 day = day,
                  day_z = day_z,
                  deploy_exp = deploy_exp,
+                 effort = effort,
                  effort_z = effort_z)
 if (PARK == "CHIR") {
   det_covs <- c(det_covs, 
