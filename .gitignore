@@ -36,6 +36,8 @@ output/NPS-figures/*
 !output/NPS-figures/.gitkeep
 output/NPS-figures/single-season/*
 !output/NPS-figures/single-season/.gitkeep
+output/multi-season-models/*
+!output/multi-season-models/.gitkeep
 
 !output/models-JAGS/sagw-leca-MS-2022-10-19.Rdata
 !output/models-JAGS/sagw-leca-MS-2022-11-18.Rdata
