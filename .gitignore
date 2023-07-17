@@ -36,6 +36,8 @@ output/NPS-figures/*
 !output/NPS-figures/.gitkeep
 output/NPS-figures/single-season/*
 !output/NPS-figures/single-season/.gitkeep
+output/NPS-figures/multi-season/*
+!output/NPS-figures/multi-season/.gitkeep
 output/multi-season-models/*
 !output/multi-season-models/.gitkeep
 
