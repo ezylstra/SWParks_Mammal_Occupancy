@@ -2,7 +2,7 @@
 # Assess where more/fewer mammal species occur or are detected in a park
 
 # ER Zylstra
-# Updated 2023-07-17
+# Updated 2023-07-19
 ################################################################################
 
 library(tidyverse)
@@ -11,8 +11,6 @@ library(terra)
 library(spOccupancy)
 library(tidyterra)
 library(RColorBrewer)
-
-rm(list = ls())
 
 #------------------------------------------------------------------------------#
 # Specify parameters of interest
@@ -244,26 +242,49 @@ for (i in 1:length(spp_rds)) {
     mutate(Parameter = "Occurrence", .before = "Covariate")
   
   # Note: if there are time-varying covariates (other than year/trend) in the 
-  # occurrence part of the model, we'll be estimating occurrence probaiblities
+  # occurrence part of the model, we'll be estimating occurrence probabilities
   # in the last year under observed conditions (e.g., observed 10-month
   # precipitation)
   if (length(psi_spatcovs) > 0) {
     ANN_PREDS <- "observed"
     source("src/multi-season-models/spOccupancy-MS-predictions.R")
+    # Create occrast_SPECIES raster with predicted occurrence probabilities in 
+    # last year
+    assign(paste0("occrast_", SPECIES), preds_mn_lastyr)
   } else {
-    # NEED TO CALCULATE OVERALL PROBABILTIES IN LAST YEAR (for all sites)
-    # AND CREATE A RASTER WITH THOSE VALUES
+    nonspatial <- c("years", "visits", "traffic")
+    beta_samples <- as.matrix(best$beta.samples)
+    # If there are only non-spatial covariates in the model, calculate mean 
+    # predicted occurrence probability in the last year.
+    if (any(nonspatial %in% psi_covs)) {
+      nonspatial_names <- colnames(beta_samples[, -1])
+      nonspatial_values <- NA
+      for (j in 1:length(nonspatial_names)) {
+        nonspatial_values[j] <- get(nonspatial_names[j])[1, length(YEARS)]
+      }
+      nonspatial_values <- as.matrix(c(1, nonspatial_values))
+      pred <- t(nonspatial_values) %*% t(beta_samples)
+      pred <- exp(pred) / (1 + exp(pred))
+      mean_occ <- mean(pred)
+    } else {
+      # If there are no covariates in the model, calculate the overall mean
+      mean_occ <- mean(exp(beta_samples[,1]) / (1 + exp(beta_samples[,1])))
+    }
+    assign(paste0("occmean_", SPECIES), mean_occ)
   }  
-  
-  # Create occrast_SPECIES raster with predicted occurrence probabilities in 
-  # last year
-  assign(paste0("occrast_", SPECIES), preds_mn_lastyr)
 }
 
-# Combine species rasters and sum probabilities to estimate how many of the 
-# modeled species are likely present at that location in the last year
+# Combine species rasters (and mean occurrence probabilities for species without
+# spatial covariates in the model for occurrence) and sum probabilities to 
+# estimate how many of the modeled species are likely present at that location 
+# in the last year
 occrast_common <- rast(mget(str_subset(ls(), "occrast_")))
 occrast_common <- sum(occrast_common)
+if (length(str_subset(ls(), "occmean_")) > 0) {
+  mean_list <- mget(str_subset(ls(), "occmean_"))
+  sum_nonspatial <- sum(unlist(mean_list))
+  occrast_common <- occrast_common + sum_nonspatial
+}
 
 # Create figure with estimated number of common species
 mn_title <- "Estimated number of commmon mammal species"
