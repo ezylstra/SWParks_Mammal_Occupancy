@@ -51,18 +51,21 @@ spOccupancy package to run single-season models._
    and run through line 68, where you'll specify the park (PARK), year (YEAR), 
    and species (SPECIES) of interest. 
 
-2. Save this script as: src/single-season-models/YEAR/spOccupancy-PARK-SPECIES-YEAR.R.
+2. Save this script as: src/single-season-models/YEAR/spOccupancy-PARK-YEAR-SPECIES.R.
 
-3. Continue running this script from line 68 through the section labeled "Run 
-   models and compare fit". In this part of the script, you'll specify 
+3. Continue running this script from line 68 through the section labeled "Select
+   best model of candidate set". In this part of the script, you'll specify 
    covariates for a set of candidate models, run the models using the 
-   spOccupancy package, and create a table comparing model fit.
-   
-4. Run the rest of the script, beginning with the section "Look at results and 
-   predictions from best model". Here, you'll select a model for inference,
-   assess convergence and goodness-of-fit, produce tables with parameter 
-   estimates, generate a figure with predicted occurrence probabilities, and 
-   calculate marginal covariate effects.
+   spOccupancy package, and create a table comparing model fit. Then you'll
+   select the best model of the set and remove any extraneous covariates in the
+   detection or occurrence part of the model. At the end of this section you'll 
+   save the model object to file (in the output/single-season-models folder, the
+   contents of which are **not** under version control). 
+
+4. Run the rest of the script, beginning with the section "Evaluate best model
+   and look at estimates". Here, you'll assess convergence and goodness-of-fit, 
+   produce tables with parameter estimates, generate a figure with predicted 
+   occurrence probabilities, and calculate marginal covariate effects.
 
 **To run a multi-season (dynamic) model** and estimate annual occurrence and 
 detection probabilities, you'll need to access files in the 
@@ -78,18 +81,22 @@ spOccupancy package to run multi-season models._
    and species (SPECIES) of interest. 
 
 2. Save this script as: 
-   src/multi-season-models/PARK/spOccupancy-PARK-SPECIES-FIRSTYEAR-LASTYEAR.R.
+   src/multi-season-models/PARK/spOccupancy-PARK-FIRSTYEAR-LASTYEAR-SPECIES.R.
   
-3. Continue running this script from line 63 through the section labeled "Run 
-   models and compare fit". In this part of the script, you'll specify 
-   covariates for a set of candidate models, run the models using the 
-   spOccupancy package, and create a table comparing model fit.
+3. Continue running this script from line 63 through the section labeled "Select
+   best model". In this part of the script, you'll specify covariates for 
+   various sets of candidate models, run the models using the spOccupancy 
+   package, and create tables comparing model fit. Ultimately, you'll select the
+   "best"" model and remove any extraneous covariates in the detection or 
+   occurrence part of the model. At the end of this section you'll save the 
+   model object to file (in the output/multi-season-models folder, the
+   contents of which are **not** under version control). 
 
-4. Run the rest of the script, beginning with the section "Look at results and 
-   predictions from best model". Here, you'll select a model for inference,
-   assess convergence and goodness-of-fit, produce tables with parameter 
-   estimates, generate figures with predicted occurrence probabilities in
-   the first and last year, and calculate marginal covariate effects.
+4. Run the rest of the script, beginning with the section "Evaluate best model
+   and look at estimates". Here, you'll assess convergence and goodness-of-fit, 
+   produce tables with parameter estimates, generate figures with predicted 
+   occurrence probabilities in the first and last year, and calculate marginal 
+   covariate effects.
 
 ## Directory structure
 
@@ -111,28 +118,51 @@ spOccupancy package to run multi-season models._
     parks in 2022. 
     + JAGS: scripts used to run the models in JAGS (no longer part of the 
     workflow).
-  + functions.R: an R script that defines custom functions to be used in any 
-  script in the repo.    
-  + map-detection-data: R scripts used to map detection data.
   + multi-season-models: R scripts used to process/format data, run 
   multi-season occupancy models, and interpret/visualize results.
     + CHIR: scripts used to run multi-season occupancy models for select species
     in Chiricahua NM.
-    + JAGS: scripts used to run multi-season models in JAGS (no longer part of
-    the workflow.)
     + ORPI: scripts used to run multi-season occupancy models for select species 
     in Organ Pipe NM.
     + SAGW: scripts used to run multi-season occupancy models for select species
     in Saguaro NP.
+    + JAGS: scripts used to run multi-season models in JAGS (no longer part of
+    the workflow.)
+  + functions.R: an R script that defines custom functions to be used in any 
+  script in the repo.    
+  + run-single-season-report.R: an R script used to create a word document (via 
+  markdown) that summarizes detection data and occurrence models across all 
+  species for a given PARK and YEAR. (This script calls various .Rmd files in 
+  the src folder)
+  + create-single-season-figures.R: an R script used to create and save NPS 
+  formatted figures for public-facing versions of single-season reports.
+  + map-detection-data: R scripts used to map raw detection data.
 + output: Figures and tables summarizing survey effort and species detection
 data (_some files may not be under version control, but directory 
 structure is_).
-   + models-JAGS: R workspaces or objects with output from models run in JAGS
+  + single-season-models: folder that contains output from single-season models
+  run with the spOccupancy package (eg, output from the "best" model for
+  coyotes in SAGW in 2022 would be saved as SAGW-2022-CALA.rds).
+  + multi-season-models: folder that contains output from multi-season models
+  run with the spOccupancy package (eg, output from the "best" model for
+  coyotes in SAGW, 2017-2022 would be saved as SAGW-2017-2022-CALA.rds).
+  + single-season-reports: folder that contains word documents that summarize 
+  detection data and occurrence models across all species for a given PARK and 
+  YEAR (eg, SAGW-2022.docx)
+  + NPS-figures
+    + single-season: pdf versions of NPS-formatted figures that summarize 
+    results from single-season models (occurrence probability maps or covariate 
+    marginal effects)
+    + multi-season: pdf versions of NPS-formatted figures that summarize 
+    results from multi-season analyses (occurrence probability maps, covariate 
+    marginal effects, maps with species detections or estimated species 
+    richness)
+  + models-JAGS: R workspaces or objects with output from models run in JAGS
 + JAGS: JAGS model files (.txt files).
 
 ## Scripts
 
-Scripts used to organize and format photo and location data -- found in the 
+**Scripts used to organize and format photo and location data** -- found in the 
 src/photo-data folder (should only need to be modified once per year)
    
 1. [format-mammal-data.R](src/photo-data/format-mammal-data.R): Import, 
@@ -149,7 +179,7 @@ src/photo-data folder (should only need to be modified once per year)
    deployed. Create tables with the number of observations of each species, each 
    year. (this script calls format-mammal-data.R)
 
-Scripts used to obtain and format covariate data -- found in the 
+**Scripts used to obtain and format covariate data** -- found in the 
 src/covariate-data folder (should only need to be modified if new covariate
 data are available or in the case of climate data, modified each year if running 
 multi-season models)
@@ -167,7 +197,7 @@ multi-season models)
 4. [prep-spatial-covariate-data.R](src/covariate-data/prep-spatial-covariate-data.R): 
    Process spatial (time-invariant) data to generate rasters for each park.
    
-Scripts used to create detection histories and run single-season occupancy models
+**Scripts used to create detection histories and run single-season occupancy models**
 
 1. [spOccupancy-TEMPLATE.R](src/single-season-models/spOccupancy-TEMPLATE.R): 
    A template to create a script that will run single-season occupancy models 
@@ -195,7 +225,7 @@ Scripts used to create detection histories and run single-season occupancy model
    ggplot objects that depict mean and SDs in each raster cell. (This script
    will typically be called from src/single-season-models/YEAR/spOccupancy-PARK-SPECIES-YEAR.R.)
  
-Scripts used to create detection histories and run multi-season occupancy models
+**Scripts used to create detection histories and run multi-season occupancy models**
 
 1. [spOccupancy-MS-TEMPLATE.R](src/multi-season-models/spOccupancy-MS-TEMPLATE.R): 
    A template to create a script that will run multi-season occupancy models 
@@ -223,8 +253,25 @@ Scripts used to create detection histories and run multi-season occupancy models
    last year, and create ggplot objects that depict mean and SDs in each raster 
    cell. (This script will typically be called from 
    src/multi-season-models/YPARK/spOccupancy-PARK-SPECIES-YEARS.R.)
-   
-Scripts used to map detection data
+
+6. [map-species-detections.R](src/multi-season-models/map-species-detections.R):
+   Create maps that depict the number of mammal species detected and the 
+   estimated number of species that occur in locations throughout the park.
+
+**Scripts used to create single-season reports and NPS quality figures**
+
+1. [run-single-season-reports.R](src/run-single-season-reports.R): Use markdown
+   to create a word document that summarizes detection data and results from 
+   occurrence models across all species for a given PARK and YEAR. (This script 
+   calls [single-season-report.Rmd](src/single-season-report.Rmd),
+   [single-season-report-spp.Rmd](src/single-season-report-spp.Rmd), and
+   [single-season-report-marg-figs.Rmd](src/single-season-report-marg-figs.Rmd))
+
+2. [create-single-season-figures.R](src/create-single-season-figures.R): Create 
+   and save NPS formatted figures for public-facing versions of single-season
+   reports.
+
+**Scripts used to map raw detection data**
 
 1. [map-detection-data.R](src/map-detection-data/map-detection-data.R): Explore 
    how to create maps visualizing where species were detected in a park and 
