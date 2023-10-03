@@ -3,7 +3,7 @@
 # Import and format data
 
 # ER Zylstra
-# 2022-04-28
+# 2023-10-03
 ################################################################################
 
 # Need to load these packages if not calling this script via source()
@@ -11,37 +11,95 @@
 library(dplyr)
 library(lubridate)
 library(stringr)
+library(sf)
+library(terra)
 
 #------------------------------------------------------------------------------#
 # Import data
 #------------------------------------------------------------------------------#
 
+# Species list
+species_list <- read.csv("data/mammals/PROTECTED_SpeciesList.csv")
+
 # Observations
-dat <- read.csv("data/mammals/MAMMALS_ALL_2022-08-12.csv")
+dat <- read.csv("data/mammals/PROTECTED_Detections.csv")
 
 # Camera locations
-locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
+locs_ann <- vect("data/mammals/PROTECTED_CameraLocations_Annual.shp")
+names(locs_ann) <- c("UnitCode", "StdLocName", "LocationName", "DeployDate",
+                     "StdLocName_Flag", "LocationName_Flag", "DeployDate_Flag",
+                     "geometry_Flag")
 
 # Deployment schedule
-events <- read.csv("data/mammals/SODN_Wildlife_Events_20221025.csv")[,c(3:20, 28:29)]
+events <- read.csv("data/mammals/PROTECTED_Events.csv")
 
 # Experience level of personnel deploying cameras
 deploys <- read.csv("data/covariates/deployment-personnel.csv")
 
 #------------------------------------------------------------------------------#
+# Notes on "Flag" columns
+#------------------------------------------------------------------------------#
+
+# Flag columns will have an acceptance rating and may or may not have a
+# qualification code in brackets. 
+
+# Acceptance ratings:
+# A: accepted. Meets data quality standards. (default)
+# AE: accepted, estimated. Data have been estimated or corrected to ensure that 
+  # data meet quality standard. 
+# R: rejected. Data do not meet quality standards and should probably be removed
+  # before analysis.
+# P: provisional/preliminary. Data subject to change based on quality assurance 
+  # or quality control processes.
+
+#------------------------------------------------------------------------------#
+# Format species list
+#------------------------------------------------------------------------------#
+
+# Will remove everything but medium to large mammals that we want to include in 
+# occupancy models. Note that there are 2 entries for UNCA, so we'll remove the
+# one with Common_Name = "unknown canid" and TSN = NA.
+to_exclude <- c("Harris's antelope squirrel", "Merriam's kangaroo rat", 
+                "round-tailed ground squirrel", "unknown animal", 
+                "unknown canid", "unknown kangaroo rat", "unknown rodent", 
+                "unknown woodrat", "western white-throated woodrat")
+
+species <- species_list %>%
+  filter(!Common_Name %in% to_exclude) %>%
+  rename(Species_code = Accepted_Code,
+         Species = Scientific_Name,
+         Common_name = Common_Name, 
+         Nativeness = Nativity) %>%
+  select(Species_code, Species, Common_name, TSN, Family, Nativeness, Protected)
+
+#------------------------------------------------------------------------------#
 # Format events data
 #------------------------------------------------------------------------------#
 
-# Notes about sampling "events":
+# Notes about sampling "events" (may or may not be relevant with new files)
 # Occasionally cameras were immediately re-deployed for continuous sampling
-
 # Sometimes cameras left out for >1 yr. Not sure how long they collected photos.
 
-# Only keep necessary columns
-events <- select(events, c(StdLocName, ProtocolVersion, DeployDate, 
-                           RetrievalDate, CameraName, MountMethod, 
-                           BatteryStatus, CameraSensitivity, 
-                           DelaySec, ImagePer, TotalPics, CrewDeploy))
+# Checked for flagged data
+count(events, events[, grep("Flag", colnames(events))])
+# Remove any events where Flag = R (Reject)
+events <- events %>%
+  rowwise() %>%
+  mutate(reject_sum = sum(c_across(StdLocName_Flag:ActiveEnd_Flag) == "R")) %>%
+  filter(reject_sum == 0) %>%
+  select(-c(contains("Flag"), reject_sum)) %>%
+  data.frame
+
+# Only keep necessary columns and remove any information that isn't associated 
+# with the 3 focal parks:
+events <- events %>%
+  select(-c(StdLocName, CrewRetrieve)) %>%
+  filter(UnitCode %in% c("CHIR", "ORPI", "SAGW"))
+
+### Pick up here.
+
+
+
 
 # Add column to identify Park and remove information about parks that aren't in 
 # photo observations dataset (GICL and National Wildlife refuges)
