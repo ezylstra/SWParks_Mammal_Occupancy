@@ -193,159 +193,98 @@ events <- events %>%
                                        1, 0)),
          deploy_exp = ifelse(is.na(deploy_exp), 0, deploy_exp))
 
-# checks
-  # count(events, CrewDeploy, deploy_exp)
-
 #------------------------------------------------------------------------------#
 # Format and organize mammal observation data
 #------------------------------------------------------------------------------#
 
-# Remove rows with StudyAreaName == "OTHER" (these are not actually photos,
-# but instead are information from an extra column in the csv when there's
-# an entry for a lost or damaged camera)
-dat <- filter(dat, StudyAreaName != "OTHER")
-
-# Remove empty or unnecessary columns:
-dat <- select(dat,-c(StudyAreaName, StudyAreaID, 
-                     UTM_E, UTM_N, UTMZone, 
-                     FileName, VisitID, ImgID, ImageNum, Highlight,
-                     SpeciesID, DetailText, Individuals))
-
-# Rename StudyAreaAbbr column and change MOCA entries to MOCC to be consistent
-# with other data sources
+# Checked for flagged data
+count(dat, dat[, grep("Flag", colnames(dat))])
+# Remove any observations that have one or more Flags = R (Reject)
 dat <- dat %>%
-  rename(Park = StudyAreaAbbr) %>%
-  mutate(Park = replace(Park, Park == "MOCA", "MOCC"))
+  rowwise() %>%
+  mutate(reject_sum = sum(c_across(StdLocName_Flag:Accepted_Code_Flag) == "R")) %>%
+  filter(reject_sum == 0) %>%
+  select(-c(contains("Flag"), reject_sum)) %>%
+  data.frame()
 
-# Exclude photo observations of non-mammals or rodents
-birds <- c("bird species", "unknown bird", "unknown sparrow", "unknown raven",
-           "unknown woodpecker", "unknown jay", "unknown kingbird", 
-           "zone-tailed hawk", "red-tailed hawk", "turkey vulture",
-           "great-horned owl", "western screech-owl", "barn owl", 
-           "lesser nighthawk", "greater roadrunner", "wild turkey", 
-           "gilded flicker", "northern flicker", "gila woodpecker",
-           "great-tailed grackle", "common raven", "northern mockingbird",  
-           "mexican jay", "california scrub-jay", "curve-billed thrasher",
-           "eurasian collared dove", "white-winged dove", "mourning dove", 
-           "northern cardinal", "gambel's quail", "montezuma quail",
-           "cactus wren", "canyon wren", "bewick's wren", "rock wren",
-           "dark-eyed junco", "black-throated sparrow",  
-           "rufous-crowned sparrow", "canyon towhee", "spotted towhee")
+# Exclude photo observations of mammals that aren't in our species list
+dat <- filter(dat, Accepted_Code %in% species$Species_code)
 
-herps <- c("unknown reptile", "gophersnake", "clark's spiny lizard", 
-           "eastern collared lizard", "western whiptail", "desert tortoise", 
-           "side-blotched lizard", "common side-blotched lizard")
-
-mammals_to_exclude <- c("human", "unknown rodent", "unknown kangaroo rat", 
-                        "unknown deer mouse", "unknown woodrat", 
-                        "desert kangaroo rat", "merriam's kangaroo rat", 
-                        "white-throated woodrat", "cliff chipmunk", 
-                        "round-tailed ground squirrel",
-                        "harris's antelope squirrel")
-
-other <- c("datasheet", "camera lost", "vehicle", "",
-           "tarantula", "unknown animal")
-
+# Remove unnecessary columns (including all columns with species info except 
+# Accepted_Code) and remove information that isn't associated with the 3 focal 
+# parks:
 dat <- dat %>%
-  mutate(CommonName_lower = tolower(CommonName)) %>%
-  filter(! CommonName_lower %in% c(birds,
-                                   herps, 
-                                   mammals_to_exclude,
-                                   other)) %>%
-  select(-CommonName_lower) 
+  select(UnitCode, LocationName, ImageDate, Accepted_Code) %>%
+  rename(Species_code = Accepted_Code) %>%
+  filter(UnitCode %in% c("CHIR", "ORPI", "SAGW"))
 
-# Species
-  # Create separate table with species information
-  species <- count(dat, 
-                   CommonName, 
-                   paste0(dat$Genus, " ", dat$Species), 
-                   ShortName)
-  colnames(species) <- c("Common_name", "Species", "Species_code", "n")
-   # 35 different "species" -- includes Unknowns
-  species[species$n %in% range(species$n[-which(grepl("Unk", 
-                                                      species$Common_name))]),]
-    # Number of observations per known species ranges from 
-    # 10 (Arizona gray squirrel) to >13,000 (WT deer) 
-  # Remove Species and Common_name variables from observations dataframe 
-  # and rename column with species codes
-  dat <- dat %>%
-    select(-c(Species, Genus, CommonName)) %>%
-    rename(Species_code = ShortName)
+# Create new date-, time-related columns
+dat$datetime <- parse_date_time(dat$ImageDate, orders = c("%m/%d/%Y %H:%M:%S"))
+dat <- dat %>%
+  mutate(obsdate = date(datetime),
+         yr = year(datetime),
+         mon = month(datetime),
+         yday = yday(datetime),
+         time24 = hour(datetime) + minute(datetime) / 60 + second(datetime) / 3600) %>%
+  select(-ImageDate)
 
-# Extract year from ImgPath (used to organize/file photos)
-summary(n.backslashes <- str_count(dat$ImgPath, "\\\\"))  
-  # ImgPath always has 7 backslashes (ie, 8 character strings)
-n.strings <- mean(n.backslashes) + 1
-dat <- cbind(dat, str_split_fixed(dat$ImgPath, "\\\\", n.strings)[,6])
-names(dat)[ncol(dat)] <- "FY_filepath"
-  # Check:
-  count(dat, FY_filepath)  #7 FYs (16-22)
-
-# Remove ImgPath column
-dat <- select(dat, -ImgPath)
-
-# Format date and time
-  # Create new date-time column
-  dat$datetime <- parse_date_time(dat$ImageDate, 
-                                  orders = c("%m/%d/%Y %I:%M:%S %p", "%m/%d/%Y"))
-  # Create new date-, time-related columns
-  dat <- dat %>%
-    mutate(obsdate = date(datetime),
-           yr = year(datetime),
-           mon = month(datetime),
-           yday = yday(datetime),
-           obstime = hour(datetime) + minute(datetime) / 60 + second(datetime) / 3600)
-  
-  # Remove ImageDate column
-  dat <- select(dat, -ImageDate)
-  
 #------------------------------------------------------------------------------#
 # Attach spatial data to observations
 #------------------------------------------------------------------------------#
 
-# Some lat/longs in dat are wrong (for 7 ORPI cameras -- will be fixed in a 
-# future iteration), and some lat/longs are missing for smaller parks.  
-# For now, we'll use lat/longs from the locs csv
+# Checked for flagged data
+locs_ann_df <- as.data.frame(locs_ann)
+locs_ann_df$reject <- 
+  (rowSums(locs_ann_df[,endsWith(names(locs_ann_df), "Flag")] == "R") >= 1)
+if (sum(locs_ann_df$reject) > 0) {
+  stop("One or more camera locations has been flagged.\n")
+}
 
-# Will create a simple location name (loc_short) to match things up between 
-# dat and locs. Most entries will look like: PARK_XXX_XXX
-# Note: do want to keep StdLocName column in locs because that's exactly what 
-# appears in the events dataframe
+# Calculate the centroid of annual deployment locations for each camera
+ann_sf <- sf::st_as_sf(locs_ann)
+centroids_sf <- ann_sf %>%
+  group_by(UnitCode, LocationName) %>%
+  summarize(geometry = st_union(geometry),
+            .groups = "keep") %>%
+  st_centroid()
 
+# Creating a simple location name (loc) to match things up between dat and locs. 
+# Most (but not all) entries will look like: PARK_XXX_XXX. If there is a leading 
+# "V" or "W" on LocationName in locs file (like there was in old version), 
+# should remove first.
+centroids_sf <- centroids_sf %>%
+  mutate(LocationName = ifelse(str_sub(LocationName, 1, 1) %in% c("V", "W"),
+                               str_sub(LocationName, 2, nchar(LocationName)),
+                               LocationName)) %>%
+  mutate(loc = paste0(UnitCode, "_", LocationName))
+
+# Save shapefile
+st_write(centroids_sf, 
+         "data/mammals/PROTECTED_CameraLocations_Centroids.shp",
+         delete_layer = TRUE)
+
+# Create dataframe with location info and attach coordinates to dat
+coords <- st_coordinates(centroids_sf)
+locs <- as.data.frame(centroids_sf) %>%
+  cbind(coords) %>%
+  select(-geometry) %>%
+  rename(longitude = X,
+         latitude = Y) %>%
+  relocate(loc, .before = "UnitCode") %>%
+  arrange(loc)
 dat <- dat %>%
-  mutate(loc_short = paste0(Park, "_", LocationName))
-  
-locs <- locs %>% 
-  # Remove GICL locations
-  filter(UnitCode != "GICL") %>%
-  # Remove locations that don't appear in events dataframe 
-  filter(StdLocName %in% events$StdLocName) %>%
-  # Remove leading "WBC_", "V", and "W" from MarkerName where they appear
-  mutate(loc_short_np = ifelse(str_detect(MarkerName, "WBC"), 
-                               str_replace(MarkerName, fixed ("WBC_"), ""),
-                               ifelse(str_sub(MarkerName, 1, 1) %in% c("V", "W"),
-                                      str_sub(MarkerName, 2, -1),
-                                      MarkerName))) %>%
-  # Add the park code as a prefix
-  mutate(loc_short = paste0(UnitCode, "_", loc_short_np)) %>%
-  select(-loc_short_np)
-  
-# Check that each location has a unique set of lat/longs:
-# dim(unique(locs[,c("POINT_X", "POINT_Y", "loc_short")]))
-# dim(unique(locs[,c("POINT_X", "POINT_Y")]))
+  mutate(LocationName = ifelse(str_sub(LocationName, 1, 1) %in% c("V", "W"),
+                               str_sub(LocationName, 2, nchar(LocationName)),
+                               LocationName)) %>%
+  mutate(loc = paste0(UnitCode, "_", LocationName)) %>%
+  left_join(locs[, c("loc", "longitude", "latitude")], by = "loc")
 
-# Attach correct lat/longs to photo observations dataframe
-dat <- left_join(dat, select(locs, c(loc_short, StdLocName, POINT_X, POINT_Y)),
-                 by = "loc_short")
-# Check that every photo observation has lat/longs:
-# summary(dat[, c("POINT_X", "POINT_Y")])
+# Check that each detection has coordinates
+# sum(is.na(dat$longitude)) == 0
 
-# Remove LatitudeDD, LongitudeDD columns and rename POINT_X, POINT_Y
-dat <- dat %>%
-  select(-c(LatitudeDD, LongitudeDD)) %>%
-  rename(longitude = POINT_X,
-         latitude = POINT_Y)
-  
+
+
+
 #------------------------------------------------------------------------------#
 # Linking events file to observations 
 #------------------------------------------------------------------------------# 
