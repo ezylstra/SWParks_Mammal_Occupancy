@@ -229,7 +229,7 @@ dat <- dat %>%
   select(-ImageDate)
 
 #------------------------------------------------------------------------------#
-# Attach spatial data to observations
+# Attach spatial data to detections
 #------------------------------------------------------------------------------#
 
 # Checked for flagged data
@@ -282,63 +282,67 @@ dat <- dat %>%
 # Check that each detection has coordinates
 # sum(is.na(dat$longitude)) == 0
 
-
-
-
 #------------------------------------------------------------------------------#
-# Linking events file to observations 
+# Create a matrix with period each camera was operational
 #------------------------------------------------------------------------------# 
 
 # Summarize sampling events by park and year (and compare to photo obs data)
-table(events$Park, events$d_yr)
-table(dat$Park, dat$yr)
+table(events$UnitCode, events$d_yr)
+table(dat$UnitCode, dat$yr)
 
-# Check that all cameras in photo obs dataset appear in the events dataset
-obslocs <- sort(unique(dat$StdLocName))
-obslocs[!obslocs %in% events$StdLocName]  # Yes, all appear in events
-  
-# Convert deployment/retrieval dates to integers, setting Jan 1 2016 equal to 1
-events$d_day <- as.numeric(events$d_date) - as.numeric(as.Date("2015-12-31"))
-events$r_day <- as.numeric(events$r_date) - as.numeric(as.Date("2015-12-31"))
+# Create short location name in events
+events <- events %>%
+  mutate(LocationName = ifelse(str_sub(LocationName, 1, 1) %in% c("V", "W"),
+                               str_sub(LocationName, 2, nchar(LocationName)),
+                               LocationName)) %>%
+  mutate(loc = paste0(UnitCode, "_", LocationName))
+
+# Check that all locations in detections dataset appear in the events dataset
+detlocs <- sort(unique(dat$loc))  
+detlocs[!detlocs %in% events$loc] # Yes, all appear in events
+
+# Convert active start/end dates to integers, setting Jan 1 2016 equal to 1
+events$start_day <- as.numeric(events$active_start) - as.numeric(as.Date("2015-12-31"))
+events$end_day <- as.numeric(events$active_end) - as.numeric(as.Date("2015-12-31"))
 
 # Create location by date matrix 
 # (1 indicates date was during a sampling event, 0 otherwise)
   
   # Create matrix with all 0s
-  eventlocs <- sort(unique(events$StdLocName))
-  event_mat <- matrix(0, nrow = length(eventlocs), ncol = max(events$r_day)) 
+  eventlocs <- sort(unique(events$loc))
+  event_mat <- matrix(0, nrow = length(eventlocs), ncol = max(events$end_day)) 
   rownames(event_mat) <- eventlocs
-  colnames(event_mat) <- 1:max(events$r_day)
+  colnames(event_mat) <- 1:max(events$end_day)
   
   # Replace 0s with 1s during each sampling event
   for (i in 1:nrow(event_mat)) {
-    temp <- events[events$StdLocName == eventlocs[i], ]
+    temp <- events[events$loc == eventlocs[i], ]
     
     for (j in 1:nrow(temp)) {
-      event_mat[i, temp$d_day[j]:temp$r_day[j]] <- 1
+      event_mat[i, temp$start_day[j]:temp$end_day[j]] <- 1
     }
   }
   # Checks at 1 random location in each of 3 bigger parks
   # (only 1s during sampling event and 0s outside of event?):
   # # CHIR
-  # events[events$StdLocName == eventlocs[28], 
-  #        c("StdLocName", "d_date", "r_date", "d_day","r_day")]
+  # events[events$loc == eventlocs[28], 
+  #        c("loc", "as_date", "ae_date", "as_day","ae_day")]
   # sum(event_mat[28, 1:629] == 1); sum(event_mat[28, 1:629] == 0) 
   # sum(event_mat[28, 630:699] == 1); sum(event_mat[28, 630:699] == 0) 
   # # ORPI
-  # events[events$StdLocName == eventlocs[111], 
-  #        c("StdLocName", "d_date", "r_date", "d_day","r_day")]
+  # events[events$loc == eventlocs[111], 
+  #        c("loc", "as_date", "ae_date", "as_day","ae_day")]
   # sum(event_mat[111, 1:112] == 1); sum(event_mat[111, 1:112] == 0) 
   # sum(event_mat[111, 113:168] == 1); sum(event_mat[111, 113:168] == 0)
   # # SAGW
-  # events[events$StdLocName == eventlocs[190], 
-  #        c("StdLocName", "d_date", "r_date", "d_day","r_day")]  
-  # sum(event_mat[190, 1883:2210] == 1); sum(event_mat[190, 1883:2210] == 0) 
+  # events[events$loc == eventlocs[190],
+  #        c("loc", "as_date", "ae_date", "as_day","ae_day")]
+  # sum(event_mat[190, 1883:2210] == 1); sum(event_mat[190, 1883:2210] == 0)
   # sum(event_mat[190, 2211:2247] == 1); sum(event_mat[190, 2211:2247] == 0)
   
 # Create character strings with location and date for each mammal observation
 dat$o_day <- as.numeric(dat$obsdate) - as.numeric(as.Date("2015-12-31"))
-dat$locdate <- paste(dat$StdLocName, dat$o_day, sep = "_")
+dat$locday <- paste(dat$loc, dat$o_day, sep = "_")
 
 # Create character strings with location and date for day during each sampling event
 eventvec <- as.character(vector())
@@ -346,15 +350,37 @@ for (i in 1:length(eventlocs)) {
   eventvec <- append(eventvec, paste(eventlocs[i], which(event_mat[i,] == 1), sep = "_"))
 }
   # check:
-  head(eventvec); head(events[,c("StdLocName", "d_day", "r_day")])
+  head(eventvec); head(events[,c("loc", "start_day", "end_day")])
   
 # Check that all photo dates were during listed sampling events
-summary(dat$locdate %in% eventvec) 
-  # Yes, all photo dates occur during known event
+summary(dat$locday %in% eventvec) 
+# NO. There are 198 detections that fall outside of active windows
+probs <- dat[!dat$locday %in% eventvec,]
+probs %>% select(loc, Species_code, obsdate, yr, o_day)
+probs_sum <- probs %>%
+  group_by(loc, yr) %>%
+  summarize(ndets = length(o_day),
+            date_min = min(obsdate),
+            date_max = max(obsdate),
+            day_min = min(o_day),
+            day_max = max(o_day),
+            .groups = "keep") %>%
+  mutate(locyr = paste0(loc, "_", yr)) %>%
+  data.frame()
+active_probs <- events %>%
+  filter(paste0(loc, "_", d_yr) %in% probs_sum$locyr) %>%
+  select(loc, d_yr, d_date, r_date, active_start, active_end) %>%
+  rename(yr = d_yr) %>%
+  left_join(probs_sum[, c("loc", "yr", "ndets")], by = c("loc", "yr")) %>%
+  rename(n_detections = ndets)
+# write.table(active_probs, "clipboard", row.names = FALSE, sep = "\t")
+
+# For now, we'll remove any detections that occur outside of active window. 
+dat <- dat %>%
+  filter(locday %in% eventvec)
 
 #-----------------------------------------------------------------------------------#
 # Remove objects that are no longer needed
 #-----------------------------------------------------------------------------------# 
 
-rm(deploys, mowe_add, temp, birds, eventlocs, eventvec, exp1, exp2, herps, i, j,
-   mammals_to_exclude, mowe_locs, n.backslashes, n.strings, obslocs, other)
+rm(list = setdiff(ls(), c("dat", "events", "event_mat", "locs", "species")))
