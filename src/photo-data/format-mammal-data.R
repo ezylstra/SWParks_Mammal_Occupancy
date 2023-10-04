@@ -3,7 +3,7 @@
 # Import and format data
 
 # ER Zylstra
-# 2023-10-03
+# 2023-10-04
 ################################################################################
 
 # Need to load these packages if not calling this script via source()
@@ -56,16 +56,16 @@ deploys <- read.csv("data/covariates/deployment-personnel.csv")
 # Format species list
 #------------------------------------------------------------------------------#
 
-# Will remove everything but medium to large mammals that we want to include in 
-# occupancy models. Note that there are 2 entries for UNCA, so we'll remove the
-# one with Common_Name = "unknown canid" and TSN = NA.
-to_exclude <- c("Harris's antelope squirrel", "Merriam's kangaroo rat", 
-                "round-tailed ground squirrel", "unknown animal", 
-                "unknown canid", "unknown kangaroo rat", "unknown rodent", 
-                "unknown woodrat", "western white-throated woodrat")
+# Will remove all species except for medium to large mammals that we want to 
+# include in occupancy models. Note that there are 2 entries for UNCA, so we'll 
+# remove the one with Common_Name = "unknown canid" and TSN = NA.
+exclude <- c("Harris's antelope squirrel", "Merriam's kangaroo rat", 
+             "round-tailed ground squirrel", "unknown animal", 
+             "unknown canid", "unknown kangaroo rat", "unknown rodent", 
+             "unknown woodrat", "western white-throated woodrat")
 
 species <- species_list %>%
-  filter(!Common_Name %in% to_exclude) %>%
+  filter(!Common_Name %in% exclude) %>%
   rename(Species_code = Accepted_Code,
          Species = Scientific_Name,
          Common_name = Common_Name, 
@@ -82,115 +82,96 @@ species <- species_list %>%
 
 # Checked for flagged data
 count(events, events[, grep("Flag", colnames(events))])
-# Remove any events where Flag = R (Reject)
+# Remove any events that have one or more Flags = R (Reject)
 events <- events %>%
   rowwise() %>%
   mutate(reject_sum = sum(c_across(StdLocName_Flag:ActiveEnd_Flag) == "R")) %>%
   filter(reject_sum == 0) %>%
   select(-c(contains("Flag"), reject_sum)) %>%
-  data.frame
+  data.frame()
 
-# Only keep necessary columns and remove any information that isn't associated 
-# with the 3 focal parks:
+# Only keep necessary columns and remove any events that aren't associated with 
+# the 3 focal parks:
 events <- events %>%
   select(-c(StdLocName, CrewRetrieve)) %>%
   filter(UnitCode %in% c("CHIR", "ORPI", "SAGW"))
 
-### Pick up here.
-
-
-
-
-# Add column to identify Park and remove information about parks that aren't in 
-# photo observations dataset (GICL and National Wildlife refuges)
+# Convert deployment, retrieval, active dates to date objects, and check that 
+# active start/ends are always within deployment dates
 events <- events %>%
-  mutate(Park = str_split_fixed(events$StdLocName, "_", 4)[,2]) %>%
-  filter(!Park %in% c("GICL", "LCNWR", "SBNWR"))
-
-# Create new deployment date-time column and remove DeployDate
-events <- events %>%
-  mutate(d_datetime = parse_date_time(events$DeployDate, 
-                                      orders = c("%m/%d/%Y %H:%M", 
-                                                 "%m/%d/%Y %H:%M:%S"))) %>%
-  select(-DeployDate)
-
-# Create new retrieval date-time column and remove RetrievalDate
-events <- events %>%
-  mutate(r_datetime = parse_date_time(events$RetrievalDate, 
-                                      orders = c("%m/%d/%Y %H:%M", 
-                                                 "%m/%d/%Y %H:%M:%S"))) %>%
-  select(-RetrievalDate)
+  mutate(d_date = ymd(DeployDate),
+         r_date = ymd(RetrievalDate),
+         active_start = ymd(ActiveStart),
+         active_end = ymd(ActiveEnd),
+         actst_check = ifelse(active_start < d_date, 1, 0),
+         actend_check = ifelse(active_end > r_date, 1, 0))
+if(sum(events$actst_check) > 0 | sum(events$actend_check) > 0) {
+  stop("One or more active dates fall outside of deployment window.\n")
+}
+# If no issues, remove checks columns:
+events <- select(events, -c(DeployDate, RetrievalDate, ActiveStart, ActiveEnd, 
+                            actst_check, actend_check))
 
   #-- Fix known issues in events dataset --------------------------------------#
-
-  # At a few locations at ORPI in 2021, two cameras were deployed at the same 
-  # location simultaneously (removing event information for one of the cameras)
-  events <- events %>%
-    filter(!(StdLocName == "Wildlife_ORPI_V101_16W" & 
-               year(d_datetime) == 2021 & CameraName == "SODN_040")) %>%
-    filter(!(StdLocName == "Wildlife_ORPI_V102_107W" & 
-               year(d_datetime) == 2021 & CameraName == "SODN_134")) %>%
-    filter(!(StdLocName == "Wildlife_ORPI_V103_06W" & 
-               year(d_datetime) == 2021 & CameraName == "SODN_167"))     
-
-  # Change the retrieval date for CHIR camera 502-003 deployed in 2019
-  events <- events %>%
-    mutate(r_datetime = if_else(StdLocName == "Wildlife_CHIR_V502_003" & 
-                                  year(d_datetime) == 2019,
-                                parse_date_time("2021-05-12",
-                                                orders = "%Y-%m-%d"),
-                                r_datetime))  
-
-  # Change the retrieval date for all cameras deployed in 2019 at MOCC
-  events <- events %>%
-    mutate(r_datetime = if_else(Park == "MOCC" & year(d_datetime) == 2019,
-                                       parse_date_time("2021-10-14",
-                                                       orders = "%Y-%m-%d"),
-                                       r_datetime))
-
-  # Add two deployments for all cameras as MOWE
-  mowe_locs <- events$StdLocName[events$Park == "MOWE"]
-  mowe_add <- data.frame(matrix(NA, 
-                                ncol = ncol(events), 
-                                nrow = 2 * length(mowe_locs)))
-  colnames(mowe_add) <- colnames(events)
-  mowe_add <- mowe_add %>%
-    mutate(StdLocName = rep(mowe_locs, 2),
-           Park = "MOWE",
-           d_datetime = parse_date_time(rep(c("2018-08-07", "2019-05-29"), 
-                                            each = length(mowe_locs)),
-                                        orders = "%Y-%m-%d"),
-           r_datetime = parse_date_time(rep(c("2019-05-29", "2021-10-14"), 
-                                            each = length(mowe_locs)),
-                                        orders = "%Y-%m-%d"))                                                               
-  events <- rbind(events, mowe_add)
+  # DON'T KNOW IF WE'LL NEED ANY OF THIS WITH NEW DATASET  
+  #
+  # # At a few locations at ORPI in 2021, two cameras were deployed at the same 
+  # # location simultaneously (removing event information for 1 of the cameras)
+  # events <- events %>%
+  #   filter(!(UnitCode == "ORPI" & LocationName == "V101_16W" & 
+  #              year(d_date) == 2021 & CameraName == "SODN_040")) %>%
+  #   filter(!(UnitCode == "ORPI" & LocationName ==  "V102_107W" & 
+  #              year(d_date) == 2021 & CameraName == "SODN_134")) %>%
+  #   filter(!(UnitCode == "ORPI" & LocationName ==  "V103_06W" & 
+  #              year(d_date) == 2021 & CameraName == "SODN_167"))     
+  # 
+  # # Change the retrieval date for CHIR camera 502-003 deployed in 2019
+  # events <- events %>%
+  #   mutate(r_date = if_else(UnitCode == "CHIR" & LocationName == "V502_003" & 
+  #                             year(d_date) == 2019,
+  #                           parse_date_time("2021-05-12", 
+  #                                           orders = "%Y-%m-%d"),
+  #                           r_date))  
+  # 
   #----------------------------------------------------------------------------#
 
-# Create new date and year columns
+# Create new year columns
 events <- events %>%
-  mutate(d_date = date(d_datetime),
-         d_yr = year(d_datetime),
-         r_date = date(r_datetime),
-         r_yr = year(r_datetime)) 
+  mutate(d_yr = year(d_date),
+         r_yr = year(r_date)) 
 
 # Reorder columns and sort events dataframe by location and date
-events <- relocate(events, c(Park, d_date, r_date), .after = StdLocName)
-events <- arrange(events, StdLocName, d_datetime)
+events <- events %>%
+  relocate(c(d_date, r_date, active_start, active_end), .after = LocationName) %>%
+  arrange(UnitCode, LocationName, d_date)
 
 # Restrict events dataframe to 2016 forward for ORPI, 2017 forward for other
 # parks (CHIR has events listed in 2016 but no corresponding photos. Sampling
 # methods were different in 2016, so probably ok not to track those photos down)
 events <- events %>%
-  filter(!(Park == "ORPI" & d_yr < 2016)) %>%
-  filter(!(Park != "ORPI" & d_yr < 2017))
+  filter(!(UnitCode == "ORPI" & d_yr < 2016)) %>%
+  filter(!(UnitCode != "ORPI" & d_yr < 2017))
 
 # Calculate length of deployment, in days
-events$duration <- as.double(difftime(as.POSIXct(events$r_datetime), 
-                                      as.POSIXct(events$d_datetime), 
+events$duration <- as.double(difftime(as.POSIXct(events$r_date), 
+                                      as.POSIXct(events$d_date), 
                                       units = 'days'))
-  # Summarize/Visualize 
-  # summary(events$duration)
-  # hist(events$duration, breaks = 25)
+
+# Calculate length of time camera was operational
+events$operational <- as.double(difftime(as.POSIXct(events$active_end), 
+                                         as.POSIXct(events$active_start), 
+                                         units = 'days'))
+
+# Summarize/Visualize
+# summary(events$operational)
+# hist(events$operational, breaks = 25)
+# table(events$operational < events$duration)
+
+# Look at events when camera was operational for < 15 days
+# events %>% filter(operational < 15) %>%
+#   select(d_date, active_start, r_date, active_end, LocationName, BatteryStatus,
+#          TotalPics, operational) %>%
+#   arrange(d_date)
 
 #------------------------------------------------------------------------------#
 # Format and organize information about deployment personnel
