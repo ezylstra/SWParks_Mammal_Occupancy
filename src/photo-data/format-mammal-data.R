@@ -30,6 +30,10 @@ names(locs_ann) <- c("UnitCode", "StdLocName", "LocationName", "DeployDate",
                      "StdLocName_Flag", "LocationName_Flag", "DeployDate_Flag",
                      "geometry_Flag")
 
+  # Logical indicating whether to save a new shapefile with central location
+  # for each camera across years (should only need to do this once per year)
+  centroid_save <- FALSE
+
 # Deployment schedule
 events <- read.csv("data/mammals/PROTECTED_Events.csv")
 
@@ -259,9 +263,11 @@ centroids_sf <- centroids_sf %>%
   mutate(loc = paste0(UnitCode, "_", LocationName))
 
 # Save shapefile
-st_write(centroids_sf, 
-         "data/mammals/PROTECTED_CameraLocations_Centroids.shp",
-         delete_layer = TRUE)
+if (centroid_save) {
+  writeVector(vect(centroids_sf),
+              "data/mammals/PROTECTED_CameraLocations_Centroids.shp",
+              overwrite = TRUE) 
+}
 
 # Create dataframe with location info and attach coordinates to dat
 coords <- st_coordinates(centroids_sf)
