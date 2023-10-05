@@ -4,13 +4,15 @@
 # during sampling occasions at each park
 
 # ER Zylstra
-# Updated: 2022-12-12
+# Updated: 2023-10-05
 ################################################################################
 
 library(dplyr)
 library(lubridate)
 library(stringr)
 library(tidyr)
+library(sf)
+library(terra)
 
 # rm(list = ls())
 
@@ -19,7 +21,7 @@ source("src/photo-data/format-mammal-data.R")
   # dat = information about each photo (date, time, species, location)
   # events = information about each camera deployment (dates, location, duration)
   # event_mat = camera location x day matrix with 1/0 indicating whether camera
-  #             was deployed or not
+  #             was operational or not
   # locs = information about each camera location (park, lat/long, name)
   # species = table with species observed (species code, common name, # of obs)
 
@@ -29,9 +31,9 @@ source("src/photo-data/format-mammal-data.R")
 
 # Create a dataframe with information about each day of the study
 # Day number (daynum): day 1 = 01 Jan 2016)
-days_df <- data.frame(daynum = 1:max(events$r_day), 
+days_df <- data.frame(daynum = 1:max(events$end_day), 
                       date = seq(as.Date("2016-01-01"), 
-                                 max(events$r_date), 
+                                 max(events$active_end), 
                                  by = 1))
 days_df$yr <- year(days_df$date)
 
@@ -39,8 +41,7 @@ days_df$yr <- year(days_df$date)
 occ_length <- 7
   # May want to evaluate if 7 days is the best choice (Iannarilli et al. 2019?)
 
-# Set the maximum number of sampling occasions in a year (because batteries 
-# will start dying)
+# Set the maximum number of sampling occasions in a year
 occ_max <- 6
 
 # Identify the minimum proportion of cameras in a park that need to be 
