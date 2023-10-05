@@ -68,7 +68,8 @@ for (park in parks) {
   # Extract events data for selected park
   event_park <- events %>%
     filter(Park == park) %>%
-    select(StdLocName, d_date, r_date, d_yr, r_yr, duration, d_day, r_day)
+    select(Park, LocationName, loc, d_yr, active_start, active_end, 
+           operational, start_day, end_day)
     
   # Limit events to only those years when we have photo data
   yr_min <- park_photos$first_yr[park_photos$Park == park]
@@ -77,7 +78,7 @@ for (park in parks) {
     filter(d_yr %in% yr_min:yr_max)
   
   # Extract rows from events matrix that correspond to locations in selected park
-  event_mat_park <- event_mat[rownames(event_mat) %in% event_park$StdLocName,]
+  event_mat_park <- event_mat[rownames(event_mat) %in% event_park$loc,]
   
   # Calculate the number of cameras that are deployed each day
   days_park <- days_df
@@ -133,7 +134,8 @@ for (park in parks) {
     group_by(Park, streak, occasion) %>%
     summarize(duration = length(occasion),
               start = min(date),
-              end = max(date)) %>%
+              end = max(date),
+              .groups = "keep") %>%
     as.data.frame  
   
   # Exclude any occasions shorter than occ_length, and then retain a maximum
@@ -173,8 +175,9 @@ for (park in parks) {
 }
 
 # Export occasions dataframe as csv
+# TODO: Update this once new data are available for all parks
 write.csv(occ_all,
-          file = "data/occasions/occasions-all-parks.csv",
+          file = "data/occasions/occasions-SAGW.csv",
           row.names = FALSE)
 
 #------------------------------------------------------------------------------#
@@ -204,7 +207,7 @@ for (park in parks) {
   # Retain only one species observation per day at a given location
   obs <- dat %>% 
     filter(Park == park & o_day %in% occ_days) %>%
-    select(Park, StdLocName, Species_code, yr, o_day) %>%
+    select(Park, LocationName, loc, Species_code, yr, o_day) %>%
     rename(spp = Species_code) %>%
     distinct
   
@@ -220,7 +223,7 @@ for (park in parks) {
     mutate(detect = 1)
   
   # Extract rows from events matrix that correspond to locations in selected park
-  locs_park <- locs$StdLocName[locs$UnitCode == park]
+  locs_park <- locs$loc[locs$Park == park]
   event_mat_park <- event_mat[rownames(event_mat) %in% locs_park,]
   
   # Extract columns from events matrix that correspond to sampling occasions
@@ -246,7 +249,7 @@ for (park in parks) {
   # Convert to long form
   event_occ_long <- event_occ %>%
     as.data.frame() %>%
-    mutate(StdLocName = rownames(.)) %>%
+    mutate(loc = rownames(.)) %>%
     pivot_longer(cols = !last_col(),
                  names_to = "yr_occ",
                  values_to = "obs") %>%
@@ -254,12 +257,12 @@ for (park in parks) {
   
   # Merge observation and species detection information
   detects <- expand.grid(Park = park,
-                         StdLocName = sort(locs_park),
+                         loc = sort(locs_park),
                          yr_occ = occasions$yr_occ,
                          spp = unique(obs$spp))
-  detects <- left_join(detects, event_occ_long, by = c("StdLocName", "yr_occ"))
-  detects <- left_join(detects, obs[,c("StdLocName", "spp", "yr_occ", "detect")],
-                       by = c("StdLocName", "spp", "yr_occ"))
+  detects <- left_join(detects, event_occ_long, by = c("loc", "yr_occ"))
+  detects <- left_join(detects, obs[,c("loc", "spp", "yr_occ", "detect")],
+                       by = c("loc", "spp", "yr_occ"))
   detects$detect[is.na(detects$detect)] <- 0
   detects$yr <- as.numeric(str_sub(detects$yr_occ, 1, 4))
   
@@ -271,7 +274,7 @@ for (park in parks) {
     summarize(.groups = "keep",
               nobs = sum(obs),
               ndetects = sum(detect)) %>%
-    mutate(propdetect = round(ndetects/nobs,2)) %>%
+    mutate(propdetect = round(ndetects / nobs, 2)) %>%
     data.frame()
   
   # Summarize by park and species
@@ -282,7 +285,8 @@ for (park in parks) {
     summarize(.groups = "keep",
               nobs = sum(obs),
               ndetects = sum(detect)) %>%
-    mutate(propdetect = round(ndetects/nobs,2)) %>%
+    mutate(propdetect = round(ndetects / nobs, 2)) %>%
+    arrange(desc(propdetect)) %>%
     data.frame()
   detects_allyrs
   
@@ -340,7 +344,7 @@ for (park in parks) {
   # Retain only one species observation per day at a given location
   obs <- dat %>% 
     filter(Park == park & o_day %in% occ_days) %>%
-    select(Park, StdLocName, Species_code, yr, o_day) %>%
+    select(Park, LocationName, loc, Species_code, yr, o_day) %>%
     rename(spp = Species_code) %>%
     distinct
   
@@ -356,7 +360,7 @@ for (park in parks) {
     mutate(detect = 1)
   
   # Extract rows from events matrix that correspond to locations in selected park
-  locs_park <- locs$StdLocName[locs$UnitCode == park]
+  locs_park <- locs$loc[locs$Park== park]
   event_mat_park <- event_mat[rownames(event_mat) %in% locs_park,]
   
   # Extract columns from events matrix that correspond to sampling occasions
@@ -382,7 +386,7 @@ for (park in parks) {
   # Convert to long form
   event_occ_long <- event_occ %>%
     as.data.frame() %>%
-    mutate(StdLocName = rownames(.)) %>%
+    mutate(loc = rownames(.)) %>%
     pivot_longer(cols = !last_col(),
                  names_to = "yr_occ",
                  values_to = "obs") %>%
@@ -390,12 +394,12 @@ for (park in parks) {
   
   # Merge observation and species detection information
   detects <- expand.grid(Park = park,
-                         StdLocName = sort(locs_park),
+                         loc = sort(locs_park),
                          yr_occ = occasions$yr_occ,
                          spp = unique(obs$spp))
-  detects <- left_join(detects, event_occ_long, by = c("StdLocName", "yr_occ"))
-  detects <- left_join(detects, obs[,c("StdLocName", "spp", "yr_occ", "detect")],
-                       by = c("StdLocName", "spp", "yr_occ"))
+  detects <- left_join(detects, event_occ_long, by = c("loc", "yr_occ"))
+  detects <- left_join(detects, obs[,c("loc", "spp", "yr_occ", "detect")],
+                       by = c("loc", "spp", "yr_occ"))
   detects$detect[is.na(detects$detect)] <- 0
   detects$yr <- as.numeric(str_sub(detects$yr_occ, 1, 4))
   
@@ -407,7 +411,7 @@ for (park in parks) {
     summarize(.groups = "keep",
               nobs = sum(obs),
               ndetects = sum(detect)) %>%
-    mutate(propdetect = round(ndetects/nobs,2)) %>%
+    mutate(propdetect = round(ndetects / nobs, 2)) %>%
     data.frame()
   detects_allyrs
   
@@ -421,7 +425,8 @@ for (park in parks) {
 
 spp_detections <- spp_detections %>%
   rename(Species_code = spp) %>%
-  left_join(., species[, c(1, 3)], by = "Species_code") %>%
+  left_join(., species[, c("Species_code", "Common_name")], 
+            by = "Species_code") %>%
   rename(Species = Common_name) %>%
   select(-Species_code) %>%
   mutate(Park = ifelse(Park == "CHIR", "Chiricahua NM",
@@ -431,8 +436,8 @@ spp_detections <- spp_detections %>%
   arrange(Park, desc(ndetects))
 
 # Export species detections dataframe as csvs
-write.csv(spp_detections,
-          file = "output/species-detections-bypark-20172022.csv",
-          row.names = FALSE)
+# write.csv(spp_detections,
+#           file = "output/species-detections-bypark-20172022.csv",
+#           row.names = FALSE)
 
 
