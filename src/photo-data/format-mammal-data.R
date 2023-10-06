@@ -3,7 +3,7 @@
 # Import and format data
 
 # ER Zylstra
-# 2023-10-05
+# 2023-10-06
 ################################################################################
 
 # Need to load these packages if not calling this script via source()
@@ -244,6 +244,10 @@ dat <- dat %>%
 #------------------------------------------------------------------------------#
 # Attach spatial data to detections
 #------------------------------------------------------------------------------#
+
+# Reproject to use the same crs as other objects used in the project 
+# (EPSG:4269; lon/lat NAD83)
+locs_ann <- terra::project(locs_ann, "EPSG:4269")
 
 # Checked for flagged data
 locs_ann_df <- as.data.frame(locs_ann)
