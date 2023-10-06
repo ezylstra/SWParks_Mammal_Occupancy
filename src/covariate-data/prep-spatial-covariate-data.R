@@ -584,46 +584,39 @@ veg3_rasterl <- raster::focal(veg3_rasterl, w = matrix(1, nrow = 3, ncol = 3),
 
 # Convert to SpatRaster
 veg3 <- rast(veg3_rasterl)
-veg3 <- terra::project(veg3, crs(elev_chir))
+veg3 <- terra::project(veg3, crs(elev_sagw))
 # Convert to factor
 veg3 <- as.factor(veg3)
 
 # See how the camera locations relate to the veg classes:  
-locs <- read.csv("data/mammals/SODN_Wildlife_Locations_XY_Revised_20220502.csv")[,2:9]
-locs <- locs %>%
-  dplyr::filter(UnitCode == "SAGW") %>%
-  dplyr::select(c(MarkerName, POINT_X, POINT_Y)) %>%
-  dplyr::rename(x = POINT_X, 
-                y = POINT_Y) 
-
-locs_sp <- locs %>%
-  dplyr::select(-MarkerName) %>%
-  as.matrix %>%
-  vect(., crs = crs(elev_chir))
+locs <- vect("data/mammals/PROTECTED_CameraLocations_Centroids.shp")
 
 plot(veg3)
 plot(parks, add = T)
-plot(locs_sp, add = T)
+plot(locs, add = T)
 
 # Veg classes at each camera location (using original classes)
-camera_veg4 <- cbind(locs, 
-                     VegClass = terra::extract(veg4, locs_sp)[, c("VegClass")])
+camera_veg4 <- cbind(as.data.frame(locs), 
+                     VegClass = terra::extract(veg4, locs)[, c("VegClass")])
 count(camera_veg4, VegClass)
 # 29 in (Low gradient desert with high-cover mixed cactus...)
 # 13 in (Low hillslope and mountain foothills, rocky, ....)
 # 16 in (Medium to high gradient....)
-# 1 camera in a desert wash (#34)
-plot(locs_sp[34], cex = 2, col = "yellow", add = TRUE)
+# 1 camera in a desert wash (#42)
+plot(veg4)
+plot(locs[42], cex = 2, col = "yellow", add = TRUE)
 # Near VC 
-# 1 camera NA (#7)
-plot(locs_sp[7], cex = 2, col = "yellow", add = TRUE)
+# 1 camera NA (#12)
+plot(veg4)
+plot(locs[12], cex = 2, col = "yellow", add = TRUE)
 # At boundary south of Picture Rocks road
 # Original veg file doesn't line up perfectly with park boundary.  On 
 # eastern side there are some missing areas, including where this camera is.
 
 # Veg classes at each camera location (after removing desert washes)
-camera_veg3 <- cbind(locs, terra::extract(veg3, locs_sp, ID = FALSE))
-count(camera_veg3, label)
+camera_veg3 <- cbind(as.data.frame(locs), 
+                     terra::extract(veg3, locs, ID = FALSE))
+count(camera_veg3, layer)
 vegclasses[,c(1,3,4)]
 # 31 in class 1 (Low gradient desert)
 # 13 in class 2 (Rocky foothills)
