@@ -11,7 +11,7 @@
   # Method used to select a "best" model for inferences: STAT
 
 # ER Zylstra
-# Updated 2023-07-03
+# Updated 2023-10-06
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -47,7 +47,7 @@ source("src/photo-data/format-mammal-data.R")
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "CHIR"
+PARK <- "SAGW"
 
 # Select year of interest
 YEAR <- 2022
@@ -61,7 +61,7 @@ detects <- detects %>%
 # of nobs [camera locations * sampling occasion] with species detection)
 detects %>% 
   dplyr::filter(propdetect >= 0.05) %>%
-  left_join(species,by=c("spp"="Species_code")) %>%
+  left_join(species,by=c("spp" = "Species_code")) %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)

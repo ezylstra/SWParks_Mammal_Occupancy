@@ -6,7 +6,7 @@
 # src/single-seasons/models/YEAR/spOccupancy-PARK-SPECIES_YEAR.R)
 
 # ER Zylstra
-# Updated 2023-04-14
+# Updated 2023-10-06
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -32,8 +32,8 @@ for (i in 1:nrow(occasions)) {
 # Retain a maximum of one observation per day at each location
 obs <- dat %>% 
   filter(Park == PARK & Species_code %in% SPECIES & yr == YEAR) %>%
-  select(StdLocName, obsdate, yr, o_day) %>%
-  arrange(StdLocName, obsdate) %>%
+  select(loc, obsdate, yr, o_day) %>%
+  arrange(loc, obsdate) %>%
   distinct
 
 # Extract information about camera locations in selected park
@@ -41,9 +41,9 @@ events_park <- events %>%
   filter(Park == PARK) %>%
   filter(d_yr == YEAR)
 locs_park <- locs %>%
-  filter(StdLocName %in% events_park$StdLocName) %>%
-  select(StdLocName, POINT_X, POINT_Y) %>%
-  rename(loc = StdLocName, long = POINT_X, lat = POINT_Y)
+  filter(loc %in% events_park$loc) %>%
+  select(loc, longitude, latitude) %>%
+  rename(long = longitude, lat = latitude)
 
 # Extract rows from events matrix that correspond to locations in selected park
 event_mat <- event_mat[rownames(event_mat) %in% locs_park$loc,]
@@ -62,7 +62,7 @@ ddh[ddh == 1] <- 0
 
 # Replace 0s with 1s when the species was detected
 for (i in 1:nrow(obs)) {
-  ddh[rownames(ddh) == obs$StdLocName[i], 
+  ddh[rownames(ddh) == obs$loc[i], 
       colnames(ddh) == as.character(obs$o_day[i])] <- 1
 }
 # checks:
@@ -101,7 +101,7 @@ colnames(occ_matrix) <- occasions$yr_occ
 for (i in 1:nrow(occ_matrix)) {
   for (j in 1:ncol(occ_matrix)) {
     occ_matrix[i,j] <- 1 * any(occasions$start_day[j]:occasions$end_day[j] %in% 
-                                 events_park$d_day[i]:events_park$r_day[i])
+                                 events_park$start_day[i]:events_park$end_day[i])
   }
 }
 events_park <- cbind(events_park, occ_matrix)
@@ -109,21 +109,21 @@ events_park <- cbind(events_park, occ_matrix)
 events_park <- events_park %>%
   mutate(n_occ = rowSums(select(., paste0(YEAR, "_", 1:ncol(occ_matrix))))) %>%
   filter(n_occ > 0) %>%
-  arrange(StdLocName, d_date)
+  arrange(loc, start_day)
 
 # Check if a sampling occasion at a given camera location spanned two 
 # deployments (ie, a camera was immediately redeployed during a sampling occ)
 # If so, use the deployment experience value from the 2nd deployment
 redeploys <- events_park %>%
-  group_by(StdLocName) %>%
+  group_by(loc) %>%
   summarize(across(starts_with(paste0(YEAR, "_")), sum)) %>%
   as.data.frame()
 
 for (i in 1:nrow(redeploys)) {
   for (j in 2:ncol(redeploys)) {
     if (redeploys[i, j] > 1) {
-      ndeploys <- sum(events_park$StdLocName == redeploys$StdLocName[i])
-      events_park[events_park$StdLocName == redeploys$StdLocName[i],
+      ndeploys <- sum(events_park$loc == redeploys$loc[i])
+      events_park[events_park$loc == redeploys$loc[i],
                   names(redeploys)[j]] <- c(rep(0, ndeploys - 1), 1)
     }  
   }
@@ -138,7 +138,7 @@ for (i in 1:nrow(deploy_exp)) {
   for (j in 1:ncol(deploy_exp)) {
     if (is.na(dh[i, j])) next
     deploy_exp[i, j] <- 
-      events_park$deploy_exp[events_park$StdLocName == rownames(deploy_exp)[i] &
+      events_park$deploy_exp[events_park$loc == rownames(deploy_exp)[i] &
                                events_park[,colnames(deploy_exp)[j]] == 1]
   }
 }
@@ -154,7 +154,7 @@ deploy_exp[which(is.na(dh))] <- NA
 occasions <- occasions %>%
   mutate(start_yday = yday(start),
          end_yday = yday(end),
-         mid_yday = round((start_yday + end_yday)/2))
+         mid_yday = round((start_yday + end_yday) / 2))
 
 day <- matrix(occasions$mid_yday, 
               nrow = nrow(dh), 
