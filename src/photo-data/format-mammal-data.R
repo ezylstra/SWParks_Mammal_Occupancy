@@ -375,4 +375,5 @@ locs <- rename(locs, Park = UnitCode)
 # Remove objects that are no longer needed
 #------------------------------------------------------------------------------# 
 
-rm(list = setdiff(ls(), c("dat", "events", "event_mat", "locs", "species")))
+rm(ann_sf, centroids_sf, coords, deploys, locs_ann, locs_ann_df, species_list,
+   temp, centroid_save, detlocs, eventlocs, eventvec, exclude, exp1, exp2, i, j)
