@@ -45,8 +45,8 @@ units <- "in"
 # Load/create objects needed for any figure
 #------------------------------------------------------------------------------#
 # Load functions and raw data
-source("src/functions.R")
 source("src/photo-data/format-mammal-data.R")
+source("src/functions.R")
 
 # Load single-season model object 
 modelfile <- paste0("output/single-season-models/", PARK, "-", YEAR, "-",

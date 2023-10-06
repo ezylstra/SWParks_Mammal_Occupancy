@@ -13,6 +13,13 @@ library(tidyterra)
 library(RColorBrewer)
 
 #------------------------------------------------------------------------------#
+# Load detection data adn functions
+#------------------------------------------------------------------------------#
+
+source("src/photo-data/format-mammal-data.R")
+source("src/functions.R")
+
+#------------------------------------------------------------------------------#
 # Specify parameters of interest
 #------------------------------------------------------------------------------#
 
@@ -49,18 +56,15 @@ height <- 4
 units <- "in"
 
 #------------------------------------------------------------------------------#
-# Load detection data and summarize
+# Summarize detection data
 #------------------------------------------------------------------------------#
-
-source("src/functions.R")
-source("src/photo-data/format-mammal-data.R")
 
 # Extract camera locations for this park
 locs_simple <- locs %>%
-  filter(UnitCode == PARK) %>%
-  select(loc_short, POINT_X, POINT_Y) %>%
-  rename(lon = POINT_X,
-         lat = POINT_Y)
+  filter(Park == PARK) %>%
+  select(loc, longitude, latitude) %>%
+  rename(lon = longitude,
+         lat = latitude)
 
 # Load sampling occasion data and filter by park, years
 occasions <- read.csv("data/occasions/occasions-all-parks.csv")
@@ -76,12 +80,11 @@ spp_rds <- list.files(path = "output/multi-season-models/",
 common_spp <- basename(spp_rds) %>% str_sub(16, 19)
 
 # Filtering out non-natives or unknowns from species list
-spp_exclude <- c("Feral dog", str_subset(species$Common_name, "Unknown"))
 species <- species %>%
-  filter(!Common_name %in% spp_exclude) %>%
+  filter(Nativeness == "Native" & !is.na(Nativeness)) %>%
   select(Common_name, Species_code) %>%
   mutate(modeled = 1 * Species_code %in% common_spp,
-         rare = ifelse(modeled == 0 & Species_code != "SPVA", 1, 0))
+         rare = ifelse(modeled == 0 & Species_code != "OTVA", 1, 0))
 # Labeling all unmodeled species as rare except for rock squirrels, that
 # are relatively common but likely had few detections because of their size
 
@@ -90,14 +93,14 @@ species <- species %>%
 dat_simple <- dat %>%
   filter(Park == PARK & yr %in% YEARS) %>%
   filter(Species_code %in% species$Species_code) %>%
-  select(Species_code, obsdate, yr, loc_short)
+  select(Species_code, obsdate, yr, loc)
 
 # Create list of species detected in the park
 spp_detect <- dat_simple %>%
   group_by(Species_code) %>%
   summarize(ndetects = length(Species_code),
             nyrs = length(unique(yr)),
-            nlocs = length(unique(loc_short))) %>%
+            nlocs = length(unique(loc))) %>%
   data.frame()
 species <- left_join(species, spp_detect, by = "Species_code") %>%
   filter(!is.na(ndetects))
@@ -106,12 +109,12 @@ species <- left_join(species, spp_detect, by = "Species_code") %>%
 dets <- dat_simple %>%
   left_join(species[, c("Species_code", "modeled", "rare")], 
             by = "Species_code") %>%
-  group_by(loc_short) %>%
+  group_by(loc) %>%
   distinct(Species_code, modeled, rare) %>%
   summarize(nspp = length(Species_code),
             nspp_modeled = sum(modeled),
             nspp_rare = sum(rare)) %>%
-  left_join(locs_simple, by = "loc_short") %>%
+  left_join(locs_simple, by = "loc") %>%
   data.frame()
 
 # Load park boundary
