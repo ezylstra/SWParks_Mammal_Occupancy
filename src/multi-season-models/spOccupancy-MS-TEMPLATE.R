@@ -3,7 +3,7 @@
 # a given park, set of years, and species (using the spOccupancy package)
 
 # ER Zylstra
-# Updated 2023-07-14
+# Updated 2023-10-06
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -21,8 +21,6 @@ library(ggplot2)
 library(gridExtra)
 library(tidyterra)
 
-source("src/functions.R")
-
 #------------------------------------------------------------------------------#
 # Load all photo, location, events, species data 
 #------------------------------------------------------------------------------#
@@ -35,6 +33,9 @@ source("src/photo-data/format-mammal-data.R")
 #             was deployed or not
 # locs = information about each camera location (park, lat/long, name)
 # species = table with species observed (species code, common name, # of obs)
+
+# Load functions
+source("src/functions.R")
 
 #------------------------------------------------------------------------------#
 # Specify model parameters
