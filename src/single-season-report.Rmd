@@ -55,8 +55,8 @@ fig_num = run_autonum(seq_id = "figure", bkm = NULL)
 
 ```{r data-formatting}
 
-source("src/functions.R")
 source("src/photo-data/format-mammal-data.R")
+source("src/functions.R")
 
 PARK <- params$PARK
 YEAR <- params$YEAR
@@ -75,7 +75,7 @@ PARKL <- ifelse(PARK == "SAGW",
 # Subset events data and add a numeric camera ID
 events <- events %>%
   filter(Park == PARK, d_yr == YEAR) %>%
-  mutate(locnum = as.numeric(as.factor(StdLocName))) %>%
+  mutate(locnum = as.numeric(as.factor(loc))) %>%
   as.data.frame()
 deploy_start <- format(min(events$d_date), "%d %B")
 deploy_end <- format(max(events$d_date), "%d %B")
@@ -170,9 +170,7 @@ segs
 
 # Clean up species table
 species <- species %>%
-  select(-n)
-species$Species[species$Species_code == "SKUNK"] <- "Mephitidae"
-species$Species[species$Species_code == "UNCA"] <- "Canidae"
+  select(-c(TSN, Family, Nativeness, Protected))
 species$Species[species$Species_code == "FOX"] <- "Vulpes or Urocyon sp."
 
 # Filter detection data
@@ -183,7 +181,7 @@ dat <- dat %>%
 nphotos <- dat %>%
   group_by(Species_code) %>%
   summarize(n_photos = length(datetime),
-            n_locs = length(unique(LocationName))) %>%
+            n_locs = length(unique(loc))) %>%
   arrange(desc(n_photos)) %>%
   left_join(species, by = "Species_code") %>%
   relocate(Common_name:Species, .before = n_photos) %>%
