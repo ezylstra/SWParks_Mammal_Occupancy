@@ -26,4 +26,6 @@ detection,all,occasion,day,day_z,Day of the year
 detection,all,occasion,day2,day_z + I(day_z^2),Day of the year
 detection,all,occasion,deploy_exp,deploy_exp,Deployment personnel experience
 detection,all,occasion,effort,effort_z,Proportion of days camera was operational
-detection,all,annual,camera_2022,camera_2022,"Indicator for 2022, when different cameras were used"
+detection,all,annual,camera,camera,"Indicator for >2022, when different cameras were used"
+detection,SAGW,annual,lens_2023,lens_2023,"Indicator for 2023, when more sensitive lens was used"
+detection,ORPI,annual,lens_2023,lens_2023,"Indicator for 2023, when more sensitive lens was used"
