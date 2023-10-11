@@ -49,7 +49,9 @@ occ_max <- 6
 threshold <- 0.60
 
 # List of parks to include
-parks <- c("CHIR", "ORPI", "SAGW")
+# TODO: Update this once new data are available for all parks
+#parks <- c("CHIR", "ORPI", "SAGW")
+parks <- c("SAGW")
 
 # Range of photo observations for each park
 park_photos <- dat %>%
@@ -318,7 +320,7 @@ write.csv(spp_detections_yr,
           row.names = FALSE)
 
 #------------------------------------------------------------------------------#
-# Calculate number of species detections, 2017-2022 for sharing
+# Calculate number of species detections, 2017-2023 for sharing
 #------------------------------------------------------------------------------#
 
 n <- 0
@@ -332,7 +334,7 @@ for (park in parks) {
     filter(Park == park)
   occasions <- occ_all %>%
     filter(Park == park) %>%
-    filter(yr %in% 2017:2022)
+    filter(yr %in% 2017:2023)
   
   # Create a list of days included in sampling occasions
   occ_days <- NULL
