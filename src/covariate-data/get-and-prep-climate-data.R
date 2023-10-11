@@ -10,6 +10,7 @@ library(downloader)
 library(terra)
 library(dplyr)
 library(stringr)
+library(ncdf4)
 
 # Load shapefile with park boundaries
 parks <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
@@ -23,7 +24,7 @@ parks <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
 # tmmx = max near-surface air temperature
 
 # Select years
-yrs <- 2016:2022
+yrs <- 2016:2023
 
 # Select type of climate data 
 data_types <- c("pr")
