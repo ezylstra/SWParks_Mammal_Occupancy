@@ -19,7 +19,9 @@
 #------------------------------------------------------------------------------#
 
 # Load sampling occasion data (park, year, start/end, duration)
-occasions <- read.csv("data/occasions/occasions-all-parks.csv")
+# TO DO - update when data ready for all parks
+#occasions <- read.csv("data/occasions/occasions-all-parks.csv")
+occasions <- read.csv("data/occasions/occasions-SAGW.csv")
 
 # Extract sampling occasion info for selected park and year
 occasions <- occasions %>%
@@ -218,19 +220,27 @@ years_mn <- mean(years)
 years_sd <- sd(years)
 years_z <- (years - years_mn)/years_sd
 
-# Indicator for 2022, when different types of cameras were used 
-# (will need to revisit this covariate after 2023 season)
-camera_2022 <- matrix(rep(c(0, 1, 0), 
-                          times = c(sum(YEARS < 2022), 1, sum(YEARS > 2022))),
+# Indicator for >2022, when different types of cameras were used 
+# (will need to revisit this covariate after 2023 season when same cameras were used)
+camera <- matrix(rep(c(0, 1), 
+                          times = c(sum(YEARS < 2022), sum(YEARS >= 2022))),
+                      nrow = dim(dh)[1],
+                      ncol = dim(dh)[2],
+                      byrow = TRUE)
+
+# Indicator for SAGW & ORPI for 2023, when more sensitive lenses were used
+# (will need to revisit this covariate before/after 2024 once decide which lenses will be used)
+lens_2023 <- matrix(rep(c(0, 1, 0), 
+                      times = c(sum(YEARS < 2023), 1, sum(YEARS > 2023))),
                       nrow = dim(dh)[1],
                       ncol = dim(dh)[2],
                       byrow = TRUE)
 
 # Monthly visitation data (currently only available for Saguaro, both districts 
-# combined)
+# combined, through August 2023, 2023 data are preliminary [10/11/2023])
 if (PARK == "SAGW") {
   # Read in data
-  monthlyvisits <- read.csv("data/covariates/SAGU_MonthlyVisits_1979-2022.csv")
+  monthlyvisits <- read.csv("data/covariates/SAGU_MonthlyVisits_1979-2023.csv")
   # Identify months when surveys occurred
   surveymonths <- unique(c(month(occasions$start), month(occasions$end)))
   # Calculate the total number of visitors during survey months each year
@@ -254,10 +264,10 @@ if (PARK == "SAGW") {
   visits_z <- (visits - visits_mn)/visits_sd
 }
 
-# Monthly traffic data (currently only available for SAGW)
+# Monthly traffic data (currently only available for SAGW, through August 2023, 2023 data are preliminary [10/11/2023])
 if (PARK == "SAGW") {
   # Read in data
-  monthlytraffic <- read.csv("data/covariates/SAGW_MonthlyTraffic_1992-2022.csv")
+  monthlytraffic <- read.csv("data/covariates/SAGW_MonthlyTraffic_1992-2023.csv")
   # Identify months when surveys occurred
   surveymonths <- unique(c(month(occasions$start), month(occasions$end)))
   # Calculate total traffic (averaged across locations) during survey months 
@@ -503,7 +513,7 @@ det_covs <- list(boundary_z = spatial_covs$boundary_z,
                  roadbound_z = spatial_covs$roadbound_z,
                  trailpoi_z = spatial_covs$trailpoi_z,
                  site = spatial_covs$site,
-                 camera_2022 = camera_2022,
+                 camera = camera,
                  years = years,
                  years_z = years_z,
                  day = day,
@@ -521,8 +531,14 @@ if (PARK == "SAGW") {
                      vegclass2 = spatial_covs$vegclass2,
                      vegclass3 = spatial_covs$vegclass3,
                      visits_z = visits_z,
-                     traffic_z = traffic_z))
+                     traffic_z = traffic_z,
+                     lens_2023 = lens_2023))
 }
+if (PARK == "ORPI") {
+  det_covs <- c(det_covs, 
+                list(lens_2023 = lens_2023))
+}
+
 
 # spOccupancy can't take lat/long, so we'll need to reproject coordinates to 
 # WGS 84, Zone 12 = epsg:32612 (should work for all parks)
