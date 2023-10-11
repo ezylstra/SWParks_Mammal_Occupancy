@@ -135,6 +135,7 @@ covariates <- read.csv("data/covariates/covariates-MS.csv", header = TRUE)
 # For detection, use a "full" model
 DET_NULL <- FALSE
 DET_MODELS <- list(c("day2", "deploy_exp", "effort"))
+#DET_MODELS <- list(c("day2", "deploy_exp", "effort", "camera", "lens_2023"))
 
 # For occurrence, try each annual covariate in a separate model
 OCC_NULL <- TRUE
