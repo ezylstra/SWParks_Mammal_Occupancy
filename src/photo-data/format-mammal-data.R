@@ -61,11 +61,10 @@ deploys <- read.csv("data/covariates/deployment-personnel.csv")
 #------------------------------------------------------------------------------#
 
 # Will remove all species except for medium to large mammals that we want to 
-# include in occupancy models. Note that there are 2 entries for UNCA, so we'll 
-# remove the one with Common_Name = "unknown canid" and TSN = NA.
+# include in occupancy models. 
 exclude <- c("Harris's antelope squirrel", "Merriam's kangaroo rat", 
              "round-tailed ground squirrel", "unknown animal", 
-             "unknown canid", "unknown kangaroo rat", "unknown rodent", 
+             "unknown kangaroo rat", "unknown rodent", 
              "unknown woodrat", "western white-throated woodrat")
 
 species <- species_list %>%
@@ -234,6 +233,8 @@ dat <- dat %>%
 
 # Finally, as an extra check, remove detections that occur outside active dates
 # (might be able to remove this eventually)
+ # the Events data now includes an ImageDate_Flag that marks these instances as "R"
+# and they are being removed above. But OK to leave in for now as a double-check
 dat <- dat %>%
   left_join(events[, c("UnitCode", "LocationName", 
                        "active_start", "active_end", "d_yr")], 
