@@ -55,11 +55,11 @@ fig_num = run_autonum(seq_id = "figure", bkm = NULL)
 
 ```{r data-formatting}
 
-source("src/photo-data/format-mammal-data.R")
-source("src/functions.R")
-
 PARK <- params$PARK
 YEAR <- params$YEAR
+
+source("src/photo-data/format-mammal-data.R")
+source("src/functions.R")
 
 ```
 
@@ -83,9 +83,8 @@ retr_start <- format(min(events$r_date), "%d %B")
 retr_end <- format(max(events$r_date), "%d %B")
 
 # Load sampling occasion data
-occasions <- read.csv("data/occasions/occasions-all-parks.csv")
+occasions <- read.csv(paste0("data/occasions/occasions-", PARK, ".csv"))
 occasions <- occasions %>%
-  filter(Park == PARK) %>%
   filter(yr %in% YEAR) %>%
   mutate(start_yday = yday(start),
          end_yday = yday(end),
