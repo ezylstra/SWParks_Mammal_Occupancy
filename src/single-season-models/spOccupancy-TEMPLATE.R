@@ -66,10 +66,10 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "CALA"
+SPECIES <- "ODHE"
 
 # Save this script as: 
-# src/single-season-models/YEAR/spOccupancy-PARK-YEAR-SPECIES.R
+# src/single-season-models/YEAR/PARK/spOccupancy-PARK-YEAR-SPECIES.R
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
