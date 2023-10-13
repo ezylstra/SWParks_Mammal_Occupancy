@@ -6,7 +6,7 @@
 # src/single-seasons/models/YEAR/spOccupancy-PARK-SPECIES_YEAR.R)
 
 # ER Zylstra
-# Updated 2023-10-06
+# Updated 2023-10-13
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -14,11 +14,10 @@
 #------------------------------------------------------------------------------#
 
 # Load sampling occasion data (park, year, start/end, duration)
-occasions <- read.csv("data/occasions/occasions-all-parks.csv")
+occasions <- read.csv(paste0("data/occasions/occasions-", PARK, ".csv"))
 
 # Extract sampling occasion info for selected park and year
 occasions <- occasions %>%
-  filter(Park == PARK) %>%
   filter(yr %in% YEAR) %>%
   arrange(yr, occasion)
 
@@ -31,21 +30,20 @@ for (i in 1:nrow(occasions)) {
 # Extract photo observations for park, species, year
 # Retain a maximum of one observation per day at each location
 obs <- dat %>% 
-  filter(Park == PARK & Species_code %in% SPECIES & yr == YEAR) %>%
+  filter(Species_code %in% SPECIES & yr == YEAR) %>%
   select(loc, obsdate, yr, o_day) %>%
   arrange(loc, obsdate) %>%
   distinct
 
 # Extract information about camera locations in selected park
 events_park <- events %>%
-  filter(Park == PARK) %>%
   filter(d_yr == YEAR)
 locs_park <- locs %>%
   filter(loc %in% events_park$loc) %>%
   select(loc, longitude, latitude) %>%
   rename(long = longitude, lat = latitude)
 
-# Extract rows from events matrix that correspond to locations in selected park
+# Extract columns from events matrix that correspond to sampling locations
 event_mat <- event_mat[rownames(event_mat) %in% locs_park$loc,]
 
 # Extract columns from events matrix that correspond to sampling occasions
@@ -66,8 +64,7 @@ for (i in 1:nrow(obs)) {
       colnames(ddh) == as.character(obs$o_day[i])] <- 1
 }
 # checks:
-# sum(ddh == 1, na.rm = TRUE)
-# sum(obs$o_day %in% occ_days)
+# sum(ddh == 1, na.rm = TRUE); sum(obs$o_day %in% occ_days)
 
 # Summarize detection data (dh) and effort during each occasion 
 dh <- effort <- matrix(NA, 

@@ -11,7 +11,7 @@
   # Method used to select a "best" model for inferences: STAT
 
 # ER Zylstra
-# Updated 2023-10-06
+# Updated 2023-10-13
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -31,12 +31,15 @@ library(tidyterra)
 # Load all photo, location, events, species data 
 #------------------------------------------------------------------------------#
 
+# Select park of interest ("CHIR", "ORPI", or "SAGW")
+PARK <- "SAGW"
+
 source("src/photo-data/format-mammal-data.R")
 
 # dat = information about each photo (date, time, species, location)
 # events = information about each camera deployment (dates, location, duration)
 # event_mat = camera location x day matrix with 1/0 indicating whether camera
-#             was deployed or not
+#             was operational or not
 # locs = information about each camera location (park, lat/long, name)
 # species = table with species observed (species code, common name, # of obs)
 
@@ -47,16 +50,13 @@ source("src/functions.R")
 # Specify model parameters
 #------------------------------------------------------------------------------#
 
-# Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "SAGW"
-
 # Select year of interest
-YEAR <- 2022
+YEAR <- 2023
 
 # Look at detection data for various species
-detects <- read.csv("output/species-detections-byparkyr.csv", header = TRUE)
+detects <- read.csv(paste0("output/species-detections-byyr-", PARK, ".csv"))
 detects <- detects %>%
-  dplyr::filter(Park == PARK & yr == YEAR) %>%
+  dplyr::filter(yr == YEAR) %>%
   arrange(desc(propdetect))
 # View just those species with a detection rate of 5% (propdetect = proportion 
 # of nobs [camera locations * sampling occasion] with species detection)
@@ -66,7 +66,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "URCI"
+SPECIES <- "CALA"
 
 # Save this script as: 
 # src/single-season-models/YEAR/spOccupancy-PARK-YEAR-SPECIES.R
@@ -149,7 +149,7 @@ OCC_MODELS <- list(c("aspect", "veg", "wash", "burn", "roads"),
                    c("elev", "veg", "wash", "burn", "roads"),
                    c("slope", "veg", "wash", "burn", "roads"),
                    c("aspect", "veg", "wash", "burn", "boundary"),
-                   c("elev", "veg", "wash", "burn", "boundary"),
+                   # c("elev", "veg", "wash", "burn", "boundary"),
                    c("slope", "veg", "wash", "burn", "boundary"),
                    c("aspect", "veg", "wash", "burn", "trail"),
                    c("elev", "veg", "wash", "burn", "trail"),
@@ -158,7 +158,7 @@ OCC_MODELS <- list(c("aspect", "veg", "wash", "burn", "roads"),
                    c("elev", "veg", "wash", "burn", "pois"),
                    c("slope", "veg", "wash", "burn", "pois"),
                    c("aspect", "veg", "wash", "burn", "roadbound"),
-                   c("elev", "veg", "wash", "burn", "roadbound"),
+                   # c("elev", "veg", "wash", "burn", "roadbound"),
                    c("slope", "veg", "wash", "burn", "roadbound"),
                    c("aspect", "veg", "wash", "burn", "trailpoi"),
                    c("elev", "veg", "wash", "burn", "trailpoi"),
@@ -234,7 +234,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
 # "model_no" and specifying the "best_index" directly.
 
 # Specify STAT as either: waic, k.fold.dev, or model_no
-STAT <- "model_no"   
+STAT <- "waic"   
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
@@ -328,6 +328,7 @@ det_estimates <- det_estimates %>%
   rename(Covariate = Parameter) %>%
   mutate(Parameter = "Detection", .before = "Covariate")
 estimates <- rbind(occ_estimates, det_estimates)
+estimates
 
 # Can save this table to file with amended version of code below
 # write.csv(estimates,
