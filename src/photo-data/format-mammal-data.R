@@ -3,7 +3,7 @@
 # Import and format data
 
 # ER Zylstra
-# 2023-10-06
+# 2023-10-12
 ################################################################################
 
 # Need to load these packages if not calling this script via source()
@@ -14,6 +14,9 @@ library(stringr)
 library(sf)
 library(terra)
 
+# Need to specify park if not calling this script via source()
+# PARK <- "SAGW"
+
 #------------------------------------------------------------------------------#
 # Import data
 #------------------------------------------------------------------------------#
@@ -22,10 +25,11 @@ library(terra)
 species_list <- read.csv("data/mammals/PROTECTED_SpeciesList.csv")
 
 # Observations
-dat <- read.csv("data/mammals/PROTECTED_Detections.csv")
+dat <- read.csv(paste0("data/mammals/PROTECTED_Detections_", PARK, ".csv"))
 
 # Camera locations
-locs_ann <- vect("data/mammals/PROTECTED_CameraLocations_Annual.shp")
+locs_ann <- vect(paste0("data/mammals/PROTECTED_CameraLocations_Annual_",
+                        PARK, ".shp"))
 names(locs_ann) <- c("UnitCode", "StdLocName", "LocationName", "DeployDate",
                      "StdLocName_Flag", "LocationName_Flag", "DeployDate_Flag",
                      "geometry_Flag")
@@ -35,7 +39,7 @@ names(locs_ann) <- c("UnitCode", "StdLocName", "LocationName", "DeployDate",
   centroid_save <- FALSE
 
 # Deployment schedule
-events <- read.csv("data/mammals/PROTECTED_Events.csv")
+events <- read.csv(paste0("data/mammals/PROTECTED_Events_", PARK, ".csv"))
 
 # Experience level of personnel deploying cameras
 deploys <- read.csv("data/covariates/deployment-personnel.csv")
@@ -87,17 +91,15 @@ species <- species_list %>%
 count(events, events[, grep("Flag", colnames(events))])
 # Remove any events that have one or more Flags = R (Reject)
 events <- events %>%
-  rowwise() %>%
-  mutate(reject_sum = sum(c_across(StdLocName_Flag:ActiveEnd_Flag) == "R")) %>%
-  filter(reject_sum == 0) %>%
-  select(-c(contains("Flag"), reject_sum)) %>%
-  data.frame()
+  mutate(across(ends_with("Flag"), function(x) ifelse(x == "R", 1, 0))) %>%
+  mutate(reject_sum = rowSums(select(., ends_with("Flag")))) %>%
+  filter(reject_sum == 0)
 
 # Only keep necessary columns and remove any events that aren't associated with 
-# the 3 focal parks:
+# the focal park:
 events <- events %>%
   select(-c(StdLocName, CrewRetrieve)) %>%
-  filter(UnitCode %in% c("CHIR", "ORPI", "SAGW"))
+  filter(UnitCode == PARK)
 
 # Convert deployment, retrieval, active dates to date objects, and check that 
 # active start/ends are always within deployment dates
@@ -204,22 +206,20 @@ events <- events %>%
 count(dat, dat[, grep("Flag", colnames(dat))])
 # Remove any detections that have one or more Flags = R (Reject)
 dat <- dat %>%
-  rowwise() %>%
-  mutate(reject_sum = sum(c_across(StdLocName_Flag:Accepted_Code_Flag) == "R")) %>%
-  filter(reject_sum == 0) %>%
-  select(-c(contains("Flag"), reject_sum)) %>%
-  data.frame()
+  mutate(across(ends_with("Flag"), function(x) ifelse(x == "R", 1, 0))) %>%
+  mutate(reject_sum = rowSums(select(., ends_with("Flag")))) %>%
+  filter(reject_sum == 0)
 
 # Exclude photo observations of mammals that aren't in our species list
 dat <- filter(dat, Accepted_Code %in% species$Species_code)
 
 # Remove unnecessary columns (including all columns with species info except 
-# Accepted_Code) and remove information that isn't associated with the 3 focal 
-# parks:
+# Accepted_Code) and remove information that isn't associated with the focal 
+# park:
 dat <- dat %>%
   select(UnitCode, LocationName, ImageDate, Accepted_Code) %>%
   rename(Species_code = Accepted_Code) %>%
-  filter(UnitCode %in% c("CHIR", "ORPI", "SAGW"))
+  filter(UnitCode == "SAGW")
 
 # Create new date-, time-related columns
 dat$datetime <- parse_date_time(dat$ImageDate, orders = c("%m/%d/%Y %H:%M:%S"))
@@ -232,9 +232,9 @@ dat <- dat %>%
   select(-ImageDate)
 
 # Finally, as an extra check, remove detections that occur outside active dates
-# (might be able to remove this eventually)
- # the Events data now includes an ImageDate_Flag that marks these instances as "R"
-# and they are being removed above. But OK to leave in for now as a double-check
+# (might be able to remove this eventually). Note that the events data now 
+# include an ImageDate_Flag that marks these instances as "R" and they are being 
+# removed above. But OK to leave in for now as a double-check.
 dat <- dat %>%
   left_join(events[, c("UnitCode", "LocationName", 
                        "active_start", "active_end", "d_yr")], 
@@ -278,8 +278,10 @@ centroids_sf <- centroids_sf %>%
 
 # Save shapefile
 if (centroid_save) {
+  centroid_file <- paste0("data/mammals/PROTECTED_CameraLocations_Centroids_",
+                          PARK, ".shp")
   writeVector(vect(centroids_sf),
-              "data/mammals/PROTECTED_CameraLocations_Centroids.shp",
+              centroid_file,
               overwrite = TRUE) 
 }
 
