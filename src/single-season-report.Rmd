@@ -188,9 +188,9 @@ nphotos <- dat %>%
 
 # Look at detection data for various species
 # Where detection is max of one per sampling occasion at each location
-detects <- read.csv("output/species-detections-byparkyr.csv", header = TRUE)
+detects <- read.csv(paste0("output/species-detections-byyr-", PARK, ".csv"))
 detects <- detects %>%
-  dplyr::filter(Park == PARK & yr == YEAR) %>%
+  dplyr::filter(yr == YEAR) %>%
   select(c(spp, ndetects)) %>%
   rename(Species_code = spp,
          n_detects = ndetects)

@@ -11,10 +11,14 @@ spp_name <- paste(sapply(unlist(str_split(spp_name, " ")),
 spp_name <- str_replace(spp_name, "unknown", "all")
 spp_plural <- ifelse(str_detect(string = spp_name, 
                                 pattern = "sheep|deer|pronghorn|elk"),
-                     spp_name, ifelse(str_detect(string = spp_name,
-                                                 pattern = "fox"),
-                                      paste0(spp_name, "es"), 
-                                      paste0(spp_name, "s")))
+                     spp_name, 
+                     ifelse(str_detect(string = spp_name,
+                                       pattern = "fox"),
+                            paste0(spp_name, "es"),
+                            ifelse(str_detect(string = spp_name,
+                                              pattern = "peccary"),
+                                   "collared peccaries", 
+                                    paste0(spp_name, "s"))))
 
 best <- model_list$model
 psi_model <- model_list$psi_model

@@ -11,8 +11,8 @@
 
 # Specify the park and year of interest
 
-  park <- "CHIR"
-  year <- 2022
+  park <- "SAGW"
+  year <- 2023
 
 # Install any needed packages if they're not installed already
   
