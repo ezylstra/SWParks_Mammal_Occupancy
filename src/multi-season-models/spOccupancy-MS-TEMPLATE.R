@@ -3,7 +3,7 @@
 # a given park, set of years, and species (using the spOccupancy package)
 
 # ER Zylstra
-# Updated 2023-10-06
+# Updated 2023-10-13
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -25,12 +25,15 @@ library(tidyterra)
 # Load all photo, location, events, species data 
 #------------------------------------------------------------------------------#
 
+# Select park of interest ("CHIR", "ORPI", or "SAGW")
+PARK <- "SAGW"
+
 source("src/photo-data/format-mammal-data.R")
 
 # dat = information about each photo (date, time, species, location)
 # events = information about each camera deployment (dates, location, duration)
 # event_mat = camera location x day matrix with 1/0 indicating whether camera
-#             was deployed or not
+#             was operational or not
 # locs = information about each camera location (park, lat/long, name)
 # species = table with species observed (species code, common name, # of obs)
 
@@ -41,17 +44,12 @@ source("src/functions.R")
 # Specify model parameters
 #------------------------------------------------------------------------------#
 
-# Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "SAGW"
-
 # Select years of interest
-YEARS <- 2017:2022
+YEARS <- 2017:2023
 
 # Look at detection data for various species
-detects <- read.csv("output/species-detections-bypark.csv", header = TRUE)
-detects <- detects %>%
-  dplyr::filter(Park == PARK) %>%
-  arrange(desc(propdetect))
+detects <- read.csv(paste0("output/species-detections-", PARK, ".csv"))
+detects <- arrange(detects, desc(propdetect))
 # View just those species with a detection rate of 5% (propdetect = proportion 
 # of nobs [camera locations * sampling occasion] with species detection)
 detects %>% 
@@ -135,7 +133,7 @@ covariates <- read.csv("data/covariates/covariates-MS.csv", header = TRUE)
 # For detection, use a "full" model
 DET_NULL <- FALSE
 DET_MODELS <- list(c("day2", "deploy_exp", "effort"))
-#DET_MODELS <- list(c("day2", "deploy_exp", "effort", "camera", "lens_2023"))
+# DET_MODELS <- list(c("day2", "deploy_exp", "effort", "camera", "lens_2023"))
 
 # For occurrence, try each annual covariate in a separate model
 OCC_NULL <- TRUE
@@ -229,7 +227,7 @@ scov_combos <- list(c("aspect", "veg", "wash", "burn", "roads"),
                     c("elev", "veg", "wash", "burn", "roads"),
                     c("slope", "veg", "wash", "burn", "roads"),
                     c("aspect", "veg", "wash", "burn", "boundary"),
-                    c("elev", "veg", "wash", "burn", "boundary"),
+                    # c("elev", "veg", "wash", "burn", "boundary"),
                     c("slope", "veg", "wash", "burn", "boundary"),
                     c("aspect", "veg", "wash", "burn", "trail"),
                     c("elev", "veg", "wash", "burn", "trail"),
@@ -238,7 +236,7 @@ scov_combos <- list(c("aspect", "veg", "wash", "burn", "roads"),
                     c("elev", "veg", "wash", "burn", "pois"),
                     c("slope", "veg", "wash", "burn", "pois"),
                     c("aspect", "veg", "wash", "burn", "roadbound"),
-                    c("elev", "veg", "wash", "burn", "roadbound"),
+                    # c("elev", "veg", "wash", "burn", "roadbound"),
                     c("slope", "veg", "wash", "burn", "roadbound"),
                     c("aspect", "veg", "wash", "burn", "trailpoi"),
                     c("elev", "veg", "wash", "burn", "trailpoi"),
@@ -307,8 +305,8 @@ summary(best)
 
 # If all the covariates have sufficient explanatory power, then move on to the 
 # next step (looking at results from best model, below). If not, run a model 
-# that excludes covariates with little to no explantory power from the model for 
-# occurrence.
+# that excludes covariates with little to no explanatory power from the model 
+# for occurrence.
 
   # Identify new set of spatial covariates to include in a model for inference:
   scov_new <- list(c("north", "veg"))

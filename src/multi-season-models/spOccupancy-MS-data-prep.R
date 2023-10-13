@@ -11,7 +11,7 @@
 # eventually automate this.
 
 # ER Zylstra
-# Updated 2023-10-06
+# Updated 2023-10-13
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -19,13 +19,10 @@
 #------------------------------------------------------------------------------#
 
 # Load sampling occasion data (park, year, start/end, duration)
-# TO DO - update when data ready for all parks
-#occasions <- read.csv("data/occasions/occasions-all-parks.csv")
-occasions <- read.csv("data/occasions/occasions-SAGW.csv")
+occasions <- read.csv(paste0("data/occasions/occasions-", PARK, ".csv"))
 
 # Extract sampling occasion info for selected park and year
 occasions <- occasions %>%
-  filter(Park == PARK) %>%
   filter(yr %in% YEARS) %>%
   arrange(yr, occasion)
 
@@ -38,14 +35,13 @@ for (i in 1:nrow(occasions)) {
 # Extract photo observations for park, species, years
 # Retain a maximum of one observation per day at each location
 obs <- dat %>% 
-  filter(Park == PARK & Species_code == SPECIES & yr %in% YEARS) %>%
+  filter(Species_code == SPECIES & yr %in% YEARS) %>%
   select(loc, obsdate, o_day) %>%
   arrange(loc, obsdate) %>%
   distinct
 
 # Extract information about camera locations in selected park
 events_park <- events %>%
-  filter(Park == PARK) %>%
   filter(d_yr %in% YEARS)
 locs_park <- locs %>%
   filter(loc %in% events_park$loc) %>%
@@ -53,7 +49,7 @@ locs_park <- locs %>%
   rename(long = longitude, lat = latitude) %>%
   arrange(loc)
 
-# Extract rows from events matrix that correspond to locations in selected park
+# Extract columns from events matrix that correspond to sampling locations
 event_mat <- event_mat[rownames(event_mat) %in% locs_park$loc,]
 
 # Extract columns from events matrix that correspond to sampling occasions
@@ -74,8 +70,7 @@ for (i in 1:nrow(obs)) {
       colnames(ddh) == as.character(obs$o_day[i])] <- 1
 }
 # checks:
-# sum(ddh == 1, na.rm = TRUE)
-# sum(obs$o_day %in% occ_days)
+# sum(ddh == 1, na.rm = TRUE); sum(obs$o_day %in% occ_days)
 
 # Summarize detection data (dh) and effort during each occasion 
 dh <- effort <- array(NA, 
@@ -220,8 +215,9 @@ years_mn <- mean(years)
 years_sd <- sd(years)
 years_z <- (years - years_mn)/years_sd
 
-# Indicator for >2022, when different types of cameras were used 
-# (will need to revisit this covariate after 2023 season when same cameras were used)
+# Indicator for 2022 and 2023, when different types of cameras were used 
+# (will need to revisit this covariate after 2023 season when same cameras were 
+# used)
 camera <- matrix(rep(c(0, 1), 
                           times = c(sum(YEARS < 2022), sum(YEARS >= 2022))),
                       nrow = dim(dh)[1],
@@ -229,7 +225,8 @@ camera <- matrix(rep(c(0, 1),
                       byrow = TRUE)
 
 # Indicator for SAGW & ORPI for 2023, when more sensitive lenses were used
-# (will need to revisit this covariate before/after 2024 once decide which lenses will be used)
+# (will need to revisit this covariate before/after 2024 once we decide which 
+# lenses will be used)
 lens_2023 <- matrix(rep(c(0, 1, 0), 
                       times = c(sum(YEARS < 2023), 1, sum(YEARS > 2023))),
                       nrow = dim(dh)[1],
@@ -264,7 +261,8 @@ if (PARK == "SAGW") {
   visits_z <- (visits - visits_mn)/visits_sd
 }
 
-# Monthly traffic data (currently only available for SAGW, through August 2023, 2023 data are preliminary [10/11/2023])
+# Monthly traffic data (currently only available for SAGW, through August 2023, 
+# 2023 data are preliminary [10/11/2023])
 if (PARK == "SAGW") {
   # Read in data
   monthlytraffic <- read.csv("data/covariates/SAGW_MonthlyTraffic_1992-2023.csv")
@@ -293,8 +291,6 @@ if (PARK == "SAGW") {
   traffic_sd <- sd(traffic)
   traffic_z <- (traffic - traffic_mn)/traffic_sd
 }
-# Note: traffic and visitors were pretty well correlated for 2017-2020, but 
-# not in 2021-2022 (overall r = 0.50)
 
 # Only other annual covariates are weather related
 
@@ -346,7 +342,7 @@ loc_matrix <- as.matrix(locs_park[,c("long", "lat")])
   # Standardize values
   monsoon_ppt_mn <- mean(monsoon_ppt)
   monsoon_ppt_sd <- sd(monsoon_ppt)
-  monsoon_ppt_z <- (monsoon_ppt - monsoon_ppt_mn)/monsoon_ppt_sd 
+  monsoon_ppt_z <- (monsoon_ppt - monsoon_ppt_mn) / monsoon_ppt_sd 
   
 # Extract and compile 10-month precipitation data (10-months prior to survey
 # season in each park) [Don't have this set up for CHIR yet since there are only
@@ -357,7 +353,7 @@ loc_matrix <- as.matrix(locs_park[,c("long", "lat")])
   }
   if (PARK == "SAGW") {
     ppt10_files <- weather_files[str_detect(weather_files, "SAGW_MarDec")]
-    ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS-1)]    
+    ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS - 1)]    
   }
 
   # Load each raster and compile into a list
@@ -381,7 +377,7 @@ loc_matrix <- as.matrix(locs_park[,c("long", "lat")])
   # Standardize values
   ppt10_mn <- mean(ppt10)
   ppt10_sd <- sd(ppt10)
-  ppt10_z <- (ppt10 - ppt10_mn)/ppt10_sd 
+  ppt10_z <- (ppt10 - ppt10_mn) / ppt10_sd 
 
 #------------------------------------------------------------------------------#
 # Spatial covariates (time invariant)

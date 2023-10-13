@@ -503,11 +503,13 @@ trend_plot_occ <- function(model,
   if (raw_occ) {
     
     # Calculate the number of sites with at least one detection in a year
-    site_dets <- apply(data_list$y, c(1,2), paNA)
+    site_dets <- apply(data_list$y, c(1, 2), paNA)
     # Proportion of sites with a detection in each year
     raw_occ_prob <- apply(site_dets, 2, mean, na.rm = TRUE)
     
-    raws <- data.frame(yr = 2017:2022,
+    yr_min <- min(data_list$occ.covs$years, na.rm = TRUE)
+    yr_max <- max(data_list$occ.covs$years, na.rm = TRUE)
+    raws <- data.frame(yr = yr_min:yr_max,
                        raw_occ = raw_occ_prob,
                        row.names = NULL)
     

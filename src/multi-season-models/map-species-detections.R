@@ -2,7 +2,7 @@
 # Assess where more/fewer mammal species occur or are detected in a park
 
 # ER Zylstra
-# Updated 2023-07-19
+# Updated 2023-10-13
 ################################################################################
 
 library(tidyverse)
@@ -13,8 +13,11 @@ library(tidyterra)
 library(RColorBrewer)
 
 #------------------------------------------------------------------------------#
-# Load detection data adn functions
+# Load detection data and functions
 #------------------------------------------------------------------------------#
+
+# Select park of interest ("CHIR", "ORPI", or "SAGW")
+PARK <- "SAGW"
 
 source("src/photo-data/format-mammal-data.R")
 source("src/functions.R")
@@ -23,9 +26,8 @@ source("src/functions.R")
 # Specify parameters of interest
 #------------------------------------------------------------------------------#
 
-# Park, year
-PARK <- "SAGW"
-YEARS <- 2017:2022
+# Select years
+YEARS <- 2017:2023
 
 # Logical indicating whether to include lat/longs on maps
 LATLONG <- TRUE
@@ -61,15 +63,13 @@ units <- "in"
 
 # Extract camera locations for this park
 locs_simple <- locs %>%
-  filter(Park == PARK) %>%
   select(loc, longitude, latitude) %>%
   rename(lon = longitude,
          lat = latitude)
 
 # Load sampling occasion data and filter by park, years
-occasions <- read.csv("data/occasions/occasions-all-parks.csv")
+occasions <- read.csv(paste0("data/occasions/occasions-", PARK, ".csv"))
 occasions <- occasions %>%
-  filter(Park == PARK) %>%
   filter(yr %in% YEARS)
 
 # Get list of common species (that we ran occupancy models for)
