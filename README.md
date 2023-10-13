@@ -15,6 +15,7 @@ Using camera trap data to assess occupancy of mammals in Southwestern National P
 + knitr
 + leaflet (mapping spatial data)
 + lubridate
++ ncdf4
 + officedown (for creating reports)
 + officer (for creating reports)
 + raster
