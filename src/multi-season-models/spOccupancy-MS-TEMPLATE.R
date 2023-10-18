@@ -132,8 +132,7 @@ covariates <- read.csv("data/covariates/covariates-MS.csv", header = TRUE)
 
 # For detection, use a "full" model
 DET_NULL <- FALSE
-DET_MODELS <- list(c("day2", "deploy_exp", "effort"))
-# DET_MODELS <- list(c("day2", "deploy_exp", "effort", "camera", "lens_2023"))
+DET_MODELS <- list(c("day2", "deploy_exp", "effort", "camera", "lens_2023"))
 
 # For occurrence, try each annual covariate in a separate model
 OCC_NULL <- TRUE
@@ -590,7 +589,8 @@ if (psi_n_cont == 0 & length(psi_covs) == 0) {
 #------------------------------------------------------------------------------#
 
 # Identify continuous covariates in detection part of the best model
-p_continuous <- p_covs_z[!p_covs_z %in% c("vegclass2", "vegclass3")]
+p_continuous <- p_covs_z[!p_covs_z %in% c("vegclass2", "vegclass3", 
+                                          "camera", "lens_2023")]
 p_cont_unique <- unique(p_continuous)
 p_n_cont <- length(p_cont_unique)
 
@@ -633,6 +633,15 @@ if (sum(str_detect(p_covs, "veg")) > 0) {
   detprobs_veg <- vegclass_estimates(model = best, 
                                      parameter = "det")
   print(detprobs_veg)
+}
+
+# If camera and/or lens was included as a covariate in the model, extract 
+# detection probabilities for each combination of covariate levels
+if (sum(str_detect(p_covs, c("camera|lens_2023"))) > 0) {
+  detprob_cat <- det_cat_estimates(model = best,
+                                   lower_ci = 0.025,
+                                   upper_ci = 0.975)
+  print(detprob_cat)
 }
 
 # If there are no covariates in the model (a null model), print overall 

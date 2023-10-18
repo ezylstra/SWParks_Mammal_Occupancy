@@ -535,3 +535,65 @@ trend_plot_occ <- function(model,
   
   return(trend_plot)
 }
+
+#------------------------------------------------------------------------------#
+# det_cat_estimates: Create a table with detection probabilities for different
+# combinations of one or more categorical covariates
+#------------------------------------------------------------------------------#
+
+# INPUTS
+# model: output from spOccupancy single-season model (note: a categorical 
+# covariate, like camera or lens_2023, must have been included as a covariate in 
+# the model formula for detection)
+# lower_ci: quantile for lower bound of credible interval (0.025 for 95% CI)
+# upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
+
+# RETURNS
+# det_table: a dataframe with mean, SD, and 95% CI for detection probabilities 
+# associated with each level of the covariate
+
+det_cat_estimates <- function(model, 
+                              lower_ci = 0.025,
+                              upper_ci = 0.975) {
+  
+  samples <- model$alpha.samples
+  covs <- colnames(samples)
+  
+  # Identify covariate(s)
+  cols <- covs[covs %in% c("camera", "lens_2023")]
+  
+  if (length(cols) == 0) {
+    stop("A categorical covariate with 2 levels must be included in model for detection.")
+  }
+  
+  name1 <- cols[1]
+  name2 <- cols[2]
+  
+  # Create table to hold results
+  if (length(cols) == 1) {
+    det_table <- data.frame(det1 = 0:1) %>%
+      rename_with(~name1, det1)
+  } else {
+    det_table <- data.frame(det1 = c(0, 0, 1, 1),
+                            det2 = c(0, 1, 0, 1)) %>%
+      rename_with(~c(name1, name2), c(det1, det2))
+  }
+  det_table <- det_table %>%
+    mutate(mean_prob = NA,
+           sd_prob = NA,
+           ci_lower = NA,
+           ci_upper = NA)
+  
+  det_classes <- det_table %>%
+    select(-c(mean_prob, sd_prob, ci_lower, ci_upper)) %>%
+    as.matrix()
+  det_classes <- cbind(1, det_classes)
+  predsl <- samples[, c("(Intercept)", cols)] %*% t(det_classes)
+  preds <- exp(predsl) / (1 + exp(predsl))
+  det_table$mean_prob <- apply(preds, 2, mean)
+  det_table$sd_prob <- apply(preds, 2, sd)
+  det_table$ci_lower <- apply(preds, 2, quantile, probs = lower_ci)
+  det_table$ci_upper <- apply(preds, 2, quantile, probs = upper_ci)
+  
+  return(det_table)
+}
