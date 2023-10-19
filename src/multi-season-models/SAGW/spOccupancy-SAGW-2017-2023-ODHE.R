@@ -58,10 +58,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "PETA"
-
-# Save this script as: 
-# src/multi-season-models/PARK/spOccupancy-PARK-FIRSTYEAR-LASTYEAR-SPECIES.R
+SPECIES <- "ODHE"
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -132,7 +129,8 @@ covariates <- read.csv("data/covariates/covariates-MS.csv", header = TRUE)
 
 # For detection, use a "full" model
 DET_NULL <- FALSE
-DET_MODELS <- list(c("day2", "deploy_exp", "effort", "camera", "lens_2023"))
+DET_MODELS <- list(c("day2", "deploy_exp", "effort", "camera", "lens_2023"),
+                   c("day2", "deploy_exp", "effort"))
 
 # For occurrence, try each annual covariate in a separate model
 OCC_NULL <- TRUE
@@ -178,27 +176,35 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
 # View summary table, ranked by WAIC
 model_stats %>% arrange(waic)
 
-# Save summary table to file:
-# write.table(model_stats, "clipboard", sep = "\t", row.names = FALSE)
+# Look at detection model (comparing two detection models with same occ cov)
+summary(out_list[[12]])
+summary(out_list[[6]])
+summary(out_list[[2]])
+summary(out_list[[8]])
+# Including camera and lens_2023 covariates in detection model didn't seem to 
+# be problematic. Rhat and ESS values fine for the two covariates. All other 
+# parameter estimates were similar between models that include/exclude the two 
+# covariates. For ODHE, there's some evidence that detection was higher in 2023
+# but additional effect of camera (ie, 2022-2023). 
 
 # Select the annual covariate (years, visits, traffic, monsoon_ppt, or ppt10) 
 # that should be included in the next set of candidate models. Typically, we'll
 # select the covariate included in the model with the lowest WAIC. If none are 
 # better than the null model, select "years" as this will should estimate
 # a non-significant trend.
-BEST_ANNUAL <- "years"
+BEST_ANNUAL <- "ppt10"
+# No evidence for a trend. Models that include year have higher WAIC values and
+# CI for estimated year effect widely overlaps zero.
 
-# Look at parameter estimates for detection part of highest-ranking model and 
-# decide what detection model we'd like to use in the next set of candidate 
+# Decide what detection model we'd like to use in the next set of candidate 
 # models
-min_waic <- min(model_stats$waic)
-summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
+summary(out_list[[6]])
 
 # To use a null model for detection:
   # DET_NULL <- TRUE
   # rm(DET_MODELS)
 # To use a model with a subset of those covariates, like day2 and effort:
-  DET_MODELS <- list(c("day2", "effort"))
+  DET_MODELS <- list(c("day", "deploy_exp", "effort", "lens_2023"))
 # To use the same model, we can leave DET_MODELS as is.
 
 #------------------------------------------------------------------------------#
@@ -287,10 +293,10 @@ model_stats %>% arrange(waic)
 # "best_index" directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "waic"   
+STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 10  
+  best_index <- 1 
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -308,8 +314,12 @@ summary(best)
 # for occurrence.
 
   # Identify new set of spatial covariates to include in a model for inference:
-  scov_new <- list(c("north", "veg"))
+  scov_new <- list(c("roads", "slope"),
+                   c("roads"))
   OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
+  # Refine detection model
+  DET_MODELS <- list(c("day", "deploy_exp", "effort", "lens_2023"),
+                     c("day", "effort", "lens_2023"))
   source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
   message("Check candidate models:", sep = "\n")
   model_specs
@@ -319,10 +329,10 @@ summary(best)
   model_stats
 
   # Specify STAT as either: waic or model_no
-  STAT <- "waic"   
+  STAT <- "model_no"   
   if (STAT == "model_no") {
     # If STAT == "model_no", specify model of interest by model number in table
-    best_index <- 1  
+    best_index <- 3  
   } else {
     min_stat <- min(model_stats[,STAT])
     best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 

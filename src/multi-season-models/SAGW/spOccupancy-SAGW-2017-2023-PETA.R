@@ -60,9 +60,6 @@ detects %>%
 # Select species of interest (ideally with a detection rate of at least 5%)
 SPECIES <- "PETA"
 
-# Save this script as: 
-# src/multi-season-models/PARK/spOccupancy-PARK-FIRSTYEAR-LASTYEAR-SPECIES.R
-
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
 #------------------------------------------------------------------------------#
@@ -186,7 +183,9 @@ model_stats %>% arrange(waic)
 # select the covariate included in the model with the lowest WAIC. If none are 
 # better than the null model, select "years" as this will should estimate
 # a non-significant trend.
-BEST_ANNUAL <- "years"
+BEST_ANNUAL <- "traffic"
+# No evidence for a trend. Model that includes year has a higher WAIC value and
+# CI for estimated year effect widely overlaps zero.
 
 # Look at parameter estimates for detection part of highest-ranking model and 
 # decide what detection model we'd like to use in the next set of candidate 
@@ -198,7 +197,7 @@ summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
   # DET_NULL <- TRUE
   # rm(DET_MODELS)
 # To use a model with a subset of those covariates, like day2 and effort:
-  DET_MODELS <- list(c("day2", "effort"))
+  DET_MODELS <- list(c("deploy_exp", "effort"))
 # To use the same model, we can leave DET_MODELS as is.
 
 #------------------------------------------------------------------------------#
@@ -287,10 +286,10 @@ model_stats %>% arrange(waic)
 # "best_index" directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "waic"   
+STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 10  
+  best_index <- 9  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
