@@ -22,7 +22,7 @@ library(terra)
 #------------------------------------------------------------------------------#
 
 # Species list
-species_list <- read.csv("data/mammals/PROTECTED_SpeciesList.csv")
+species_list <- read.csv(paste0("data/mammals/PROTECTED_SpeciesList_", PARK, ".csv"))
 
 # Observations
 dat <- read.csv(paste0("data/mammals/PROTECTED_Detections_", PARK, ".csv"))
