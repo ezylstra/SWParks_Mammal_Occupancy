@@ -57,10 +57,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "PETA"
-
-# Save this script as: 
-# src/multi-season-models/PARK/spOccupancy-PARK-FIRSTYEAR-LASTYEAR-SPECIES.R
+SPECIES <- c("UNSY", "SYAU", "SYFL")
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -185,7 +182,9 @@ model_stats %>% arrange(waic)
 # select the covariate included in the model with the lowest WAIC. If none are 
 # better than the null model, select "years" as this will should estimate
 # a non-significant trend.
-BEST_ANNUAL <- "years"
+BEST_ANNUAL <- "visits"
+# Best model by far is visits (delta WAIC > 13), BUT looking at the years model
+# there is a negative trend that doesn't overlap 0.
 
 # Look at parameter estimates for detection part of highest-ranking model and 
 # decide what detection model we'd like to use in the next set of candidate 
@@ -197,7 +196,7 @@ summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
   # DET_NULL <- TRUE
   # rm(DET_MODELS)
 # To use a model with a subset of those covariates, like day2 and effort:
-  DET_MODELS <- list(c("day2", "effort"))
+  DET_MODELS <- list(c("day", "effort", "camera", "lens_2023"))
 # To use the same model, we can leave DET_MODELS as is.
 
 #------------------------------------------------------------------------------#
@@ -286,10 +285,10 @@ model_stats %>% arrange(waic)
 # "best_index" directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "waic"   
+STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 10  
+  best_index <- 3  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -307,13 +306,14 @@ summary(best)
 # for occurrence.
 
   # Identify new set of spatial covariates to include in a model for inference:
-  scov_new <- list(c("north", "veg"))
+  scov_new <- list(c("slope", "wash", "veg"),
+                   c("slope", "wash"))
   OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
   source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
   message("Check candidate models:", sep = "\n")
   model_specs
   
-  # Run final model
+  # Run final models
   source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
   model_stats
 
@@ -336,7 +336,7 @@ summary(best)
   # Save model object to file
   model_filename <- paste0("output/multi-season-models/", PARK, "-", 
                            YEARS[1], "-", YEARS[length(YEARS)],
-                           "-", SPECIES, ".rds")
+                           "-UNSY.rds")
   model_list <- list(model = best, 
                      psi_model = best_psi_model,
                      p_model = best_p_model,

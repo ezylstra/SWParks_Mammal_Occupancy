@@ -57,10 +57,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "PETA"
-
-# Save this script as: 
-# src/multi-season-models/PARK/spOccupancy-PARK-FIRSTYEAR-LASTYEAR-SPECIES.R
+SPECIES <- c("UNLE", "LECA", "LEAL")
 
 #------------------------------------------------------------------------------#
 # Prepare detection and covariate data to run occupancy models with spOccupancy
@@ -186,6 +183,8 @@ model_stats %>% arrange(waic)
 # better than the null model, select "years" as this will should estimate
 # a non-significant trend.
 BEST_ANNUAL <- "years"
+# Traffic model ranks highest, but years almost as good. CI for year effect
+# barely overlaps 0.
 
 # Look at parameter estimates for detection part of highest-ranking model and 
 # decide what detection model we'd like to use in the next set of candidate 
@@ -197,7 +196,7 @@ summary(out_list[[model_stats$model_no[model_stats$waic == min_waic]]])
   # DET_NULL <- TRUE
   # rm(DET_MODELS)
 # To use a model with a subset of those covariates, like day2 and effort:
-  DET_MODELS <- list(c("day2", "effort"))
+  DET_MODELS <- list(c("effort", "camera", "lens_2023"))
 # To use the same model, we can leave DET_MODELS as is.
 
 #------------------------------------------------------------------------------#
@@ -286,10 +285,10 @@ model_stats %>% arrange(waic)
 # "best_index" directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "waic"   
+STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 10  
+  best_index <- 5  
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -307,15 +306,20 @@ summary(best)
 # for occurrence.
 
   # Identify new set of spatial covariates to include in a model for inference:
-  scov_new <- list(c("north", "veg"))
+  scov_new <- list(c("slope", "wash"),
+                   c("slope", "wash", "veg"))
   OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
+  # Refine detection model
+  DET_MODELS <- list(c("effort"),
+                     c("effort", "lens_2023"),
+                     c("effort", "camera", "lens_2023"))
   source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
   message("Check candidate models:", sep = "\n")
   model_specs
   
-  # Run final model
+  # Run final models
   source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
-  model_stats
+  model_stats %>% arrange(waic)
 
   # Specify STAT as either: waic or model_no
   STAT <- "waic"   
@@ -336,7 +340,7 @@ summary(best)
   # Save model object to file
   model_filename <- paste0("output/multi-season-models/", PARK, "-", 
                            YEARS[1], "-", YEARS[length(YEARS)],
-                           "-", SPECIES, ".rds")
+                           "-UNLE.rds")
   model_list <- list(model = best, 
                      psi_model = best_psi_model,
                      p_model = best_p_model,
