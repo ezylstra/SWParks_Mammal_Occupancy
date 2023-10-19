@@ -61,6 +61,8 @@ YEAR <- params$YEAR
 source("src/photo-data/format-mammal-data.R")
 source("src/functions.R")
 
+# Load sampling occasion data
+occasions <- read.csv(paste0("data/occasions/occasions-", PARK, ".csv"))
 ```
 
 # Effort
@@ -82,8 +84,8 @@ deploy_end <- format(max(events$d_date), "%d %B")
 retr_start <- format(min(events$r_date), "%d %B")
 retr_end <- format(max(events$r_date), "%d %B")
 
-# Load sampling occasion data
-occasions <- read.csv(paste0("data/occasions/occasions-", PARK, ".csv"))
+# Format sampling occasion data
+#occasions <- read.csv(paste0("data/occasions/occasions-", PARK, ".csv"))
 occasions <- occasions %>%
   filter(yr %in% YEAR) %>%
   mutate(start_yday = yday(start),
