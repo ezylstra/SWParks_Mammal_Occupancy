@@ -248,6 +248,7 @@ dat <- dat %>%
 
 # Reproject to use the same crs as other objects used in the project 
 # (EPSG:4269; lon/lat NAD83)
+# may not work on NPS network, need to test
 locs_ann <- terra::project(locs_ann, "EPSG:4269")
 
 # Checked for flagged data
