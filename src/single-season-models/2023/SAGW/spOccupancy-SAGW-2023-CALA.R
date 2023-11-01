@@ -182,6 +182,15 @@ DET_NULL <- FALSE
 DET_MODELS <- list(c("day2", "deploy_exp", "effort"))
 
 #------------------------------------------------------------------------------#
+# Random site effects
+#------------------------------------------------------------------------------#
+
+# Initially, do not include random effects for occupancy or detection
+ # options are "none" (no random effects) or "unstructured" for unstructured site random effects
+SITE_RE_OCC <- "none"
+SITE_RE_DET <- "unstructured"
+
+#------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models
 #------------------------------------------------------------------------------#
 
@@ -206,7 +215,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
   # Note: this will often take several minutes to run
 
 # View summary table, ranked by WAIC
-  model_stats %>% arrange(waic)
+model_stats %>% arrange(waic)
 
 # Description of columns in summary table:
   # psi: formula for occurrence part of model
@@ -217,6 +226,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
   # ppc.sites: posterior predictive checks when binning the data across sites. 
     # P-values < 0.1 or > 0.9 can indicate that model fails to adequately
     # represent variation in occurrence or detection across space.
+    # if failing for all models, try adding a sensible detection covariate or random effects above
   # ppc.reps: posterior predictive checks when binning the data across
     # replicates. P-values < 0.1 or > 0.9 can indicate that model fails to 
     # adequately represent variation in detection over time.
@@ -234,7 +244,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
 # "model_no" and specifying the "best_index" directly.
 
 # Specify STAT as either: waic, k.fold.dev, or model_no
-STAT <- "model_no"   
+STAT <- "waic"   
 
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
@@ -254,8 +264,11 @@ summary(best)
   # credible intervals widely span 0) then run another model after removing those
   # covariates.
   
+  # Change occupancy part of model (if needed)
   # OCC_NULL <- FALSE
   OCC_MODELS <- list(c("elev"))
+  
+  # Change detection part of model (if needed)
   # DET_NULL <- TRUE
   DET_MODELS <- list(c("day"))
   # rm(DET_MODELS)
@@ -283,6 +296,81 @@ summary(best)
   best_p_model <- model_specs[best_index, 2]
   summary(best)
 
+#------------------------------------------------------------------------------#
+# Evaluate "best" model
+#------------------------------------------------------------------------------#
+
+# Posterior predictive checks (want Bayesian p-values between 0.1 and 0.9)
+ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
+ppc.rep <- as.numeric(model_stats$ppc.reps[model_stats$model_no == best_index])
+if (ppc.site < 0.1 | ppc.site > 0.9) {
+  warning(paste0("PPC indicates that we have not adequately described spatial ",
+                  "variation in occupancy and/or detection."))
+} else {
+  cat(paste0("PPC indicates that we have adequately described spatial ",
+              "variation in occupancy and detection."))
+} 
+if (ppc.rep < 0.1 | ppc.site > 0.9) {
+  warning(paste0("PPC indicates that we have not adequately described temporal ",
+                  "variation in detection."))
+} else {
+   cat(paste0("PPC indicates that we have adequately described temporal ",
+             "variation in detection."))
+}
+  
+# If there's evidence that spatial variation isn't well explained, plot the 
+# difference in the discrepancy measure between the replicate and actual data 
+# across each of the sites (identify sites that are causing a lack of fit).
+if (ppc.site < 0.1 | ppc.site > 0.9) {
+  best_ppcs <- ppc.sites[[best_index]]
+  diff_fit <- best_ppcs$fit.y.rep.group.quants[3, ] - best_ppcs$fit.y.group.quants[3, ]
+  
+  # Plot differences
+  par(mfrow = c(1,1))
+  plot(diff_fit, pch = 19, xlab = 'Site ID', ylab = "Replicate - True Discrepancy") 
+  
+  # Identify sites on a map
+  prob_sites <- which(abs(diff_fit) > 0.4)
+  plot(lat~long, data = spatial_covs, las = 1) # all camera locs
+  points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
+}
+
+  # If you received a warning that PPC indicates you have not adequately described
+  # spatial variation in occupancy and/or detection (ppc.site < 0.1 | ppc.site > 0.9)
+  # try adding random site effects to the occupancy or detection portion of the model
+  
+  # Include random effects for occupancy or detection?
+    # options are "none" (no random effects) or "unstructured" for unstructured site random effects
+  # SITE_RE_OCC <- "none"
+  # SITE_RE_DET <- "unstructured"
+  # 
+  # source("src/single-season-models/spOccupancy-create-model-formulas.R")
+  # message("Check candidate models:", sep = "\n")
+  # model_specs
+  # 
+  # source("src/single-season-models/spOccupancy-run-candidate-models.R")
+  # model_stats %>% arrange(waic)
+  # 
+  # # Specify STAT as either: waic, k.fold.dev, or model_no
+  # STAT <- "waic"
+  # if (STAT == "model_no") {
+  #   # If STAT == "model_no", specify model of interest by model number in table
+  #   best_index <- 1
+  # } else {
+  #   min_stat <- min(model_stats[,STAT])
+  #   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
+  # }
+  # 
+  # # Extract output and formulas from best model in
+  # best <- out_list[[best_index]]
+  # best_psi_model <- model_specs[best_index, 1]
+  # best_p_model <- model_specs[best_index, 2]
+  # summary(best)
+
+#------------------------------------------------------------------------------#
+# Save best model and look at estimates
+#------------------------------------------------------------------------------#
+
 # Save model object to file
 model_filename <- paste0("output/single-season-models/", PARK, "-", YEAR, 
                          "-", SPECIES, ".rds")
@@ -291,10 +379,6 @@ model_list <- list(model = best,
                    p_model = best_p_model,
                    data = data_list)
 saveRDS(model_list, file = model_filename)
-
-#------------------------------------------------------------------------------#
-# Evaluate best model and look at estimates
-#------------------------------------------------------------------------------#
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(best_psi_model)
@@ -341,40 +425,6 @@ estimates
 # plot(best$beta.samples, density = FALSE)
 # plot(best$alpha.samples, density = FALSE)
 
-# Posterior predictive checks (want Bayesian p-values between 0.1 and 0.9)
-ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
-ppc.rep <- as.numeric(model_stats$ppc.reps[model_stats$model_no == best_index])
-if (ppc.site < 0.1 | ppc.site > 0.9) {
-  warning(paste0("PPC indicates that we have not adequately described spatial ",
-                 "variation in occupancy and/or detection."))
-} else {
-  cat(paste0("PPC indicates that we have adequately described spatial ",
-             "variation in occupancy and detection."))
-} 
-if (ppc.rep < 0.1 | ppc.site > 0.9) {
-  warning(paste0("PPC indicates that we have not adequately described temporal ",
-                 "variation in detection."))
-} else {
-  cat(paste0("PPC indicates that we have adequately described temporal ",
-                 "variation in detection."))
-}
-
-# If there's evidence that spatial variation isn't well explained, plot the 
-# difference in the discrepancy measure between the replicate and actual data 
-# across each of the sites (identify sites that are causing a lack of fit).
-if (ppc.site < 0.1 | ppc.site > 0.9) {
-  best_ppcs <- ppc.sites[[best_index]]
-  diff_fit <- best_ppcs$fit.y.rep.group.quants[3, ] - best_ppcs$fit.y.group.quants[3, ]
-  
-  # Plot differences
-  par(mfrow = c(1,1))
-  plot(diff_fit, pch = 19, xlab = 'Site ID', ylab = "Replicate - True Discrepancy") 
-  
-  # Identify sites on a map
-  prob_sites <- which(abs(diff_fit) > 0.4)
-  plot(lat~long, data = spatial_covs, las = 1) # all camera locs
-  points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
-}
 
 #------------------------------------------------------------------------------#
 # Calculate and visualize predicted probabilities of occupancy, across park
@@ -517,3 +567,5 @@ p_n_cont <- length(p_cont_unique)
                                  upper_ci = 0.975)
     print(overall_det)
   }  
+
+  

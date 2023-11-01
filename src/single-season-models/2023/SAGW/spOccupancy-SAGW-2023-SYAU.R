@@ -149,7 +149,7 @@ OCC_MODELS <- list(c("aspect", "veg", "wash", "burn", "roads"),
                    c("elev", "veg", "wash", "burn", "roads"),
                    c("slope", "veg", "wash", "burn", "roads"),
                    c("aspect", "veg", "wash", "burn", "boundary"),
-                   # c("elev", "veg", "wash", "burn", "boundary"),
+                   #c("elev", "veg", "wash", "burn", "boundary"),
                    c("slope", "veg", "wash", "burn", "boundary"),
                    c("aspect", "veg", "wash", "burn", "trail"),
                    c("elev", "veg", "wash", "burn", "trail"),
@@ -158,7 +158,7 @@ OCC_MODELS <- list(c("aspect", "veg", "wash", "burn", "roads"),
                    c("elev", "veg", "wash", "burn", "pois"),
                    c("slope", "veg", "wash", "burn", "pois"),
                    c("aspect", "veg", "wash", "burn", "roadbound"),
-                   # c("elev", "veg", "wash", "burn", "roadbound"),
+                   #c("elev", "veg", "wash", "burn", "roadbound"),
                    c("slope", "veg", "wash", "burn", "roadbound"),
                    c("aspect", "veg", "wash", "burn", "trailpoi"),
                    c("elev", "veg", "wash", "burn", "trailpoi"),
@@ -180,6 +180,15 @@ DET_NULL <- FALSE
 
 # Pick covariates to include candidate models
 DET_MODELS <- list(c("day2", "deploy_exp", "effort"))
+
+#------------------------------------------------------------------------------#
+# Random site effects
+#------------------------------------------------------------------------------#
+
+# Initially, do not include random effects for occupancy or detection
+# options are "none" (no random effects) or "unstructured" for unstructured site random effects
+SITE_RE_OCC <- "none"
+SITE_RE_DET <- "none"
 
 #------------------------------------------------------------------------------#
 # Create (and check) formulas for candidate models
@@ -217,6 +226,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
   # ppc.sites: posterior predictive checks when binning the data across sites. 
     # P-values < 0.1 or > 0.9 can indicate that model fails to adequately
     # represent variation in occurrence or detection across space.
+    # if failing for all models, try adding a sensible detection covariate or random effects above
   # ppc.reps: posterior predictive checks when binning the data across
     # replicates. P-values < 0.1 or > 0.9 can indicate that model fails to 
     # adequately represent variation in detection over time.
@@ -256,38 +266,116 @@ summary(best)
   
   # Change occupancy part of model (if needed)
   # OCC_NULL <- FALSE
-  OCC_MODELS <- list(c("pois", "slope", "wash"),
-                    c("slope", "wash"),
-                    c("slope", "pois"),
-                    c("slope"))
-  
+   OCC_MODELS <- list(c("boundary", "slope", "wash"),
+                      c("roads", "slope", "wash"),
+                      c("roadbound", "slope", "wash"),
+                      c("roads", "slope"),
+                      c("boundary", "slope"),
+                      c("roadbound", "slope"))
+  #
   # Change detection part of model (if needed)
   # DET_NULL <- TRUE
-  DET_MODELS <- list(c("day", "effort"))
+   DET_MODELS <- list(c("day", "deploy_exp","effort"),
+                      c("day", "effort"))
   # rm(DET_MODELS)
-
+  # 
   source("src/single-season-models/spOccupancy-create-model-formulas.R")
   message("Check candidate models:", sep = "\n")
   model_specs
-
+  # 
   source("src/single-season-models/spOccupancy-run-candidate-models.R")
   model_stats %>% arrange(waic)
-
-  # Specify STAT as either: waic, k.fold.dev, or model_no
-  STAT <- "model_no"
+  # 
+  # # Specify STAT as either: waic, k.fold.dev, or model_no
+  STAT <- "waic"
   if (STAT == "model_no") {
     # If STAT == "model_no", specify model of interest by model number in table
-    best_index <- 1
+    best_index <- 8
   } else {
     min_stat <- min(model_stats[,STAT])
     best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
   }
-
-  # Extract output and formulas from best model in
+  # 
+  # # Extract output and formulas from best model in 
   best <- out_list[[best_index]]
   best_psi_model <- model_specs[best_index, 1]
   best_p_model <- model_specs[best_index, 2]
   summary(best)
+
+#------------------------------------------------------------------------------#
+# Evaluate "best" model
+#------------------------------------------------------------------------------#
+
+# Posterior predictive checks (want Bayesian p-values between 0.1 and 0.9)
+ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
+ppc.rep <- as.numeric(model_stats$ppc.reps[model_stats$model_no == best_index])
+if (ppc.site < 0.1 | ppc.site > 0.9) {
+  warning(paste0("PPC indicates that we have not adequately described spatial ",
+                 "variation in occupancy and/or detection."))
+} else {
+  cat(paste0("PPC indicates that we have adequately described spatial ",
+             "variation in occupancy and detection."))
+} 
+if (ppc.rep < 0.1 | ppc.site > 0.9) {
+  warning(paste0("PPC indicates that we have not adequately described temporal ",
+                 "variation in detection."))
+} else {
+  cat(paste0("PPC indicates that we have adequately described temporal ",
+             "variation in detection."))
+}
+
+# If there's evidence that spatial variation isn't well explained, plot the 
+# difference in the discrepancy measure between the replicate and actual data 
+# across each of the sites (identify sites that are causing a lack of fit).
+if (ppc.site < 0.1 | ppc.site > 0.9) {
+  best_ppcs <- ppc.sites[[best_index]]
+  diff_fit <- best_ppcs$fit.y.rep.group.quants[3, ] - best_ppcs$fit.y.group.quants[3, ]
+  
+  # Plot differences
+  par(mfrow = c(1,1))
+  plot(diff_fit, pch = 19, xlab = 'Site ID', ylab = "Replicate - True Discrepancy") 
+  
+  # Identify sites on a map
+  prob_sites <- which(abs(diff_fit) > 0.4)
+  plot(lat~long, data = spatial_covs, las = 1) # all camera locs
+  points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
+}
+
+  # If you received a warning that PPC indicates you have not adequately described
+  # spatial variation in occupancy and/or detection (ppc.site < 0.1 | ppc.site > 0.9)
+  # try adding random site effects to the occupancy or detection portion of the model
+
+  # Include random effects for occupancy or detection?
+  # options are "none" (no random effects) or "unstructured" for unstructured site random effects
+   SITE_RE_OCC <- "none"
+   SITE_RE_DET <- "unstructured"
+  # 
+  source("src/single-season-models/spOccupancy-create-model-formulas.R")
+  message("Check candidate models:", sep = "\n")
+  model_specs
+  # 
+  source("src/single-season-models/spOccupancy-run-candidate-models.R")
+  model_stats %>% arrange(waic)
+  # 
+  # # Specify STAT as either: waic, k.fold.dev, or model_no
+  STAT <- "model_no"
+  if (STAT == "model_no") {
+    # If STAT == "model_no", specify model of interest by model number in table
+    best_index <- 10
+  } else {
+    min_stat <- min(model_stats[,STAT])
+    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
+  }
+  # 
+  # # Extract output and formulas from best model in
+  best <- out_list[[best_index]]
+  best_psi_model <- model_specs[best_index, 1]
+  best_p_model <- model_specs[best_index, 2]
+  summary(best)
+
+#------------------------------------------------------------------------------#
+# Save best model and look at estimates
+#------------------------------------------------------------------------------#
 
 # Save model object to file
 model_filename <- paste0("output/single-season-models/", PARK, "-", YEAR, 
@@ -297,10 +385,6 @@ model_list <- list(model = best,
                    p_model = best_p_model,
                    data = data_list)
 saveRDS(model_list, file = model_filename)
-
-#------------------------------------------------------------------------------#
-# Evaluate best model and look at estimates
-#------------------------------------------------------------------------------#
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(best_psi_model)
@@ -347,40 +431,6 @@ estimates
 # plot(best$beta.samples, density = FALSE)
 # plot(best$alpha.samples, density = FALSE)
 
-# Posterior predictive checks (want Bayesian p-values between 0.1 and 0.9)
-ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index])
-ppc.rep <- as.numeric(model_stats$ppc.reps[model_stats$model_no == best_index])
-if (ppc.site < 0.1 | ppc.site > 0.9) {
-  warning(paste0("PPC indicates that we have not adequately described spatial ",
-                 "variation in occupancy and/or detection."))
-} else {
-  cat(paste0("PPC indicates that we have adequately described spatial ",
-             "variation in occupancy and detection."))
-} 
-if (ppc.rep < 0.1 | ppc.site > 0.9) {
-  warning(paste0("PPC indicates that we have not adequately described temporal ",
-                 "variation in detection."))
-} else {
-  cat(paste0("PPC indicates that we have adequately described temporal ",
-                 "variation in detection."))
-}
-
-# If there's evidence that spatial variation isn't well explained, plot the 
-# difference in the discrepancy measure between the replicate and actual data 
-# across each of the sites (identify sites that are causing a lack of fit).
-if (ppc.site < 0.1 | ppc.site > 0.9) {
-  best_ppcs <- ppc.sites[[best_index]]
-  diff_fit <- best_ppcs$fit.y.rep.group.quants[3, ] - best_ppcs$fit.y.group.quants[3, ]
-  
-  # Plot differences
-  par(mfrow = c(1,1))
-  plot(diff_fit, pch = 19, xlab = 'Site ID', ylab = "Replicate - True Discrepancy") 
-  
-  # Identify sites on a map
-  prob_sites <- which(abs(diff_fit) > 0.4)
-  plot(lat~long, data = spatial_covs, las = 1) # all camera locs
-  points(lat~long, data = spatial_covs[prob_sites,], pch = 19, col = "blue")
-}
 
 #------------------------------------------------------------------------------#
 # Calculate and visualize predicted probabilities of occupancy, across park
@@ -392,20 +442,20 @@ if (ppc.site < 0.1 | ppc.site > 0.9) {
 
 if (length(psi_covs) > 0) {
   source("src/single-season-models/spOccupancy-predictions.R")
-    # Note: this can take several minutes to run.
+  # Note: this can take several minutes to run.
   
   # This script creates:
-    # best_pred: a list with predictions for each raster cell, MCMC sample
-    # preds_mn: a raster with mean values in each cell (across MCMC samples)
-    # preds_sd: a raster with SDs in each cell (across MCMC samples)
-    # plot_preds_mn: a ggplot object with predicted mean values across park
-    # plot_preds_sd: a ggplot object with predicted sd values across park
+  # best_pred: a list with predictions for each raster cell, MCMC sample
+  # preds_mn: a raster with mean values in each cell (across MCMC samples)
+  # preds_sd: a raster with SDs in each cell (across MCMC samples)
+  # plot_preds_mn: a ggplot object with predicted mean values across park
+  # plot_preds_sd: a ggplot object with predicted sd values across park
   
   # Plot predicted means
-    print(plot_preds_mn) 
+  print(plot_preds_mn) 
   
   # Plot predicted sds
-    print(plot_preds_sd)
+  print(plot_preds_sd)
   
   # Can save either of the plots to file (example below):
   # ggsave(filename = "C:/.../SPECIES_MeanOccupancy.jpg",
@@ -416,7 +466,7 @@ if (length(psi_covs) > 0) {
   #        units = "in",
   #        dpi = 600)  
 }
- 
+
 #------------------------------------------------------------------------------#
 # Calculate and create figures depicting marginal effects of covariates on 
 # occurrence probability (predicted covariate effects assuming all other 
@@ -424,53 +474,53 @@ if (length(psi_covs) > 0) {
 #------------------------------------------------------------------------------#
 
 # Identify continuous covariates in occurrence part of the best model
-  psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
-  psi_cont_unique <- unique(psi_continuous)
-  psi_n_cont <- length(psi_cont_unique)
+psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
+psi_cont_unique <- unique(psi_continuous)
+psi_n_cont <- length(psi_cont_unique)
 
 # If there are any continuous covariates, create a figure for each:
-  if (psi_n_cont > 0) {
-    # Loop through each covariate
-    for (cov in psi_cont_unique) {
-      # Create name of plot:
-      plotname <- paste0("marginal_psi_", str_remove(cov, "_z"))
-      # Create plot
-      assign(plotname, 
-             marginal_plot_occ(covariate = cov, 
-                               model = best, 
-                               data_list = data_list,
-                               covariate_table = covariates,
-                               central_meas = mean))
-    } 
-  }
+if (psi_n_cont > 0) {
+  # Loop through each covariate
+  for (cov in psi_cont_unique) {
+    # Create name of plot:
+    plotname <- paste0("marginal_psi_", str_remove(cov, "_z"))
+    # Create plot
+    assign(plotname, 
+           marginal_plot_occ(covariate = cov, 
+                             model = best, 
+                             data_list = data_list,
+                             covariate_table = covariates,
+                             central_meas = mean))
+  } 
+}
 
 # Can view these plots, calling them by name. Available plots listed here:
-  str_subset(ls(), "marginal_psi_")
-  
-  # Can print all to plot window in Rstudio:
-  for (fig in str_subset(ls(), "marginal_psi_")) {
-    print(get(fig))
-  }
-  # Could also save any of the plots to file using ggsave()
+str_subset(ls(), "marginal_psi_")
+
+# Can print all to plot window in Rstudio:
+for (fig in str_subset(ls(), "marginal_psi_")) {
+  print(get(fig))
+}
+# Could also save any of the plots to file using ggsave()
 
 # If vegetation classes were included as covariates in the model, extract
 # occurrence probabilities for each class
-  if (sum(str_detect(psi_covs, "veg")) > 0) {
-    occprobs_veg <- vegclass_estimates(model = best, 
-                                       parameter = "occ")
-    print(occprobs_veg)
-  }
+if (sum(str_detect(psi_covs, "veg")) > 0) {
+  occprobs_veg <- vegclass_estimates(model = best, 
+                                     parameter = "occ")
+  print(occprobs_veg)
+}
 
 # If there are no covariates in the model (ie, a null model), print overall 
 # occurrence probability
-  if (psi_n_cont == 0 & length(psi_covs) == 0) {
-    overall_occ <- mean_estimate(model = best, 
-                                 parameter = "occ",
-                                 lower_ci = 0.025,
-                                 upper_ci = 0.975)
-    print(overall_occ)
-  }  
-  
+if (psi_n_cont == 0 & length(psi_covs) == 0) {
+  overall_occ <- mean_estimate(model = best, 
+                               parameter = "occ",
+                               lower_ci = 0.025,
+                               upper_ci = 0.975)
+  print(overall_occ)
+}  
+
 #------------------------------------------------------------------------------#
 # Create figures depicting marginal effects of covariates on detection 
 # probability (predicted covariate effects assuming all other covariates held
@@ -483,43 +533,43 @@ p_cont_unique <- unique(p_continuous)
 p_n_cont <- length(p_cont_unique)
 
 # If there are any continuous covariates, create a figure for each:
-  if (p_n_cont > 0) {
-    # Loop through each covariate
-    for (cov in p_cont_unique) {
-      # Create name of plot:
-      plotname <- paste0("marginal_p_", str_remove(cov, "_z"))
-      # Create plot
-      assign(plotname, 
-             marginal_plot_det(covariate = cov, 
-                               model = best, 
-                               data_list = data_list,
-                               covariate_table = covariates,
-                               central_meas = mean))
-    } 
-  }
+if (p_n_cont > 0) {
+  # Loop through each covariate
+  for (cov in p_cont_unique) {
+    # Create name of plot:
+    plotname <- paste0("marginal_p_", str_remove(cov, "_z"))
+    # Create plot
+    assign(plotname, 
+           marginal_plot_det(covariate = cov, 
+                             model = best, 
+                             data_list = data_list,
+                             covariate_table = covariates,
+                             central_meas = mean))
+  } 
+}
 # Can view these plots, calling them by name. Available plots listed here:
-  str_subset(ls(), "marginal_p_")
-  
-  # Or print all to plot window:
-  for (fig in str_subset(ls(), "marginal_p_")) {
-    print(get(fig))
-  }
-  # Could also save any of the plots to file using ggsave()
-  
+str_subset(ls(), "marginal_p_")
+
+# Or print all to plot window:
+for (fig in str_subset(ls(), "marginal_p_")) {
+  print(get(fig))
+}
+# Could also save any of the plots to file using ggsave()
+
 # If vegetation classes were included as covariates in the model, extract
 # detection probabilities for each class
-  if (sum(str_detect(p_covs, "veg")) > 0) {
-    detprobs_veg <- vegclass_estimates(model = best, 
-                                       parameter = "det")
-    print(detprobs_veg)
-  }
+if (sum(str_detect(p_covs, "veg")) > 0) {
+  detprobs_veg <- vegclass_estimates(model = best, 
+                                     parameter = "det")
+  print(detprobs_veg)
+}
 
 # If there are no covariates in the model (a null model), print overall 
 # detection probability
-  if (p_n_cont == 0 & length(p_covs) == 0) {
-    overall_det <- mean_estimate(model = best, 
-                                 parameter = "det",
-                                 lower_ci = 0.025,
-                                 upper_ci = 0.975)
-    print(overall_det)
-  }  
+if (p_n_cont == 0 & length(p_covs) == 0) {
+  overall_det <- mean_estimate(model = best, 
+                               parameter = "det",
+                               lower_ci = 0.025,
+                               upper_ci = 0.975)
+  print(overall_det)
+}  
