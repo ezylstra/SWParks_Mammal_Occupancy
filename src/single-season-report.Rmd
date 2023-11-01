@@ -2,7 +2,7 @@
 params: 
   date: "2023-06-20"
   PARK: "SAGW"
-  YEAR: 2022    
+  YEAR: 2023    
 title: "Summary of camera trap data, `r params$PARK`, `r params$YEAR`"
 date: "`r params$date`"
 output:
@@ -57,6 +57,12 @@ fig_num = run_autonum(seq_id = "figure", bkm = NULL)
 
 PARK <- params$PARK
 YEAR <- params$YEAR
+# Park long name
+PARKL <- ifelse(PARK == "SAGW", 
+                "the Tucson Mountain District of Saguaro National Park",
+                ifelse(PARK == "CHIR", "Chiricahua National Monument",
+                       "Organ Pipe Cactus National Monument"))
+
 
 source("src/photo-data/format-mammal-data.R")
 source("src/functions.R")
@@ -65,183 +71,17 @@ source("src/functions.R")
 occasions <- read.csv(paste0("data/occasions/occasions-", PARK, ".csv"))
 ```
 
-# Effort
-```{r effort}
+Use the text and outputs below to populate the text highlighted in yellow and the sections that tell you to 
+copy from the Rmd output in the Annual Report template on Teams. In general, the yellow in the overview and 
+key points can be populated once you've finished the results section.
 
-# Park long name
-PARKL <- ifelse(PARK == "SAGW", 
-                "the Tucson Mountain District of Saguaro National Park",
-                ifelse(PARK == "CHIR", "Chiricahua National Monument",
-                       "Organ Pipe Cactus National Monument"))
+We don't want to include all outputs for all species. The idea is that someone looks at the outputs and 
+selects examples to include in the report. That may mean focusing on a few species or a few themes. 
+You will also need to produce publication quality graphics for your figures of interest. 
 
-# Subset events data and add a numeric camera ID
-events <- events %>%
-  filter(Park == PARK, d_yr == YEAR) %>%
-  mutate(locnum = as.numeric(as.factor(loc))) %>%
-  as.data.frame()
-deploy_start <- format(min(events$d_date), "%d %B")
-deploy_end <- format(max(events$d_date), "%d %B")
-retr_start <- format(min(events$r_date), "%d %B")
-retr_end <- format(max(events$r_date), "%d %B")
+# Methods
 
-# Format sampling occasion data
-#occasions <- read.csv(paste0("data/occasions/occasions-", PARK, ".csv"))
-occasions <- occasions %>%
-  filter(yr %in% YEAR) %>%
-  mutate(start_yday = yday(start),
-         end_yday = yday(end),
-         mid_yday = round((start_yday + end_yday)/2)) %>%
-  arrange(yr, occasion) 
-season_start <- format(as.Date(occasions$start[1]), "%d %B")
-season_end <- format(as.Date(occasions$end[nrow(occasions)]), "%d %B")
-
-# Function to create chart with deployments
-ggcust_segs <- function(dat, park, year, xlims, occ){
-  ggplot() +
-    geom_segment(filter(dat, Park == park & d_yr == year),
-                 mapping = aes(x = d_date, xend = r_date, y = locnum, yend = locnum),
-                 linewidth = 0.3, color = "dodgerblue3") + 
-    geom_segment(filter(dat, Park == park & d_yr == year),
-                 mapping = aes(x = d_date, xend = d_date, y = locnum+0.4, yend = locnum-0.4),
-                 linewidth = 0.3, color = "dodgerblue3") + 
-    geom_segment(filter(dat, Park == park & d_yr == year),
-                 mapping = aes(x = r_date, xend = r_date, y = locnum+0.4, yend = locnum-0.4),
-                 linewidth = 0.3, color = "dodgerblue3") +
-    geom_vline(xintercept = as.Date(occ$start), color = "gray50") + 
-    geom_vline(xintercept = as.Date(occ$end[nrow(occ)]), color = "gray50") +
-    labs(x = "", y = "Camera number") + 
-    scale_x_date(limits = xlims, date_labels = "%d-%b") +
-    theme(text=element_text(size = 10),
-          axis.title.x=element_blank(),
-          plot.margin = margin(0.1, 0.2, 0.2, 0.2, unit = "cm"))
-}
-
-xmin <- as.Date(occasions$start[1]) - 15
-xmax <- as.Date(occasions$end[nrow(occasions)]) + 15
-
-segs <- ggcust_segs(events, PARK, YEAR, xlims = as.Date(c(xmin, xmax)),
-                    occ = occasions)
-```
-
-A total of `r nrow(events)` cameras were deployed in `r PARKL` between 
-`r deploy_start` and `r deploy_end` and were retrieved between 
-`r retr_start` and `r retr_end`, `r YEAR`. We delineated a total of 
-`r nrow(occasions)` sampling occasions that were each `r occasions$duration[1]` 
-days long.
-
-```{r deployment-table}
-
-occ_short <- occasions %>%
-  select(c(occasion, start, end)) %>%
-  rename(Occasion = occasion,
-         Start = start,
-         End = end)
-
-occtable_cap <- paste0("Start and end dates for each sampling occasion in ",
-                       PARKL, ", ", YEAR, ".")
-
-occ_ftable <- flextable(occ_short) %>%
-  align(align = "left", part = "all") %>%
-  bold(bold = TRUE, part = "header") %>%
-  set_caption(caption = occtable_cap, autonum = tab_num) %>%
-  add_footer_lines("")
-
-```
-
-```{r tab-deploy, ft.align = "left", tab.id = "table"}
-
-occ_ftable
-
-```
-
-```{r deployment-plot, fig.id = "figure", fig.cap = segs_cap}
-
-segs_cap <- paste0("Camera deployments and sampling occasions in ", PARKL, ", ",
-  YEAR, ". Each horizontal blue line represents the period over which a ",
-  "camera was operational, from the date the camera was deployed through the ", 
-  "date the camera was retrieved. Gray vertical lines denote the beginning ",
-  "and end of the ", nrow(occasions), " consecutive sampling occasions.")
-
-segs
-
-```
-
-# Detections
-```{r detections}
-
-# Clean up species table
-species <- species %>%
-  select(-c(TSN, Family, Nativeness, Protected))
-species$Species[species$Species_code == "FOX"] <- "Vulpes or Urocyon sp."
-
-# Filter detection data
-dat <- dat %>%
-  filter(Park == PARK & yr == YEAR) %>%
-  filter(obsdate >= occasions$start[1] & 
-           obsdate <= occasions$end[nrow(occasions)])
-nphotos <- dat %>%
-  group_by(Species_code) %>%
-  summarize(n_photos = length(datetime),
-            n_locs = length(unique(loc))) %>%
-  arrange(desc(n_photos)) %>%
-  left_join(species, by = "Species_code") %>%
-  relocate(Common_name:Species, .before = n_photos) %>%
-  data.frame()
-
-# Look at detection data for various species
-# Where detection is max of one per sampling occasion at each location
-detects <- read.csv(paste0("output/species-detections-byyr-", PARK, ".csv"))
-detects <- detects %>%
-  dplyr::filter(yr == YEAR) %>%
-  select(c(spp, ndetects)) %>%
-  rename(Species_code = spp,
-         n_detects = ndetects)
-
-nphotos <- nphotos %>%
-  left_join(detects, by = "Species_code") %>%
-  relocate(n_detects, .after = n_photos) %>%
-  select(-Species_code)
-
-```
-
-We detected a total of `r nrow(nphotos)` mammal species on the `r nrow(events)`
-cameras during the `r nrow(occasions)` sampling occasions. 
-
-```{r detections-table}
-
-nphotos_cap <- paste0("Mammal species detected in ",
-  PARKL, " between ", season_start, " and ", season_end, ", ", YEAR, 
-  ". No. photos is the total number of photographs obtained (multiple photos ",
-  "may occur at the same camera location in the same day). No. detections is ",
-  "the number of detections that could be used in an occupancy modeling ",
-  "framework (maximum of one photographic detection per camera location per ",
-  "sampling occasion). No. locations is the unique number of camera locations ",
-  "where the species was photographed.")
-
-nphotos_ft <- flextable(nphotos) %>%
-  align(j = 1:2, align = "left") %>%
-  align(j = 3:5, align = "center") %>%
-  italic(j = 2, italic = TRUE, part = "body") %>%
-  bold(bold = TRUE, part = "header") %>%
-  set_header_labels(Common_name = "Common name",
-                    Species = "Scientific name",
-                    n_photos = "No. photos",
-                    n_detects = "No. detections",
-                    n_locs = "No. locations") %>%
-  set_caption(caption = nphotos_cap, autonum = tab_num) %>%
-  add_footer_lines("")
-
-```
-
-```{r tab-detects, ft.align = "left", tab.id = "table"}
-
-nphotos_ft
-
-```
-
-# Modeling approach
-
-## Occupancy models
+## Single-species single-season occupancy models
 
 ```{r data-prep}
 
@@ -286,12 +126,14 @@ covariates <- read.csv("data/covariates/covariates.csv")
 For each species with a sufficient number of detections (here, `r nspp` 
 species), we used single-season occupancy models to estimate the probability of 
 occurrence and the probability of detection given occurrence (MacKenzie et al. 
-2002). To estimate these parameters, we generated encounter histories for each 
-camera location, where a "1" denotes that the species was detected at least once 
-during a sampling occasion and a "0" indicates that the species was not 
-detected. For example, an encounter history of "10011" would indicate that a 
-species was photographed at least once during the first, fourth, and fifth 
-sampling occasions and was not photographed during the second and third sampling 
+2002). First, we defined the season as those days between the first deployment date and 
+the last retrieval date when ≥ 60% of the cameras were operational. We then delineated
+consecutive 7-day sampling occasions within the season, with the first sampling occasion
+beginning on the first day ≥ 60% of the cameras were operational. For each species and 
+camera location, we generated encounter histories for each camera location, where a "1" 
+denotes that the species was detected at least once during a sampling occasion and a "0"
+indicates that the species was not detected. For example, an encounter history of "10011"
+would indicate that a species was photographed at least once during the first, fourth, and fifth sampling occasions and was not photographed during the second and third sampling 
 occasions. 
 
 We used a Bayesian framework to estimate model parameters, as this made it 
@@ -303,7 +145,7 @@ discarded the first `r n_burn` iterations and retained 1 of every `r n_thin`
 iterations thereafter, using the remaining `r n_chains * n_post` samples (across 
 all the chains) to summarize the posterior distribution.
 
-## Model selection
+## Covariates and model selection
 
 ```{r covariates-by-park}
 
@@ -324,14 +166,232 @@ We identified a number of `r cov_list` spatial covariates for `r PARKL` that
 could explain variation in occurrence probabilities. For each species, we 
 assembled a set of candidate models where each model included one element from 
 each covariate category, excluding any combination of covariates that were 
-highly correlated (pairwise correlation coefficient, |r| > 0.6). In each 
+highly correlated (pairwise correlation coefficient, |r| > 0.7). In each 
 candidate model, we allowed detection probability to vary as a function of day 
 (using linear and quadratic terms), effort (proportion of days during each 
 sampling occasion that the camera was operational), and the experience of 
 deployment personnel. We used widely applicable information criterion (WAIC) to 
 identify the best supported candidate model, and then removed any covariates 
 with little to no explanatory power (95% credible intervals that widely 
-overlapped zero). We used the resulting model for all inferences.
+overlapped zero). When necessary to estimate spatial variation in occupancy
+or detection, we used camera location as a random effect. 
+We used the resulting model for all inferences.
+
+# Results 
+
+## Effort
+```{r effort}
+
+# Subset events data and add a numeric camera ID
+events <- events %>%
+  filter(Park == PARK, d_yr == YEAR) %>%
+  mutate(locnum = as.numeric(as.factor(loc))) %>%
+  as.data.frame()
+deploy_start <- format(min(events$d_date), "%d %B")
+deploy_end <- format(max(events$d_date), "%d %B")
+retr_start <- format(min(events$r_date), "%d %B")
+retr_end <- format(max(events$r_date), "%d %B")
+
+# count number of each camera type
+cam_type <- events %>% group_by(CameraType) %>% count() %>% rename(count=n) %>% arrange(count) %>% mutate(CamText = paste(count, CameraType))
+cam_type_text <- ifelse(cam_type$count[1] == sum(cam_type$count), as.character(cam_type$CameraType[1]), paste(unlist(cam_type$CamText), collapse =", "))
+
+# Format sampling occasion data
+#occasions <- read.csv(paste0("data/occasions/occasions-", PARK, ".csv"))
+occasions <- occasions %>%
+  filter(yr %in% YEAR) %>%
+  mutate(start_yday = yday(start),
+         end_yday = yday(end),
+         mid_yday = round((start_yday + end_yday)/2)) %>%
+  arrange(yr, occasion) 
+season_start <- format(as.Date(occasions$start[1]), "%d %B")
+season_end <- format(as.Date(occasions$end[nrow(occasions)]), "%d %B")
+
+# Function to create chart with deployments
+ggcust_segs <- function(dat, park, year, xlims, occ){
+  ggplot() +
+    geom_segment(filter(dat, Park == park & d_yr == year),
+                 mapping = aes(x = d_date, xend = r_date, y = locnum, yend = locnum),
+                 linewidth = 0.3, color = "dodgerblue3") + 
+    geom_segment(filter(dat, Park == park & d_yr == year),
+                 mapping = aes(x = d_date, xend = d_date, y = locnum+0.4, yend = locnum-0.4),
+                 linewidth = 0.3, color = "dodgerblue3") + 
+    geom_segment(filter(dat, Park == park & d_yr == year),
+                 mapping = aes(x = r_date, xend = r_date, y = locnum+0.4, yend = locnum-0.4),
+                 linewidth = 0.3, color = "dodgerblue3") +
+    geom_vline(xintercept = as.Date(occ$start), color = "gray50") + 
+    geom_vline(xintercept = as.Date(occ$end[nrow(occ)]), color = "gray50") +
+    labs(x = "", y = "Camera number") + 
+    scale_x_date(limits = xlims, date_labels = "%d-%b") +
+    theme(text=element_text(size = 10),
+          axis.title.x=element_blank(),
+          plot.margin = margin(0.1, 0.2, 0.2, 0.2, unit = "cm"))
+}
+
+xmin <- as.Date(occasions$start[1]) - 15
+xmax <- as.Date(occasions$end[nrow(occasions)]) + 15
+
+segs <- ggcust_segs(events, PARK, YEAR, xlims = as.Date(c(xmin, xmax)),
+                    occ = occasions)
+```
+
+A total of `r nrow(events)` cameras (`r cam_type_text`) were deployed in `r PARKL` between 
+`r deploy_start` and `r deploy_end` and were retrieved between 
+`r retr_start` and `r retr_end`, `r YEAR`. We delineated a total of 
+`r nrow(occasions)` sampling occasions that were each `r occasions$duration[1]` 
+days long. The first sampling occasion began on `r season_start` and the last sampling occasion ended on `r season_end`. Citizen scientists, park staff, and/or partner organizations typically assist with the fieldwork associated with camera deployments and retrievals. In `r YEAR`, __##__ volunteers and __##__ interns and staff from various parks and partner organizations helped deploy and retrieve cameras in `r PARKL`. We are grateful for their support.
+
+```{r deployment-table}
+
+occ_short <- occasions %>%
+  select(c(occasion, start, end)) %>%
+  rename(Occasion = occasion,
+         Start = start,
+         End = end)
+
+occtable_cap <- paste0("Start and end dates for each sampling occasion in ",
+                       PARKL, ", ", YEAR, ".")
+
+occ_ftable <- flextable(occ_short) %>%
+  align(align = "left", part = "all") %>%
+  bold(bold = TRUE, part = "header") %>%
+  set_caption(caption = occtable_cap, autonum = tab_num) %>%
+  add_footer_lines("")
+
+```
+
+```{r tab-deploy, ft.align = "left", tab.id = "table"}
+
+occ_ftable
+
+```
+
+```{r deployment-plot, fig.id = "figure", fig.cap = segs_cap}
+
+segs_cap <- paste0("Camera deployments and sampling occasions in ", PARKL, ", ",
+  YEAR, ". Each horizontal blue line represents the period over which a ",
+  "camera was operational, from the date the camera was deployed through the ", 
+  "date the camera was retrieved. Gray vertical lines denote the beginning ",
+  "and end of the ", nrow(occasions), " consecutive sampling occasions.")
+
+segs
+
+```
+
+# Detections
+```{r detections}
+
+# Clean up species table
+species <- species %>%
+  select(-c(TSN, Family, Nativeness)) 
+species$Species[species$Species_code == "FOX"] <- "Vulpes or Urocyon sp."
+
+# Filter detection data
+# within park over time
+dat_park <- dat %>%
+  filter(Park == PARK) %>%
+  group_by(Park, yr) %>%
+  count()
+total_photos <- filter(dat_park, Park == PARK & yr == YEAR)$n
+# within park and within given years' occasion start & end
+dat <- dat %>%
+  filter(Park == PARK & yr == YEAR) %>%
+  filter(obsdate >= occasions$start[1] & 
+           obsdate <= occasions$end[nrow(occasions)])
+nphotos <- dat %>%
+  group_by(Species_code) %>%
+  summarize(n_photos = length(datetime),
+            n_locs = length(unique(loc))) %>%
+  arrange(desc(n_photos)) %>%
+  left_join(species, by = "Species_code") %>%
+  relocate(Common_name:Species, .before = n_photos) %>%
+  data.frame()
+
+# Look at detection data for various species
+# Where detection is max of one per sampling occasion at each location
+detects <- read.csv(paste0("output/species-detections-byyr-", PARK, ".csv"))
+
+detects_new <- detects %>%
+  mutate(visit = ifelse(yr == YEAR, "Current", ifelse(yr > YEAR, "Future", "Past"))) %>%
+  filter(visit != "Future") %>%
+  ungroup() %>%
+  group_by(Park, spp, visit) %>%
+  summarize(sumdetects = sum(ndetects), .groups="keep") %>%
+  pivot_wider(., names_from="visit", values_from="sumdetects") %>%
+  filter(Past==0 & Current > 0) %>%
+  left_join(species, by = c("spp" = "Species_code")) %>%
+  mutate(name = paste0(Common_name," (",Species,")", sep=""))
+
+detects_new_run = ifelse(nrow(detects_new) > 0, TRUE, FALSE)
+detects_new_text = paste("In ",YEAR, ", we detected ",paste(unlist(detects_new$name), collapse=", "), " for the first time during a sampling occasion. ", sep="")
+
+# for selected year
+detects <- detects %>%
+  dplyr::filter(yr == YEAR) %>%
+  select(c(spp, ndetects)) %>%
+  rename(Species_code = spp,
+         n_detects = ndetects)
+
+nphotos <- nphotos %>%
+  left_join(detects, by = "Species_code") %>%
+  relocate(n_detects, .after = n_photos) %>%
+  select(-Species_code)
+
+species_type <- nphotos %>%
+  mutate(separate_wider_delim(., cols=Species, delim=" ", names=c("Genus", "SpEp"), too_few = "align_start", too_many="drop")) %>%
+  mutate(Type = ifelse(is.na(SpEp),"Genera","Species")) %>%
+  mutate(Type = ifelse(Common_name == "unknown animal", "Unknown", Type))
+
+# count species and genera separately
+species_count <- nrow(filter(species_type, Type == "Species"))
+genera_count <- nrow(filter(species_type, Type == "Genera"))
+```
+
+We detected a total of `r species_count` mammal species plus `r genera_count` mammalian 
+families or genera on the `r nrow(events)` 
+cameras during the `r nrow(occasions)` sampling occasions in `r YEAR` (Table #). 
+`r if(detects_new_run){detects_new_text}`Overall, we recorded a 
+total of `r total_photos` photos of mammals, `r nrow(dat)` of which occurred within 
+the `r nrow(occasions)` sampling occasions. The number of photos containing a mammal during
+the annual monitoring at `r PARKL` has ranged from `r min(dat_park$n)` to `r max(dat_park$n)`.
+It is hard to know exactly why this range has varied throughout the years, but we are hopeful 
+to gain insight into this question in the future via multi-season occupancy modeling.
+
+**Take a look and see if there are any interesting or notable detections, even if there weren’t many of them.**
+
+
+```{r detections-table}
+
+nphotos_cap <- paste0("Mammal species detected in ",
+  PARKL, " between ", season_start, " and ", season_end, ", ", YEAR, 
+  ". No. photos is the total number of photographs obtained (multiple photos ",
+  "may occur at the same camera location in the same day). No. detections is ",
+  "the number of detections that could be used in an occupancy modeling ",
+  "framework (maximum of one photographic detection per camera location per ",
+  "sampling occasion). No. locations is the unique number of camera locations ",
+  "where the species was photographed.") 
+nphotos_cap_sens<-ifelse(nrow(nphotos %>% filter(Protected=="yes"))>0,paste("Note: ",nrow(nphotos %>% filter(Protected=="yes"))," protected species removed from table."),"")
+
+nphotos_ft <- flextable(nphotos %>% filter(Protected != "yes") %>% dplyr::select(-Protected)) %>%
+  align(j = 1:2, align = "left") %>%
+  align(j = 3:5, align = "center") %>%
+  italic(j = 2, italic = TRUE, part = "body") %>%
+  bold(bold = TRUE, part = "header") %>%
+  set_header_labels(Common_name = "Common name",
+                    Species = "Scientific name",
+                    n_photos = "No. photos",
+                    n_detects = "No. detections",
+                    n_locs = "No. locations") %>%
+  set_caption(caption = paste(nphotos_cap, nphotos_cap_sens), autonum = tab_num) %>%
+  add_footer_lines("")
+
+```
+
+```{r tab-detects, ft.align = "left", tab.id = "table"}
+
+nphotos_ft
+
+```
 
 ```{r spp-loop, results = "asis"}
 
