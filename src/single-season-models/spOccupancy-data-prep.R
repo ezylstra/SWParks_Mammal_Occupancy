@@ -204,6 +204,11 @@ for (i in covs_cont) {
   spatial_covs[,paste0(i, "_z")] <- (spatial_covs[,i] - meani) / sdi
 }
 
+# Add a column with an index for each site (to use as a non-spatial random 
+# effect in our models as a simple way to account for the non-independence
+# of data that come from the same site over multiple years). 
+spatial_covs$site <- 1:nrow(spatial_covs)
+
 # Create table with pairwise correlations between continuous covariates
 correl <- round(cor(spatial_covs[,covs_cont]), 2)
 cor_df <- as.data.frame(as.table(correl), stringsAsFactors = FALSE)
@@ -241,7 +246,8 @@ det_covs <- list(day = day,
                  slope_z = spatial_covs$slope_z,
                  trail_z = spatial_covs$trail_z,
                  roadbound_z = spatial_covs$roadbound_z,
-                 trailpoi_z = spatial_covs$trailpoi_z)
+                 trailpoi_z = spatial_covs$trailpoi_z,
+                 site = spatial_covs$site)
 if (PARK == "CHIR") {
   det_covs <- c(det_covs, 
                 list(burn_severity_2011 = spatial_covs$burn_severity_2011))
