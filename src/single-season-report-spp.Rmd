@@ -19,6 +19,7 @@ spp_plural <- ifelse(str_detect(string = spp_name,
                                               pattern = "peccary"),
                                    "collared peccaries", 
                                     paste0(spp_name, "s"))))
+spp_sciname <- species$Species[species$Species_code == SPECIES]
 
 best <- model_list$model
 psi_model <- model_list$psi_model
@@ -71,13 +72,16 @@ psi_cov_run <- ifelse(length(psi_covs > 0), TRUE, FALSE)
 
 ```
 
-# Output for `r spp_plural`
+# `r spp_plural`: example of single-season occupancy analysis
+Below is an example of outputs for a single-season occupancy model for `r spp_plural` (_`r spp_sciname`_) in `r PARKL`, based on data collected in `r YEAR`. 
+  
+__Use the information below to write 1-2 short paragraphs about what you're seeing - this may include the influence of the covariates on occurrence or detection probabilities.__
 
 ## Model used for inference
 
 The highest-ranking model for `r spp_plural` included `r n_covs_occt` in the 
 occurrence part of the model and `r n_covs_dett` in the detection part of the
-model.
+model. 
 
 ```{r}
 
@@ -233,7 +237,11 @@ if ("vegclass2" %in% psi_covs) {
 
 vegocc_ft
 
+veg_class_text <- ifelse(PARK=="SAGW","There are three coarse vegetation / landform classes (adapted from Galvin and Studd 2021): 1)  Low gradient desert with high-cover mixed cactus and ~2-15% tree cover (Palo Verde and Ironwood); 2) Low hillslope and mountain foothills, rocky, often north facing and cooler/wetter; and 3) Medium to high gradient and greater contrasting topography (rapidly switching aspects, hilly), with Jojoba shrubs dominant.", "hmmmm")
+
 ```
+
+`r if("vegclass2" %in% psi_covs){veg_class_text}`
 
 ```{r, ft.align = "left", tab.id = "table", eval = ("burn_severity_2011" %in% psi_covs)}
 
