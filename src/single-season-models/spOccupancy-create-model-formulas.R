@@ -28,6 +28,12 @@ if (OCC_NULL) {occm <- c("1", occm)}
 occm <- occm[!is.na(occm)]
 occm <- paste0("~ ", occm) 
 
+# If we want to include unstructured site random effects, add random site
+# intercepts using lme4 syntax
+if (SITE_RE_OCC == "unstructured") {
+  occm <- paste0(occm, " + (1 | site)")
+}
+
 #------------------------------------------------------------------------------#
 # Create formulas for detection part of candidate models
 #------------------------------------------------------------------------------#
@@ -47,6 +53,12 @@ if (exists("DET_MODELS")) {
 if (DET_NULL) {detm <- c("1", detm)}
 detm <- detm[!is.na(detm)]
 detm <- paste0("~ ", detm) 
+
+# If we want to include unstructured site random effects, add random site
+# intercepts using lme4 syntax
+if (SITE_RE_DET == "unstructured") {
+  detm <- paste0(detm, " + (1 | site)")
+}
 
 #------------------------------------------------------------------------------#
 # Combine occurrence and detection formulas to create candidate model 
