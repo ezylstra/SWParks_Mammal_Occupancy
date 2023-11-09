@@ -187,10 +187,10 @@ events <- events %>%
   filter(Park == PARK, d_yr == YEAR) %>%
   mutate(locnum = as.numeric(as.factor(loc))) %>%
   as.data.frame()
-deploy_start <- format(min(events$d_date), "%d %B")
-deploy_end <- format(max(events$d_date), "%d %B")
-retr_start <- format(min(events$r_date), "%d %B")
-retr_end <- format(max(events$r_date), "%d %B")
+deploy_start <- format(min(events$d_date), "%B %d")
+deploy_end <- format(max(events$d_date), "%B %d")
+retr_start <- format(min(events$r_date), "%B %d")
+retr_end <- format(max(events$r_date), "%B %d")
 
 # count number of each camera type
 cam_type <- events %>% group_by(CameraType) %>% count() %>% rename(count=n) %>% arrange(count) %>% mutate(CamText = paste(count, CameraType))
@@ -204,8 +204,8 @@ occasions <- occasions %>%
          end_yday = yday(end),
          mid_yday = round((start_yday + end_yday)/2)) %>%
   arrange(yr, occasion) 
-season_start <- format(as.Date(occasions$start[1]), "%d %B")
-season_end <- format(as.Date(occasions$end[nrow(occasions)]), "%d %B")
+season_start <- format(as.Date(occasions$start[1]), "%B %d")
+season_end <- format(as.Date(occasions$end[nrow(occasions)]), "%B %d")
 
 # Function to create chart with deployments
 ggcust_segs <- function(dat, park, year, xlims, occ){
@@ -239,7 +239,7 @@ A total of `r nrow(events)` cameras (`r cam_type_text`) were deployed in `r PARK
 `r deploy_start` and `r deploy_end` and were retrieved between 
 `r retr_start` and `r retr_end`, `r YEAR`. We delineated a total of 
 `r nrow(occasions)` sampling occasions that were each `r occasions$duration[1]` 
-days long. The first sampling occasion began on `r season_start` and the last sampling occasion ended on `r season_end`. Citizen scientists, park staff, and/or partner organizations typically assist with the fieldwork associated with camera deployments and retrievals. In `r YEAR`, __##__ volunteers and __##__ interns and staff from various parks and partner organizations helped deploy and retrieve cameras in `r PARKL`. We are grateful for their support.
+days long. The first sampling occasion began on `r season_start` and the last sampling occasion ended on `r season_end`. Community scientists, park staff, and/or partner organizations typically assist with the fieldwork associated with camera deployments and retrievals. In `r YEAR`, __##__ volunteers and __##__ interns and staff from various parks and partner organizations helped deploy and retrieve cameras in `r PARKL`. We are grateful for their support.
 
 ```{r deployment-table}
 
@@ -352,8 +352,8 @@ families or genera on the `r nrow(events)`
 cameras during the `r nrow(occasions)` sampling occasions in `r YEAR` (Table #). 
 `r if(detects_new_run){detects_new_text}`Overall, we recorded a 
 total of `r total_photos` photos of mammals, `r nrow(dat)` of which occurred within 
-the `r nrow(occasions)` sampling occasions. The number of photos containing a mammal during
-the annual monitoring at `r PARKL` has ranged from `r min(dat_park$n)` to `r max(dat_park$n)`.
+the `r nrow(occasions)` sampling occasions. The total number of photos containing a mammal during
+the annual camera deployment at `r PARKL` has ranged from `r min(dat_park$n)` to `r max(dat_park$n)`.
 It is hard to know exactly why this range has varied throughout the years, but we are hopeful 
 to gain insight into this question in the future via multi-season occupancy modeling.
 
