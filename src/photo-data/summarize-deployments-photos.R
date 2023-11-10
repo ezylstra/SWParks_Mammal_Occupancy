@@ -61,10 +61,10 @@ ggcust_hist <- function(dat, park, year, xlims){
     geom_histogram(binwidth = 1) +
     labs(x = "", y = "Number of photos") + 
     coord_cartesian(xlim = xlims) + 
-    theme(text=element_text(size = 8),
-          axis.text.x=element_blank(),
-          axis.ticks.x=element_blank(),
-          axis.title.x=element_blank(),
+    theme(text = element_text(size = 8),
+          axis.text.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.title.x = element_blank(),
           plot.margin = margin(0.2, 0.2, 0, 0.2, unit = "cm"))
 }
 
@@ -72,17 +72,17 @@ ggcust_segs <- function(dat, park, year, xlims){
   ggplot() +
     geom_segment(filter(dat, Park == park & d_yr == year),
                  mapping = aes(x = d_date, xend = r_date, y = locnum, yend = locnum),
-                 size = 0.3, color = "dodgerblue3") + 
+                 linewidth = 0.3, color = "dodgerblue3") + 
     geom_segment(filter(dat, Park == park & d_yr == year),
                  mapping = aes(x = d_date, xend = d_date, y = locnum+0.4, yend = locnum-0.4),
-                 size = 0.3, color = "dodgerblue3") + 
+                 linewidth = 0.3, color = "dodgerblue3") + 
     geom_segment(filter(dat, Park == park & d_yr == year),
                  mapping = aes(x = r_date, xend = r_date, y = locnum+0.4, yend = locnum-0.4),
-                 size = 0.3, color = "dodgerblue3") + 
+                 linewidth = 0.3, color = "dodgerblue3") + 
     labs(x = "", y = "Camera number") + 
     scale_x_date(limits = xlims, date_labels = "%b") +
-    theme(text=element_text(size = 8),
-          axis.title.x=element_blank(),
+    theme(text = element_text(size = 8),
+          axis.title.x = element_blank(),
           plot.margin = margin(0.1, 0.2, 0.2, 0.2, unit = "cm"))
 }
 
@@ -122,10 +122,10 @@ if (PARK == "SAGW") {
   
   sALL <- grid.arrange(s17, s18, s20, s21, s22, s23, nrow = 2)
   # Save plot in output/folder
-  # ggsave("output/Events&Obs_SAGW.jpg",
-  #        sALL,
-  #        width = 6.5, height = 6.5,
-  #        units = "in")
+  ggsave("output/Events&Obs_SAGW.jpg",
+         sALL,
+         width = 6.5, height = 6.5,
+         units = "in")
 }
   
 if (PARK == "ORPI") {
