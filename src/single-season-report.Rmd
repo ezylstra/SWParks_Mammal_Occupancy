@@ -196,6 +196,11 @@ retr_end <- format(max(events$r_date), "%B %d")
 cam_type <- events %>% group_by(CameraType) %>% count() %>% rename(count=n) %>% arrange(count) %>% mutate(CamText = paste(count, CameraType))
 cam_type_text <- ifelse(cam_type$count[1] == sum(cam_type$count), as.character(cam_type$CameraType[1]), paste(unlist(cam_type$CamText), collapse =", "))
 
+# Occasions by year
+occasions_yr <- occasions %>%
+  group_by(Park, yr) %>%
+  count()
+
 # Format sampling occasion data
 #occasions <- read.csv(paste0("data/occasions/occasions-", PARK, ".csv"))
 occasions <- occasions %>%
@@ -347,17 +352,12 @@ species_count <- nrow(filter(species_type, Type == "Species"))
 genera_count <- nrow(filter(species_type, Type == "Genera"))
 ```
 
-We detected a total of `r species_count` mammal species plus `r genera_count` mammalian 
+We captured `r nrow(dat)` photos and detected a total of `r species_count` mammal species plus `r genera_count` mammalian 
 families or genera on the `r nrow(events)` 
-cameras during the `r nrow(occasions)` sampling occasions in `r YEAR` (Table #). 
-`r if(detects_new_run){detects_new_text}`Overall, we recorded a 
-total of `r total_photos` photos of mammals, `r nrow(dat)` of which occurred within 
-the `r nrow(occasions)` sampling occasions. The total number of photos containing a mammal during
-the annual camera deployment at `r PARKL` has ranged from `r min(dat_park$n)` to `r max(dat_park$n)`.
-It is hard to know exactly why this range has varied throughout the years, but we are hopeful 
-to gain insight into this question in the future via multi-season occupancy modeling.
+cameras during the `r nrow(occasions)` sampling occasions (weeks) in `r YEAR` (Table #). 
+`r if(detects_new_run){detects_new_text}`
 
-**Take a look and see if there are any interesting or notable detections, even if there weren’t many of them.**
+**Take a look and see if there are any interesting or notable detections, even if there weren’t many of them. If there were new detections, those will be mentioned above.**
 
 
 ```{r detections-table}
