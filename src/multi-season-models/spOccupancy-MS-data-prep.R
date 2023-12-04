@@ -36,7 +36,7 @@ for (i in 1:nrow(occasions)) {
 # Retain a maximum of one observation per day at each location
 obs <- dat %>% 
   filter(Species_code == SPECIES & yr %in% YEARS) %>%
-  select(loc, obsdate, o_day) %>%
+  dplyr::select(loc, obsdate, o_day) %>%
   arrange(loc, obsdate) %>%
   distinct
 
@@ -45,7 +45,7 @@ events_park <- events %>%
   filter(d_yr %in% YEARS)
 locs_park <- locs %>%
   filter(loc %in% events_park$loc) %>%
-  select(loc, longitude, latitude) %>%
+  dplyr::select(loc, longitude, latitude) %>%
   rename(long = longitude, lat = latitude) %>%
   arrange(loc)
 
@@ -112,7 +112,7 @@ for (i in 1:nrow(occ_matrix)) {
 events_park <- cbind(events_park, occ_matrix)
 # Remove rows in the dataframe that aren't associated with any sampling occasion
 events_park <- events_park %>%
-  mutate(n_occ = rowSums(select(., occasions$yr_occ))) %>%
+  mutate(n_occ = rowSums(dplyr::select(., occasions$yr_occ))) %>%
   filter(n_occ > 0) %>%
   arrange(loc, start_day)
 
@@ -307,8 +307,10 @@ if (length(list.files(weather_folder)) == 0) {
 # List files in weather folder
 weather_files <- list.files(weather_folder, full.names = TRUE)
 
-# Put lat/longs for camera locations in matrix
-loc_matrix <- as.matrix(locs_park[,c("long", "lat")])
+# Load shapefile with park boundary
+parks <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
+park_b <- terra::subset(parks, parks$UNIT_CODE == "SAGW")
+park_b <- as(park_b, "Spatial")
 
 # Extract and compile monsoon precipitation data
   monsoon_files <- weather_files[str_detect(weather_files, "monsoon_ppt")]
@@ -318,28 +320,18 @@ loc_matrix <- as.matrix(locs_park[,c("long", "lat")])
   monsoon_yrs <- paste0(as.character(YEARS - 1), collapse = "|")
   monsoon_files <- monsoon_files[str_detect(monsoon_files, monsoon_yrs)]
 
-  # Load each raster and compile into a list
-  monsoon_list <- list()
+  # Load each raster and compute the mean value across the park in that year
+  monsoon_ppt <- rep(NA, length(monsoon_files))
   for (i in 1:length(monsoon_files)) {
-    monsoon_list[[i]] <- rast(monsoon_files[i])
-    names(monsoon_list[[i]]) <- "monsoon_ppt"
+    monsoon_raster <- rast(monsoon_files[i])
+    monsoon_ppt[i] <- exact_extract(monsoon_raster, park_b, "mean")
   }  
   
-  # Extract values 
-  monsoon_ppt <- matrix(NA, 
-                        nrow = dim(dh)[1], 
-                        ncol = dim(dh)[2], 
-                        dimnames = dimnames(dh)[1])
-  # Check that site names in matrix are in same order as locs_park
-  # all.equal(rownames(monsoon_ppt), locs_park$loc)
-  
-  for (i in 1:length(monsoon_list)) {
-    monsoon_ppt[,i] <- terra::extract(x = monsoon_list[[i]],
-                             y = locs_park[,c("long", "lat")],
-                             ID = FALSE)[, "monsoon_ppt"]
-  }
-
-  # Standardize values
+  monsoon_ppt <- matrix(monsoon_ppt, 
+                        nrow = dim(dh)[1],
+                        ncol = dim(dh)[2],
+                        byrow = TRUE)
+  # Standardize
   monsoon_ppt_mn <- mean(monsoon_ppt)
   monsoon_ppt_sd <- sd(monsoon_ppt)
   monsoon_ppt_z <- (monsoon_ppt - monsoon_ppt_mn) / monsoon_ppt_sd 
@@ -356,25 +348,18 @@ loc_matrix <- as.matrix(locs_park[,c("long", "lat")])
     ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS - 1)]    
   }
 
-  # Load each raster and compile into a list
-  ppt10_list <- list()
+  # Load each raster and compute the mean value across the park in that year
+  ppt10 <- rep(NA, length(ppt10_files))
   for (i in 1:length(ppt10_files)) {
-    ppt10_list[[i]] <- rast(ppt10_files[i])
-    names(ppt10_list[[i]]) <- "ppt10"
+    ppt10_raster <- rast(ppt10_files[i])
+    ppt10[i] <- exact_extract(ppt10_raster, park_b, "mean")
   }  
   
-  # Extract values 
-  ppt10 <- matrix(NA, 
-                  nrow = dim(dh)[1], 
-                  ncol = dim(dh)[2], 
-                  dimnames = dimnames(dh)[1])
-  for (i in 1:length(ppt10_list)) {
-    ppt10[,i] <- terra::extract(x = ppt10_list[[i]],
-                                y = locs_park[,c("long", "lat")],
-                                ID = FALSE)[, "ppt10"]
-  } 
-  
-  # Standardize values
+  ppt10 <- matrix(ppt10, 
+                  nrow = dim(dh)[1],
+                  ncol = dim(dh)[2],
+                  byrow = TRUE)
+  # Standardize
   ppt10_mn <- mean(ppt10)
   ppt10_sd <- sd(ppt10)
   ppt10_z <- (ppt10 - ppt10_mn) / ppt10_sd 
@@ -426,7 +411,7 @@ cor_df <- cor_df %>%
   filter(Freq != 1) %>%
   mutate(variable1 = pmin(Var1, Var2), .before = Var1) %>%
   mutate(variable2 = pmax(Var1, Var2), .before = Var1) %>%
-  select(-c(Var1, Var2)) %>%
+  dplyr::select(-c(Var1, Var2)) %>%
   distinct() %>%
   arrange(variable1, variable2) %>%
   rename(corr = Freq)
@@ -535,9 +520,9 @@ if (PARK == "ORPI") {
                 list(lens_2023 = lens_2023))
 }
 
-
-# spOccupancy can't take lat/long, so we'll need to reproject coordinates to 
-# WGS 84, Zone 12 = epsg:32612 (should work for all parks)
+# spOccupancy needs camera locations, but can't take lat/long, so we'll need to 
+# reproject coordinates to WGS 84, Zone 12 = epsg:32612 (should work for all parks)
+loc_matrix <- as.matrix(locs_park[,c("long", "lat")])
 loc_utms <- terra::project(loc_matrix,
                            from = "epsg:4269",
                            to = "epsg:32612")

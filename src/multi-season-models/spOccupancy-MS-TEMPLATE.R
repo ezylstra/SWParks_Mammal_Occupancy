@@ -16,6 +16,8 @@ library(stringr)
 library(tidyr)
 library(abind)
 library(terra)
+library(raster)
+library(exactextractr)
 library(spOccupancy)
 library(ggplot2)
 library(gridExtra)
@@ -54,7 +56,7 @@ detects <- arrange(detects, desc(propdetect))
 # of nobs [camera locations * sampling occasion] with species detection)
 detects %>% 
   left_join(species, by = c("spp" = "Species_code")) %>%
-  select(c(spp, Species, Common_name, nobs, propdetect))
+  dplyr::select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
 SPECIES <- "ODHE"
@@ -405,6 +407,9 @@ estimates
 # Evaluate best model and look at estimates
 #------------------------------------------------------------------------------#
 
+# TODO: Make changes in script below and in prediction script now that we've 
+# removed the spatial component from precipitation covariates.
+  
 # Extract names of covariates (with and without "_z" subscripts) from best model
 # And for occurrence, extract names of spatial covariates
 psi_covs_z <- create_cov_list(best_psi_model)
