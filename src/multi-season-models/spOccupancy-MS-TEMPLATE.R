@@ -3,7 +3,7 @@
 # a given park, set of years, and species (using the spOccupancy package)
 
 # ER Zylstra
-# Updated 2023-12-04
+# Updated 2023-12-06
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -294,7 +294,7 @@ model_stats %>% arrange(waic)
 STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 2
+  best_index <- 1
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -514,13 +514,20 @@ if (length(psi_spatcovs) > 0) {
   # plotname <- paste0("C:/.../",
   #                    PARK, "-", SPECIES, "-OccVSYear.jpg")
   
-  # ggsave(filename = "C:/...",
+  # ggsave(filename = plotname,
   #        plot = plot_save,
   #        device = "jpeg",
   #        width = 4,
   #        height = 4,
   #        units = "in",
   #        dpi = 600)
+  
+# If yearly random effects were in occurrence model, print here for reference
+  yrREcols <- grepl("years", colnames(best$beta.star.samples))
+  apply(best$beta.star.samples[,yrREcols], 2, mean)
+  # Positive values indicate mean occurrence probabilities were higher than 
+  # expected based only on fixed effects in the model. Negative values indicate
+  # values were lower than expected. 
 
 #------------------------------------------------------------------------------#
 # Calculate and create figures depicting marginal effects of covariates on 
@@ -558,7 +565,7 @@ for (fig in str_subset(ls(), "marginal_psi_")) {
   print(get(fig))
 }
 # Could also save any of the plots to file using ggsave()
-# ggsave(filename = paste0("C:/Users/erin/OneDrive/SODN/Mammals/SAGW_20172022_PrelimResults/",
+# ggsave(filename = paste0("C:/.../",
 #                          PARK, "-", SPECIES, "-Occ-wash.jpg"),
 #        plot = marginal_psi_wash,
 #        device = "jpeg",
@@ -656,10 +663,3 @@ if (p_n_cont == 0 & length(p_covs) == 0) {
                                upper_ci = 0.975)
   print(overall_det)
 }  
-
-#------------------------------------------------------------------------------#
-# Clean up
-#------------------------------------------------------------------------------#
-
-# Remove weather rasters from local repo
-invisible(file.remove(list.files(weather_folder, full.names = TRUE)))

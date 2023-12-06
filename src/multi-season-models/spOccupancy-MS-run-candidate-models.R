@@ -88,15 +88,19 @@ for (i in 1:length(out_list)) {
 # Extract a few model diagnostics
 #------------------------------------------------------------------------------#
 
-# Assess convergence with Rhat value (maximum across all parameters, excluding
-# random effects). Would like to see a value < 1.05
+# Assess convergence with Rhat value (maximum across all parameters, calculated
+# separately for fixed and random effects). Would like to see a value < 1.05
 max_rhat <- lapply(out_list, function(x)
   if(length(x) == 2) NA else max(unlist(c(x$rhat$beta, x$rhat$alpha))))
+max_rhat_re <- lapply(out_list, function(x)
+  if(length(x) == 2) NA else max(x$rhat$sigma.sq.psi))
 
-# Assess effective sample sizes (ESS; minimum across all parameters, excluding
-# random effects). Would like to see a value > 400.
+# Assess effective sample sizes (ESS; minimum across all parameters, calculated
+# separately for fixed and random effects). Would like to see a value > 400.
 min_ESS <- lapply(out_list, function(x) 
   if(length(x) == 2) NA else min(unlist(x$ESS$beta, x$ESS$alpha)))
+min_ESS_re <- lapply(out_list, function(x)
+  if(length(x) == 2) NA else min(x$ESS$sigma.sq.psi))
 
 # Posterior predictive checks (how well does our model fit the data?)
   # From vignette: binning the data across sites (group = 1) may help reveal 
@@ -150,6 +154,8 @@ model_stats <- data.frame(model_no = 1:length(out_list),
                           det = model_specs[,"det"],
                           max.rhat = round(unlist(max_rhat), 2),
                           min.ESS = round(unlist(min_ESS)),
+                          max.rhat.re = round(unlist(max_rhat_re), 2),
+                          min.ESS.re = round(unlist(min_ESS_re)),
                           ppc.sites = unlist(lapply(ppc.sites, 
                                                     FUN = bayes.p.ms)),
                           ppc.reps = unlist(lapply(ppc.reps, 

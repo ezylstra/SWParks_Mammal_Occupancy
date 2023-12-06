@@ -509,7 +509,7 @@ occ_time_plot <- function(model,
     
     yr_mn <- mean(data_list$occ.covs[["years"]])
     yr_sd <- sd(data_list$occ.covs[["years"]])
-    yr_plot <- X_trend[,2] * cov_sd + cov_mn
+    yr_plot <- X_trend[,2] * yr_sd + yr_mn
     
     trend_df <- data.frame(x = yr_plot,
                            cent = preds_tr_cent,
