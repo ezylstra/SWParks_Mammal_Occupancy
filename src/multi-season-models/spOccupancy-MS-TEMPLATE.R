@@ -153,21 +153,24 @@ source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
 message("Check candidate models:", sep = "\n")
 model_specs
 
-# Set MCMC parameters
+# Set MCMC parameters (number of samples will depend on whether temporal random 
+# effects are included in models or not). Note that instead of specifying the 
+# total number of samples (like we did for single-season models), we'll split 
+# the samples into a set of N_BATCH batches, each comprised of BATCH_LENGTH 
+# samples to improve mixing for the adaptive algorithm. See documentation for 
+# the spOccupancy package for more info.
 N_CHAINS <- 3
-N_BURN <- 4000
-N_THIN <- 15
-
-# Instead of specifying the total number of samples (like we did for single-
-# season models), we'll split the samples into a set of N_BATCH batches, each
-# comprised of BATCH_LENGTH samples to improve mixing for the adaptive 
-# algorithm. See documentation for the spOccupancy package for more info.
-# Note that we're generating a fair number of samples to accommodate random 
-# effects (had previously used burn = 2000, thin = 10, n_batch = 280)
-
-N_BATCH <- 460
-BATCH_LENGTH <- 25
-
+if (TIME_RE_OCC == "none") {
+  N_BURN <- 2000
+  N_THIN <- 10
+  N_BATCH <- 280
+  BATCH_LENGTH <- 25  
+} else {
+  N_BURN <- 4000
+  N_THIN <- 15
+  N_BATCH <- 460
+  BATCH_LENGTH <- 25
+}
 n_samples <- N_BATCH * BATCH_LENGTH
 message("MCMC specifications will result in a total of ",
         (n_samples - N_BURN) * N_CHAINS / N_THIN, 
