@@ -18,9 +18,12 @@
 # Create multi-layer raster with covariate data
 #------------------------------------------------------------------------------#
 
-# Identify time-invariant spatial covariates
-time_invar <- psi_spatcovs[!psi_spatcovs %in% c("ppt10", "monsoon_ppt")]
-time_invar_z <- psi_spatcovs_z[!psi_spatcovs_z %in% c("ppt10_z", "monsoon_ppt_z")]
+# Identify time-invariant spatial covariates (For the time being, all of our 
+# spatial covariates are time-invariant. Leaving this in here in case we 
+# add covariates that do vary over space and time)
+spattime_covs <- NA
+time_invar <- psi_spatcovs[!psi_spatcovs %in% spattime_covs]
+time_invar_z <- psi_spatcovs_z[!psi_spatcovs_z %in% spattime_covs]
 
 # Extract layers from park_raster for spatial covariates (that don't vary by
 # year) in best model 
@@ -118,34 +121,46 @@ if ("visits_z" %in% cov_order) {
     X.0[, , which(cov_order == "visits_z")] <- 0
   }
 }
-
-# If annual, spatial covariates are in the occurrence model and we want to make 
-# predictions for the first and last year under observed conditions, then grab
-# the standarized values and place them in the appropriate slice of X.0
 if ("monsoon_ppt_z" %in% cov_order) {
   if (ANN_PREDS == "observed") {
-    monsoon_raster <- rast(monsoon_list[which(YEARS %in% pred_years)])
-    monsoon_raster <- resample(monsoon_raster, psi_rasters, method = "near")
-    monsoon_df <- as.data.frame(monsoon_raster, cell = TRUE)
-    monsoon_df <- monsoon_df[monsoon_df$cell %in% psi_rasters_df$cell,]
-    monsoon_df[, -1] <- (monsoon_df[, -1] - monsoon_ppt_mn) / monsoon_ppt_sd
-    X.0[, , which(cov_order == "monsoon_ppt_z")] <- as.matrix(monsoon_df[, -1])
+    monsoon_pred <- matrix(rep(data_list$occ.covs$monsoon_ppt_z[1, which(YEARS %in% pred_years)],
+                               nrow(psi_rasters_df)),
+                           nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                           byrow = TRUE)
+    X.0[, , which(cov_order == "monsoon_ppt_z")] <- monsoon_pred
   } else {
     X.0[, , which(cov_order == "monsoon_ppt_z")] <- 0
   }
 }
 if ("ppt10_z" %in% cov_order) {
   if (ANN_PREDS == "observed") {
-    ppt10_raster <- rast(ppt10_list[which(YEARS %in% pred_years)])
-    ppt10_raster <- resample(ppt10_raster, psi_rasters, method = "near")
-    ppt10_df <- as.data.frame(ppt10_raster, cell = TRUE)
-    ppt10_df <- ppt10_df[ppt10_df$cell %in% psi_rasters_df$cell,]
-    ppt10_df[, -1] <- (ppt10_df[, -1] - ppt10_mn) / ppt10_sd
-    X.0[, , which(cov_order == "ppt10_z")] <- as.matrix(ppt10_df[, -1])
+    ppt10_pred <- matrix(rep(data_list$occ.covs$ppt10_z[1, which(YEARS %in% pred_years)],
+                             nrow(psi_rasters_df)),
+                         nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                         byrow = TRUE)
+    X.0[, , which(cov_order == "ppt10_z")] <- ppt10_pred
   } else {
     X.0[, , which(cov_order == "ppt10_z")] <- 0
   }
 }
+
+# If annual, spatial covariates are in the occurrence model and we want to make 
+# predictions for the first and last year under observed conditions, then grab
+# the standarized values and place them in the appropriate slice of X.0. (Again,
+# leaving this in as an example in case we add covariates that vary over space
+# and time)
+  # if ("monsoon_ppt_z" %in% cov_order) {
+  #   if (ANN_PREDS == "observed") {
+  #     monsoon_raster <- rast(monsoon_list[which(YEARS %in% pred_years)])
+  #     monsoon_raster <- resample(monsoon_raster, psi_rasters, method = "near")
+  #     monsoon_df <- as.data.frame(monsoon_raster, cell = TRUE)
+  #     monsoon_df <- monsoon_df[monsoon_df$cell %in% psi_rasters_df$cell,]
+  #     monsoon_df[, -1] <- (monsoon_df[, -1] - monsoon_ppt_mn) / monsoon_ppt_sd
+  #     X.0[, , which(cov_order == "monsoon_ppt_z")] <- as.matrix(monsoon_df[, -1])
+  #   } else {
+  #     X.0[, , which(cov_order == "monsoon_ppt_z")] <- 0
+  #   }
+  # }
 
 # Identify which slices of X.0 haven't been filled in yet (if any). The number 
 # of slices should equal the number of time-invariant spatial covariates in the 
@@ -181,13 +196,23 @@ if (length(slicestofill) > 0) {
     # non-sampled sites, but with larger uncertainty.
 
 ignore.RE <- FALSE
-# If we want to include unstructured REs in predictions, we need to add a slice
-# to the X.0 array (putting 0's in there, but I also tried NAs and the results
-# were the same)
+# Are yearly REs in the model?
+yrRE <- ifelse(dim(best$X.re)[3] == 2, 1, 0)
+
+# If we want to include unstructured REs in predictions, we need to add slices
+# to the X.0 array (putting NAs in there for site)
 if (ignore.RE == FALSE) {
-  RE <- matrix(0, nrow = dim(X.0)[1], ncol = dim(X.0)[2])
-  X.0 <- abind(X.0, RE, along = 3)
-  dimnames(X.0)[[3]] <- c(cov_order, "site")
+  if (yrRE == 1) {
+    siteRE <- matrix(NA, nrow = dim(X.0)[1], ncol = dim(X.0)[2])
+    yearRE <- matrix(pred_years, byrow = TRUE,
+                     nrow = dim(X.0)[1], ncol = dim(X.0)[2])
+    X.0 <- abind(X.0, siteRE, yearRE, along = 3)
+    dimnames(X.0)[[3]] <- c(cov_order, "site", "years")
+  } else {
+    siteRE <- matrix(NA, nrow = dim(X.0)[1], ncol = dim(X.0)[2])
+    X.0 <- abind(X.0, siteRE, along = 3)
+    dimnames(X.0)[[3]] <- c(cov_order, "site")
+  }
 }
 
 best_pred <- predict(object = best, 

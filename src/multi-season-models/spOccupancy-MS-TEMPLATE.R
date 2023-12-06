@@ -300,7 +300,56 @@ if (STAT == "model_no") {
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
 }
 
-# Extract output and formulas from best model in 
+# Look at covariate effects (for both occurrence and detection). In general, 
+# covariates with f values close to or above 0.9 have more explanatory power.
+summary(out_list[[best_index]])
+samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
+               out_list[[best_index]]$alpha.samples[, -1])
+(f <- apply(samps, 2, function(x) ifelse(mean(x) > 0, sum(x > 0) / length(x),
+                                         sum(x < 0) / length(x))))
+
+# If all the covariates have sufficient explanatory power, then move on to the 
+# next step (looking at results from best model and saving model object, below). 
+# If not, run a model that excludes covariates with little to no explanatory 
+# power from the model for occurrence.
+
+  # Identify new set(s) of spatial covariates to explore:
+  scov_new <- list(c("roads"), 
+                   c("roads", "slope"), 
+                   c("boundary", "slope"),
+                   c("roads", "veg"),
+                   c("roads", "veg", "slope"))
+  OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
+  # If needed, refine the detection model
+  # DET_MODELS <- list(c("day", "effort"))
+  source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
+  message("Check candidate models:", sep = "\n")
+  model_specs
+  
+  # Run model(s)
+  source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
+  model_stats %>% arrange(waic)
+
+  # Specify STAT as either: waic or model_no
+  STAT <- "waic"   
+  if (STAT == "model_no") {
+    # If STAT == "model_no", specify model of interest by model number in table
+    best_index <- 4  
+  } else {
+    min_stat <- min(model_stats[,STAT])
+    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
+  }
+  # Look at model output and f values 
+  summary(out_list[[best_index]])
+  samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
+                 out_list[[best_index]]$alpha.samples[, -1])
+  (f <- apply(samps, 2, function(x) ifelse(mean(x) > 0, sum(x > 0) / length(x),
+                                           sum(x < 0) / length(x))))  
+  
+  # If there's a need to explore additional models and add more samples, re-run 
+  # after specifying scov_new again or changing MCMC parameters, otherwise...
+  
+# Identify model that will be used for inferences, extract output and formulas
 best <- out_list[[best_index]]
 best_psi_model <- model_specs[best_index, 1]
 best_p_model <- model_specs[best_index, 2]
@@ -320,129 +369,6 @@ det_estimates <- det_estimates %>%
   mutate(Parameter = "Detection", .before = "Covariate")
 estimates <- rbind(occ_estimates, det_estimates)
 estimates
-
-# If all the covariates have sufficient explanatory power, then move on to the 
-# next step (looking at results from best model, below). If not, run a model 
-# that excludes covariates with little to no explanatory power from the model 
-# for occurrence. (One way to assess whether covariates have explanatory power
-# is to identify those with f > 0.9)
-
-  # Identify new set(s) of spatial covariates to include in model for inference:
-  scov_new <- list(c("roads"), 
-                   c("roads", "slope"), 
-                   c("boundary", "slope"),
-                   c("roads", "veg"),
-                   c("roads", "veg", "slope"))
-  OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
-  # Refine the detection model (if needed)
-  # DET_MODELS <- list(c("day", "effort"))
-  source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
-  message("Check candidate models:", sep = "\n")
-  model_specs
-  
-  # Run model(s)
-  source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
-  model_stats %>% arrange(waic)
-
-  # Specify STAT as either: waic or model_no
-  STAT <- "model_no"   
-  if (STAT == "model_no") {
-    # If STAT == "model_no", specify model of interest by model number in table
-    best_index <- 2  
-  } else {
-    min_stat <- min(model_stats[,STAT])
-    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
-  }
-    
-  # Extract output and formulas from best model in 
-  best <- out_list[[best_index]]
-  best_psi_model <- model_specs[best_index, 1]
-  best_p_model <- model_specs[best_index, 2]
-  occ_estimates <- parameter_estimates(model = best, 
-                                       parameter = "occ",
-                                       lower_ci = 0.025,
-                                       upper_ci = 0.975)
-  det_estimates <- parameter_estimates(model = best, 
-                                       parameter = "det",
-                                       lower_ci = 0.025,
-                                       upper_ci = 0.975)
-  occ_estimates <- occ_estimates %>%
-    rename(Covariate = Parameter) %>%
-    mutate(Parameter = "Occurrence", .before = "Covariate")
-  det_estimates <- det_estimates %>%
-    rename(Covariate = Parameter) %>%
-    mutate(Parameter = "Detection", .before = "Covariate")
-  estimates <- rbind(occ_estimates, det_estimates)
-  estimates
-  
-  # Check if ESS/Rhats are sufficient. If not, might need to run for longer
-  summary(best)
-  
-  # If necessary, increase number of samples and run again:
-    # N_CHAINS <- 3
-    # N_BURN <- 4000
-    # N_THIN <- 20
-    # N_BATCH <- 560
-    # BATCH_LENGTH <- 25
-    # n_samples <- N_BATCH * BATCH_LENGTH
-    # message("MCMC specifications will result in a total of ",
-    #         (n_samples - N_BURN) * N_CHAINS / N_THIN,
-    #         " posterior samples for each parameter.")
-    #  
-    # source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
-    # STAT <- "waic"   
-    # min_stat <- min(model_stats[,STAT])
-    # best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
-    # best <- out_list[[best_index]]
-    # summary(best)
-  
-  # Save model object to file
-  model_filename <- paste0("output/multi-season-models/", PARK, "-", 
-                           YEARS[1], "-", YEARS[length(YEARS)],
-                           "-", SPECIES, ".rds")
-  model_list <- list(model = best, 
-                     psi_model = best_psi_model,
-                     p_model = best_p_model,
-                     data = data_list)
-  saveRDS(model_list, file = model_filename)  
-
-#------------------------------------------------------------------------------#
-# Evaluate best model and look at estimates
-#------------------------------------------------------------------------------#
-
-# TODO: Make changes in script below and in prediction script now that we've 
-# removed the spatial component from precipitation covariates.
-  
-# Extract names of covariates (with and without "_z" subscripts) from best model
-# And for occurrence, extract names of spatial covariates
-psi_covs_z <- create_cov_list(best_psi_model)
-if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
-  psi_covs_z <- character(0)
-  psi_covs <- character(0)
-  psi_spatcovs_z <- character(0)
-  psi_spatcovs <- character(0)
-} else {
-  psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
-  psi_spatcovs_z <- psi_covs_z[!psi_covs_z %in% c("years_z", "visits_z", "traffic_z")]
-  psi_spatcovs <- psi_covs[!psi_covs %in% c("years", "visits", "traffic")]  
-}
-p_covs_z <- create_cov_list(best_p_model)
-if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
-  p_covs_z <- character(0)
-  p_covs <- character(0)
-} else {
-  p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
-}
-
-# View parameter estimates
-summary(best)
-
-# Can save estimates table to file with code below
-# write.csv(estimates,
-#           file = paste0("C:/.../",
-#                         PARK, "-", SPECIES, "-", 
-#                         YEARS[1], YEARS[length(YEARS)], ".csv"),
-#           row.names = FALSE)
 
 # View trace plots
 # plot(best$beta.samples, density = FALSE)
@@ -465,6 +391,39 @@ if (ppc.rep < 0.1 | ppc.site > 0.9) {
   cat(paste0("PPC indicates that we have adequately described temporal ",
              "variation in detection.\n"))
 }
+
+# Extract names of covariates (with and without "_z" subscripts) from best model
+# And for occurrence, extract names of spatial covariates
+nonspat_z <- c("years_z", "visits_z", "traffic_z", "monsoon_ppt_z", "ppt10_z")
+nonspat <- str_remove(nonspat_z, "_z")
+psi_covs_z <- create_cov_list(best_psi_model)
+if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
+  psi_covs_z <- character(0)
+  psi_covs <- character(0)
+  psi_spatcovs_z <- character(0)
+  psi_spatcovs <- character(0)
+} else {
+  psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
+  psi_spatcovs_z <- psi_covs_z[!psi_covs_z %in% nonspat_z]
+  psi_spatcovs <- psi_covs[!psi_covs %in% nonspat]  
+}
+p_covs_z <- create_cov_list(best_p_model)
+if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
+  p_covs_z <- character(0)
+  p_covs <- character(0)
+} else {
+  p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
+}
+
+# Save model object to file
+model_filename <- paste0("output/multi-season-models/", PARK, "-", 
+                         YEARS[1], "-", YEARS[length(YEARS)],
+                         "-", SPECIES, ".rds")
+model_list <- list(model = best, 
+                   psi_model = best_psi_model,
+                   p_model = best_p_model,
+                   data = data_list)
+saveRDS(model_list, file = model_filename)  
 
 #------------------------------------------------------------------------------#
 # Calculate and visualize predicted probabilities of occurrence, across park
@@ -514,12 +473,12 @@ if (length(psi_spatcovs) > 0) {
   # Can save any of the plots to file (example below):
   plot_save <- plot_preds_mn_lastyr +
     theme_bw(base_size = 8)
-  plotname <- paste0("C:/Users/erin/OneDrive/SODN/Mammals/SAGW_20172022_PrelimResults/",
+  plotname <- paste0("...",
                      PARK, "-", SPECIES, "-OccProbMN-",
                      YEARS[length(YEARS)], ".jpg")
   plot_save1 <- plot_preds_mn_firstyr +
     theme_bw(base_size = 8)
-  plotname1 <- paste0("C:/Users/erin/OneDrive/SODN/Mammals/SAGW_20172022_PrelimResults/",
+  plotname1 <- paste0("...",
                       PARK, "-", SPECIES, "-OccProbMN-",
                       YEARS[1], ".jpg")
   
