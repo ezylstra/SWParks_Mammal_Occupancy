@@ -492,42 +492,35 @@ if (length(psi_spatcovs) > 0) {
 }
 
 #------------------------------------------------------------------------------#
-# Make this a plot of mean occurrence probability over time (for years or any
-# other annual covariate). Include naive occupancy AND include random effects
-# (with different symbols) #####################################################
-
-# Calculate and create figures trends in occurrence probability over time
-# (only if "years" is in the model for occurrence)
+# Visualize annual occurrence estimates (and trends if "years" is in the model)
 #------------------------------------------------------------------------------#
 
-# Note: if there are other annual covariates in the model (eg, traffic), this is 
-# the predicted trend assuming mean levels of that covariate each year. In other
-# words, this is the predicted trend after accounting for all other covariates.
+# This is a plot with annual occurrence estimates that include yearly random 
+# effects (black circles, with 95% CIs) and the estimated trend (if "years" is
+# in the model). If raw_occ = TRUE, naive occurrence estimates (proportion of 
+# sites with a detection) will be included (open circles)
 
-if ("years" %in% psi_covs) {
-  trend <- trend_plot_occ(model = best, 
-                          data_list = data_list,
-                          covariate_table = covariates,
-                          raw_occ = TRUE,
-                          central_meas = mean,
-                          lower_ci = 0.025,
-                          upper_ci = 0.975)
-  print(trend)
+  occ_time <- occ_time_plot(model = best, 
+                            data_list = data_list,
+                            covariate_table = covariates,
+                            raw_occ = TRUE,
+                            central_meas = mean,
+                            lower_ci = 0.025,
+                            upper_ci = 0.975)
+  suppressWarnings(print(occ_time))
   # Save to file
-  plot_save <- trend +
-    theme_classic(base_size = 8)
+  plot_save <- occ_time +
+    theme(text = element_text(size = 8))
   # plotname <- paste0("C:/.../",
-  #                    PARK, "-", SPECIES, "-Trend.jpg")
+  #                    PARK, "-", SPECIES, "-OccVSYear.jpg")
   
-  # ggsave(filename = plotname,
+  # ggsave(filename = "C:/...",
   #        plot = plot_save,
   #        device = "jpeg",
   #        width = 4,
   #        height = 4,
   #        units = "in",
   #        dpi = 600)
-}
-
 
 #------------------------------------------------------------------------------#
 # Calculate and create figures depicting marginal effects of covariates on 
