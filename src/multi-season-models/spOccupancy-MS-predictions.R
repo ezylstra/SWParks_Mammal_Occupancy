@@ -200,16 +200,26 @@ ignore.RE <- FALSE
 yrRE <- ifelse(dim(best$X.re)[3] == 2, 1, 0)
 
 # If we want to include unstructured REs in predictions, we need to add slices
-# to the X.0 array (putting NAs in there for site)
+# to the X.0 array (putting 0s in there for site, or year if want "averaged" 
+# annual effects)
+  # Check level names for random effects:
+  # best$re.level.names
+  # Check summary of random effects for each site, year:
+  # summary(best$beta.star.samples)
 if (ignore.RE == FALSE) {
-  if (yrRE == 1) {
-    siteRE <- matrix(NA, nrow = dim(X.0)[1], ncol = dim(X.0)[2])
+  siteRE <- matrix(0, nrow = dim(X.0)[1], ncol = dim(X.0)[2])
+  if (yrRE == 1 & ANN_PREDS == "observed") {
     yearRE <- matrix(pred_years, byrow = TRUE,
                      nrow = dim(X.0)[1], ncol = dim(X.0)[2])
     X.0 <- abind(X.0, siteRE, yearRE, along = 3)
     dimnames(X.0)[[3]] <- c(cov_order, "site", "years")
-  } else {
-    siteRE <- matrix(NA, nrow = dim(X.0)[1], ncol = dim(X.0)[2])
+  }
+  if (yrRE == 1 & ANN_PREDS == "averaged") {
+    yearRE <- matrix(0, nrow = dim(X.0)[1], ncol = dim(X.0)[2])
+    X.0 <- abind(X.0, siteRE, yearRE, along = 3)
+    dimnames(X.0)[[3]] <- c(cov_order, "site", "years")
+  }
+  if (yrRE == 0) {
     X.0 <- abind(X.0, siteRE, along = 3)
     dimnames(X.0)[[3]] <- c(cov_order, "site")
   }
@@ -242,27 +252,47 @@ preds_sd_lastyr <- rast(psi_rasters[[1]])
 preds_sd_lastyr[plot_dat[,1]] <- plot_dat[,5]
 names(preds_sd_lastyr) <- "sd_lastyr"
 
-# Use tidyterra to create plots using ggplot syntax
+# Use tidyterra to create plots with the same color scale in both years
+minmax_mn <- plot_dat %>%
+  select(contains("mean_psi")) %>%
+  as.matrix() %>%  
+  range
+minmax_sd <- plot_dat %>%
+  select(contains("sd_psi")) %>%
+  as.matrix() %>%
+  range
+
+col_scale_mn = scale_fill_gradientn(
+  colors = hcl.colors(100, palette = "viridis"),
+  limits = minmax_mn,
+  na.value = "transparent"
+)
+col_scale_sd = scale_fill_gradientn(
+  colors = hcl.colors(100, palette = "viridis"),
+  limits = minmax_sd,
+  na.value = "transparent"
+)
+
 plot_preds_mn_firstyr <- ggplot() + 
   geom_spatraster(data = preds_mn_firstyr, mapping = aes(fill = mean_firstyr)) + 
-  scale_fill_viridis_c(na.value = 'transparent') +
+  col_scale_mn +
   labs(fill = "", title = paste0("Mean occurrence probability, ", YEARS[1])) +
   theme_bw()
 plot_preds_mn_lastyr <- ggplot() + 
   geom_spatraster(data = preds_mn_lastyr, mapping = aes(fill = mean_lastyr)) + 
-  scale_fill_viridis_c(na.value = 'transparent') +
+  col_scale_mn +
   labs(fill = "", title = paste0("Mean occurrence probability, ", YEARS[length(YEARS)])) +
   theme_bw()
 # grid.arrange(plot_preds_mn_firstyr, plot_preds_mn_lastyr, nrow = 2)
 
 plot_preds_sd_firstyr <- ggplot() + 
   geom_spatraster(data = preds_sd_firstyr, mapping = aes(fill = sd_firstyr)) + 
-  scale_fill_viridis_c(na.value = 'transparent') +
+  col_scale_sd +
   labs(fill = "", title = paste0("SD occurrence probability, ", YEARS[1])) +
   theme_bw()
 plot_preds_sd_lastyr <- ggplot() + 
   geom_spatraster(data = preds_sd_lastyr, mapping = aes(fill = sd_lastyr)) + 
-  scale_fill_viridis_c(na.value = 'transparent') +
+  col_scale_sd +
   labs(fill = "", title = paste0("SD occurrence probability, ", YEARS[length(YEARS)])) +
   theme_bw()
 # grid.arrange(plot_preds_sd_firstyr, plot_preds_sd_lastyr, nrow = 2)
