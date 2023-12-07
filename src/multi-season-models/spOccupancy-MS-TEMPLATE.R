@@ -142,7 +142,6 @@ OCC_MODELS <- list("years",
                    "monsoon_ppt", 
                    "ppt10")
 
-# Include a random site effect in occurrence model, but no other random effects
 SITE_RE_OCC <- "unstructured"
 TIME_RE_OCC <- "unstructured" 
 SITE_RE_DET <- "none"
@@ -269,6 +268,8 @@ model_stats %>% arrange(waic)
     # value < 1.05)
   # min.ESS: minimum value of ESS (effective sample size) across model
     # fixed-effect parameters  (want value > 400)
+  # max.rhat.re: maximum value of R-hat across random-effect SD parameters
+  # min.ESS.re: minimum value of ESS across random-effect SD parameters
   # ppc.sites: posterior predictive checks when binning the data across sites
     # (within year). P-values < 0.1 or > 0.9 can indicate that model fails to 
     # adequately represent variation in occurrence or detection across space.
@@ -279,8 +280,9 @@ model_stats %>% arrange(waic)
     # (lower is better)
 
 # Check that r-hat values and ESS look okay for most models.  If not, may 
-# need to re-run after increasing N_BATCH or removing site REs. If problem
-# persists, may need to remove some covariate combinations from consideration.
+# need to re-run after increasing N_BATCH or removing site or year REs. If 
+# problem persists, may need to remove some covariate combinations from 
+# consideration.
 
 #------------------------------------------------------------------------------#
 # Select "best" model
@@ -294,7 +296,7 @@ model_stats %>% arrange(waic)
 STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 1
+  best_index <- 16
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
