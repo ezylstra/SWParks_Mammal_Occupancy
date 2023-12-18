@@ -2,7 +2,7 @@
 # Functions to be used in any script in SWParks_Mammal_Occupancy repo
 
 # ER Zylstra
-# Updated 2023-02-10
+# Updated 2023-12-06
 ################################################################################
 
 # List of functions included:
@@ -13,6 +13,7 @@
   # marginal_plot_det()
   # paNA() 
   # propNA() 
+  # occ_time_plot()
 
 #------------------------------------------------------------------------------#
 # paNA: Aggregate daily detection data during each multi-day sampling occasion
@@ -444,8 +445,10 @@ marginal_plot_det <- function(covariate,
 }
 
 #------------------------------------------------------------------------------#
-# trend_occ_plot: Create figure depicting trend in occurrence probability over 
-# time (only for multi-season models with implicit dynamics)
+# occ_time_plot: Create figure that depicts mean predicted occurrence
+# probability over time (including REs if they're in the model), as well as 
+# naive occurrence probabilities and the estimated trend (if "years" is in the 
+# model)
 #------------------------------------------------------------------------------#
 
 # INPUTS
@@ -459,81 +462,147 @@ marginal_plot_det <- function(covariate,
 # transparency: alpha value specifying transparency of shaded CI
 
 # RETURNS
-# trend_plot: ggplot object depicting the trend on probability scale
+# occ_time_plot: ggplot object depicting estimates/raw values on probability scale
 
-trend_plot_occ <- function(model, 
-                           data_list,
-                           covariate_table,
-                           raw_occ = TRUE,
-                           central_meas = c(mean, median),
-                           lower_ci = 0.025,
-                           upper_ci = 0.975,
-                           line_color = "forestgreen",
-                           transparency = 0.2) {
+occ_time_plot <- function(model, 
+                          data_list,
+                          covariate_table,
+                          raw_occ = TRUE,
+                          central_meas = c(mean, median),
+                          lower_ci = 0.025,
+                          upper_ci = 0.975,
+                          line_color = "forestgreen",
+                          transparency = 0.2) {
   
-  cols <- str_subset(colnames(model$beta.samples), pattern = "years_z")
-  beta_samples <- model$beta.samples[,c("(Intercept)", cols)]
-  X_cov <- seq(from = min(data_list$occ.covs[["years_z"]]), 
-               to = max(data_list$occ.covs[["years_z"]]),
-               length = 100)
-  X_cov <- cbind(1, X_cov)
-  
-  preds <-  X_cov %*% t(beta_samples)
-  preds <- exp(preds)/(1 + exp(preds))
-  preds_cent <- apply(preds, 1, central_meas)
-  preds_lcl <- apply(preds, 1, quantile, lower_ci)
-  preds_ucl <- apply(preds, 1, quantile, upper_ci)
-  
-  # Identify covariate values for x-axis (on original scale)
-  cov_mn <- mean(data_list$occ.covs[["years"]])
-  cov_sd <- sd(data_list$occ.covs[["years"]])
-  cov_plot <- X_cov[,2] * cov_sd + cov_mn
-  
-  # Create and save plots for later viewing
-  data_plot <- data.frame(x = cov_plot,
-                          cent = preds_cent,
-                          lcl = preds_lcl,
-                          ucl = preds_ucl)
+  # Identify whether trend and/or yearly REs are in the model
+  trend <- ifelse(any(str_detect(colnames(model$beta.samples), "years_z")), 1, 0)
+  yrRE <- ifelse(dim(model$X.re)[3] == 2, 1, 0)
   
   cred_interval <- (upper_ci - lower_ci) * 100
   yaxis_label <- paste0("Proportion of area used (", 
                         cred_interval, 
                         "% CI)")
-
-  if (raw_occ) {
+  
+  # Calculate the number of sites with at least one detection in a year
+  site_dets <- apply(data_list$y, c(1, 2), paNA)
+  # Proportion of sites with a detection in each year
+  raw_occ_prob <- apply(site_dets, 2, mean, na.rm = TRUE)
+  raws <- data.frame(x = YEARS,
+                     cent = raw_occ_prob,
+                     lcl = NA,
+                     ucl = NA,
+                     type = "Naive",
+                     row.names = NULL)
+  
+  if (trend == 1) {
+    tr_col <- str_subset(colnames(model$beta.samples), pattern = "years_z")
+    trend_samples <- model$beta.samples[,c("(Intercept)", tr_col)]
+    X_trend <- seq(from = min(data_list$occ.covs[["years_z"]]), 
+                   to = max(data_list$occ.covs[["years_z"]]),
+                   length = 100)
+    X_trend <- cbind(1, X_trend)
+    preds_tr <-  X_trend %*% t(trend_samples)
+    preds_tr <- exp(preds_tr)/(1 + exp(preds_tr))
+    preds_tr_cent <- apply(preds_tr, 1, central_meas)
+    preds_tr_lcl <- apply(preds_tr, 1, quantile, lower_ci)
+    preds_tr_ucl <- apply(preds_tr, 1, quantile, upper_ci)
     
-    # Calculate the number of sites with at least one detection in a year
-    site_dets <- apply(data_list$y, c(1, 2), paNA)
-    # Proportion of sites with a detection in each year
-    raw_occ_prob <- apply(site_dets, 2, mean, na.rm = TRUE)
+    yr_mn <- mean(data_list$occ.covs[["years"]])
+    yr_sd <- sd(data_list$occ.covs[["years"]])
+    yr_plot <- X_trend[,2] * yr_sd + yr_mn
     
-    yr_min <- min(data_list$occ.covs$years, na.rm = TRUE)
-    yr_max <- max(data_list$occ.covs$years, na.rm = TRUE)
-    raws <- data.frame(yr = yr_min:yr_max,
-                       raw_occ = raw_occ_prob,
-                       row.names = NULL)
-    
-    trend_plot <- 
-      ggplot(data = data_plot, aes(x = x)) + 
+    trend_df <- data.frame(x = yr_plot,
+                           cent = preds_tr_cent,
+                           lcl = preds_tr_lcl,
+                           ucl = preds_tr_ucl)
+  } 
+  
+  # Get annual estimates (for any model) 
+  # (we're assuming a maximum of one annual covariate in the model)
+  ann_covs <- c("years_z", "traffic_z", "visits_z", "monsoon_ppt_z", "ppt10_z")
+  ann_cols <- str_subset(colnames(model$beta.samples), 
+                         pattern = paste0(ann_covs, collapse = "|"))
+  ann_samples <- model$beta.samples[,c("(Intercept)", ann_cols)]
+  if (ncol(ann_samples) > 1) {
+    ann_values <- data_list$occ.covs[ann_cols][[1]][1,]
+    X_ann <- cbind(1, ann_values)
+  } else {
+    X_ann <- as.matrix(data.frame(int = rep(1, length(YEARS))))
+  }
+  preds_ann <- X_ann %*% t(ann_samples)
+  if (yrRE == 1) {
+    yrREcols <- grepl("years", colnames(model$beta.star.samples))
+    yrREs <- t(model$beta.star.samples[,yrREcols])
+    preds_ann <- preds_ann + yrREs
+  }
+  preds_ann <- exp(preds_ann)/(1 + exp(preds_ann))
+  preds_ann_cent <- apply(preds_ann, 1, central_meas)
+  preds_ann_lcl <- apply(preds_ann, 1, quantile, lower_ci)
+  preds_ann_ucl <- apply(preds_ann, 1, quantile, upper_ci)
+  
+  ann_df <- data.frame(x = YEARS,
+                       cent = preds_ann_cent,
+                       lcl = preds_ann_lcl,
+                       ucl = preds_ann_ucl,
+                       type = "Estimate")
+  ann_df <- rbind(ann_df, raws)
+  
+  if (trend == 1 & raw_occ) {
+    occ_time_plot <- ggplot(data = trend_df, aes(x = x)) + 
       geom_line(aes(y = cent), col = line_color) +
       geom_ribbon(aes(ymin = lcl, ymax = ucl), alpha = transparency) +
-      geom_point(data = raws[!is.na(raws$raw_occ), ], 
-                 aes(x = yr, y = raw_occ), col = "black") +
+      geom_segment(data = filter(ann_df, type == "Estimate"), 
+                   aes(x = x, xend = x, y = lcl, yend = ucl)) +
+      geom_point(data = ann_df, shape = 21,
+                 aes(x = x, y = cent, group = type, fill = type)) +
+      scale_fill_manual(values = c("black", "white")) +
       labs(x = "Year", y = yaxis_label) +
       scale_y_continuous(limits = c(0, 1)) +
-      theme_classic()
-
-  } else {
-    
-    trend_plot <- ggplot(data = data_plot, aes(x = x)) + 
+      theme_classic() +
+      theme(legend.position = c(0.02, 0.02),
+            legend.justification = c("left", "bottom"),
+            legend.title = element_blank())
+  }
+  if (trend == 1 & !raw_occ) {  
+    occ_time_plot <- ggplot(data = trend_df, aes(x = x)) + 
       geom_line(aes(y = cent), col = line_color) +
       geom_ribbon(aes(ymin = lcl, ymax = ucl), alpha = transparency) +
+      geom_segment(data = filter(ann_df, type == "Estimate"), 
+                   aes(x = x, xend = x, y = lcl, yend = ucl)) +
+      geom_point(data = filter(ann_df, type == "Estimate"), 
+                 aes(x = x, y = cent), shape = 21, fill = "black") +
       labs(x = "Year", y = yaxis_label) +
       scale_y_continuous(limits = c(0, 1)) +
       theme_classic()
   }
+  if (trend == 0 & raw_occ) {
+    occ_time_plot <- ggplot(ann_df, aes(x = x)) +
+      geom_segment(data = filter(ann_df, type == "Estimate"), 
+                   aes(xend = x, y = lcl, yend = ucl)) +
+      geom_point(data = ann_df, shape = 21,
+                 aes(y = cent, group = type, fill = type)) +
+      scale_fill_manual(values = c("black", "white")) +
+      labs(x = "Year", y = yaxis_label) +
+      scale_y_continuous(limits = c(0, 1)) +
+      theme_classic() +
+      theme(legend.position = c(0.02, 0.02),
+            legend.justification = c("left", "bottom"),
+            legend.title = element_blank())
+  }  
   
-  return(trend_plot)
+  if (trend == 0 & !raw_occ) {
+    occ_time_plot <- ggplot(ann_df, aes(x = x)) +
+      geom_segment(data = filter(ann_df, type == "Estimate"), 
+                   aes(xend = x, y = lcl, yend = ucl)) +
+      geom_point(data = filter(ann_df, type == "Estimate"), 
+                 aes(y = cent), shape = 21, fill = "black") +
+      labs(x = "Year", y = yaxis_label) +
+      scale_y_continuous(limits = c(0, 1)) +
+      theme_classic()
+  }  
+  occ_time_plot
+  
+  return(occ_time_plot)
 }
 
 #------------------------------------------------------------------------------#
@@ -596,4 +665,99 @@ det_cat_estimates <- function(model,
   det_table$ci_upper <- apply(preds, 2, quantile, probs = upper_ci)
   
   return(det_table)
+}
+
+
+#------------------------------------------------------------------------------#
+# DEPRECATED
+# trend_occ_plot: Create figure depicting trend in occurrence probability over 
+# time (only for multi-season models with implicit dynamics)
+#------------------------------------------------------------------------------#
+
+# INPUTS
+# model: output from spOccupancy single-season model
+# data_list: list of data required to run model in spOccupancy 
+# covariate_table: table with information and axis labels for covariates
+# central_meas: metric for summarizing predictions (mean [default] or median)
+# lower_ci: quantile for lower bound of credible interval (0.025 for 95% CI)
+# upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
+# line_color: color for line depicting mean/median predicted probability
+# transparency: alpha value specifying transparency of shaded CI
+
+# RETURNS
+# trend_plot: ggplot object depicting the trend on probability scale
+
+trend_plot_occ <- function(model, 
+                           data_list,
+                           covariate_table,
+                           raw_occ = TRUE,
+                           central_meas = c(mean, median),
+                           lower_ci = 0.025,
+                           upper_ci = 0.975,
+                           line_color = "forestgreen",
+                           transparency = 0.2) {
+  
+  cols <- str_subset(colnames(model$beta.samples), pattern = "years_z")
+  beta_samples <- model$beta.samples[,c("(Intercept)", cols)]
+  X_cov <- seq(from = min(data_list$occ.covs[["years_z"]]), 
+               to = max(data_list$occ.covs[["years_z"]]),
+               length = 100)
+  X_cov <- cbind(1, X_cov)
+  
+  preds <-  X_cov %*% t(beta_samples)
+  preds <- exp(preds)/(1 + exp(preds))
+  preds_cent <- apply(preds, 1, central_meas)
+  preds_lcl <- apply(preds, 1, quantile, lower_ci)
+  preds_ucl <- apply(preds, 1, quantile, upper_ci)
+  
+  # Identify covariate values for x-axis (on original scale)
+  cov_mn <- mean(data_list$occ.covs[["years"]])
+  cov_sd <- sd(data_list$occ.covs[["years"]])
+  cov_plot <- X_cov[,2] * cov_sd + cov_mn
+  
+  # Create and save plots for later viewing
+  data_plot <- data.frame(x = cov_plot,
+                          cent = preds_cent,
+                          lcl = preds_lcl,
+                          ucl = preds_ucl)
+  
+  cred_interval <- (upper_ci - lower_ci) * 100
+  yaxis_label <- paste0("Proportion of area used (", 
+                        cred_interval, 
+                        "% CI)")
+  
+  if (raw_occ) {
+    
+    # Calculate the number of sites with at least one detection in a year
+    site_dets <- apply(data_list$y, c(1, 2), paNA)
+    # Proportion of sites with a detection in each year
+    raw_occ_prob <- apply(site_dets, 2, mean, na.rm = TRUE)
+    
+    yr_min <- min(data_list$occ.covs$years, na.rm = TRUE)
+    yr_max <- max(data_list$occ.covs$years, na.rm = TRUE)
+    raws <- data.frame(yr = yr_min:yr_max,
+                       raw_occ = raw_occ_prob,
+                       row.names = NULL)
+    
+    trend_plot <- 
+      ggplot(data = data_plot, aes(x = x)) + 
+      geom_line(aes(y = cent), col = line_color) +
+      geom_ribbon(aes(ymin = lcl, ymax = ucl), alpha = transparency) +
+      geom_point(data = raws[!is.na(raws$raw_occ), ], 
+                 aes(x = yr, y = raw_occ), col = "black") +
+      labs(x = "Year", y = yaxis_label) +
+      scale_y_continuous(limits = c(0, 1)) +
+      theme_classic()
+    
+  } else {
+    
+    trend_plot <- ggplot(data = data_plot, aes(x = x)) + 
+      geom_line(aes(y = cent), col = line_color) +
+      geom_ribbon(aes(ymin = lcl, ymax = ucl), alpha = transparency) +
+      labs(x = "Year", y = yaxis_label) +
+      scale_y_continuous(limits = c(0, 1)) +
+      theme_classic()
+  }
+  
+  return(trend_plot)
 }

@@ -15,7 +15,7 @@ library(sf)
 library(terra)
 
 # Need to specify park if not calling this script via source()
-# PARK <- "SAGW"
+# PARK <- "CHIR"
 
 #------------------------------------------------------------------------------#
 # Import data
@@ -219,7 +219,7 @@ dat <- filter(dat, Accepted_Code %in% species$Species_code)
 dat <- dat %>%
   select(UnitCode, LocationName, ImageDate, Accepted_Code) %>%
   rename(Species_code = Accepted_Code) %>%
-  filter(UnitCode == "SAGW")
+  filter(UnitCode == PARK)
 
 # Create new date-, time-related columns
 dat$datetime <- parse_date_time(dat$ImageDate, orders = c("%m/%d/%Y %H:%M:%S"))
@@ -234,13 +234,14 @@ dat <- dat %>%
 # Finally, as an extra check, remove detections that occur outside active dates
 # (might be able to remove this eventually). Note that the events data now 
 # include an ImageDate_Flag that marks these instances as "R" and they are being 
-# removed above. But OK to leave in for now as a double-check.
-dat <- dat %>%
-  left_join(events[, c("UnitCode", "LocationName", 
-                       "active_start", "active_end", "d_yr")], 
-            by = c("UnitCode", "LocationName", "yr" = "d_yr")) %>%
-  filter(obsdate >= active_start & obsdate <= active_end) %>%
-  select(-c(active_start, active_end))
+# removed above. This won't work if there is more than one deployment in a year
+# (as occurred at CHIR)
+# dat <- dat %>%
+#   left_join(events[, c("UnitCode", "LocationName", 
+#                        "active_start", "active_end", "d_yr")], 
+#             by = c("UnitCode", "LocationName", "yr" = "d_yr")) %>%
+#   filter(obsdate >= active_start & obsdate <= active_end) %>%
+#   select(-c(active_start, active_end))
 
 #------------------------------------------------------------------------------#
 # Attach spatial data to detections
