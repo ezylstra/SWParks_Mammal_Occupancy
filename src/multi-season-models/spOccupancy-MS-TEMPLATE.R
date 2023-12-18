@@ -28,7 +28,7 @@ library(tidyterra)
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "SAGW"
+PARK <- "CHIR"
 
 source("src/photo-data/format-mammal-data.R")
 
@@ -47,7 +47,7 @@ source("src/functions.R")
 #------------------------------------------------------------------------------#
 
 # Select years of interest
-YEARS <- 2017:2023
+YEARS <- 2017:2022
 
 # Look at detection data for various species
 detects <- read.csv(paste0("output/species-detections-", PARK, ".csv"))
@@ -59,7 +59,7 @@ detects %>%
   dplyr::select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "ODHE"
+SPECIES <- "ODVI"
 
 # Save this script as: 
 # src/multi-season-models/PARK/spOccupancy-PARK-FIRSTYEAR-LASTYEAR-SPECIES.R
@@ -132,7 +132,12 @@ covariates <- read.csv("data/covariates/covariates-MS.csv", header = TRUE)
 
 # For detection, use a "full" model
 DET_NULL <- FALSE
-DET_MODELS <- list(c("day2", "deploy_exp", "effort", "camera", "lens_2023"))
+DET_MODELS <- list(c("day2", 
+                     "deploy_exp", 
+                     "effort", 
+                     "camera", 
+                     "lens_2023",
+                     "burn"))
 
 # For occurrence, try each annual covariate in a separate model
 OCC_NULL <- TRUE
@@ -204,7 +209,7 @@ f_dets
   # DET_NULL <- TRUE
   # rm(DET_MODELS)
 # To use a model with a subset of those covariates, like day2 and effort:
-  DET_MODELS <- list(c("day2", "deploy_exp", "effort", "lens_2023"))
+  DET_MODELS <- list(c("burn", "day2", "effort"))
 # To use the same model, we can leave DET_MODELS as is.
 
 #------------------------------------------------------------------------------#
@@ -241,7 +246,7 @@ scov_combos <- list(c("aspect", "veg", "wash", "burn", "roads"),
                     c("elev", "veg", "wash", "burn", "pois"),
                     c("slope", "veg", "wash", "burn", "pois"),
                     c("aspect", "veg", "wash", "burn", "roadbound"),
-                    # c("elev", "veg", "wash", "burn", "roadbound"),
+                    c("elev", "veg", "wash", "burn", "roadbound"),
                     c("slope", "veg", "wash", "burn", "roadbound"),
                     c("aspect", "veg", "wash", "burn", "trailpoi"),
                     c("elev", "veg", "wash", "burn", "trailpoi"),
@@ -296,7 +301,7 @@ model_stats %>% arrange(waic)
 STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 16
+  best_index <- 13
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -316,14 +321,10 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 # power from the model for occurrence.
 
   # Identify new set(s) of spatial covariates to explore:
-  scov_new <- list(c("roads"), 
-                   c("roads", "slope"), 
-                   c("boundary", "slope"),
-                   c("roads", "veg"),
-                   c("roads", "veg", "slope"))
+  scov_new <- list(c("elev", "roadbound", "burn"))
   OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
   # If needed, refine the detection model
-  # DET_MODELS <- list(c("day", "effort"))
+  # DET_MODELS <- list(c("burn", "effort"))
   source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
   message("Check candidate models:", sep = "\n")
   model_specs
@@ -439,7 +440,10 @@ saveRDS(model_list, file = model_filename)
 # conditions ("averaged") or under observed conditions in the first and last 
 # year ("observed"). Note that if we're using "averaged" and years/trend isn't 
 # in the model, then predictions from the first and last year will be very 
-# similar (but not identical if we're incorporating random effects).
+# similar (but not identical if we're incorporating random effects). Note that
+# if model has annual random effects and we don't specify ANN_PREDS = "averaged"
+# below, we will make predictions using estimated effects for the first and last 
+# year.
 if (any(str_detect(string = psi_covs, 
                    pattern = paste(c("visits", "traffic", "monsoon_ppt", "ppt10"),
                                    collapse = "|")))) {
@@ -475,14 +479,14 @@ if (length(psi_spatcovs) > 0) {
   # Can save any of the plots to file (example below):
   plot_save <- plot_preds_mn_lastyr +
     theme_bw(base_size = 8)
-  plotname <- paste0("...",
-                     PARK, "-", SPECIES, "-OccProbMN-",
-                     YEARS[length(YEARS)], ".jpg")
+  # plotname <- paste0("...",
+  #                    PARK, "-", SPECIES, "-OccProbMN-",
+  #                    YEARS[length(YEARS)], ".jpg")
   plot_save1 <- plot_preds_mn_firstyr +
     theme_bw(base_size = 8)
-  plotname1 <- paste0("...",
-                      PARK, "-", SPECIES, "-OccProbMN-",
-                      YEARS[1], ".jpg")
+  # plotname1 <- paste0("...",
+  #                     PARK, "-", SPECIES, "-OccProbMN-",
+  #                     YEARS[1], ".jpg")
   
   # ggsave(filename = plotname1,
   #        plot = plot_save1,
