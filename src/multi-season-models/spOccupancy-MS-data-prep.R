@@ -230,12 +230,14 @@ camera <- matrix(rep(c(0, 1),
 # Indicator for SAGW & ORPI for 2023, when more sensitive lenses were used
 # (will need to revisit this covariate before/after 2024 once we decide which 
 # lenses will be used)
-lens_2023 <- matrix(rep(c(0, 1, 0), 
-                      times = c(sum(YEARS < 2023), 1, sum(YEARS > 2023))),
-                      nrow = dim(dh)[1],
-                      ncol = dim(dh)[2],
-                      byrow = TRUE)
-
+if (max(YEARS) > 2022) {
+  lens_2023 <- matrix(rep(c(0, 1, 0), 
+                        times = c(sum(YEARS < 2023), 1, sum(YEARS > 2023))),
+                        nrow = dim(dh)[1],
+                        ncol = dim(dh)[2],
+                        byrow = TRUE)
+}
+  
 # Monthly visitation data (currently only available for Saguaro, both districts 
 # combined, through August 2023, 2023 data are preliminary [10/11/2023])
 if (PARK == "SAGW") {
@@ -312,7 +314,7 @@ weather_files <- list.files(weather_folder, full.names = TRUE)
 
 # Load shapefile with park boundary
 parks <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
-park_b <- terra::subset(parks, parks$UNIT_CODE == "SAGW")
+park_b <- terra::subset(parks, parks$UNIT_CODE == PARK)
 park_b <- as(park_b, "Spatial")
 
 # Extract and compile monsoon precipitation data
@@ -351,22 +353,24 @@ park_b <- as(park_b, "Spatial")
     ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS - 1)]    
   }
 
-  # Load each raster and compute the mean value across the park in that year
-  ppt10 <- rep(NA, length(ppt10_files))
-  for (i in 1:length(ppt10_files)) {
-    ppt10_raster <- rast(ppt10_files[i])
-    ppt10[i] <- exact_extract(ppt10_raster, park_b, "mean")
-  }  
-  
-  ppt10 <- matrix(ppt10, 
-                  nrow = dim(dh)[1],
-                  ncol = dim(dh)[2],
-                  byrow = TRUE)
-  # Standardize
-  ppt10_mn <- mean(ppt10)
-  ppt10_sd <- sd(ppt10)
-  ppt10_z <- (ppt10 - ppt10_mn) / ppt10_sd 
-
+  if (PARK != "CHIR") {
+    # Load each raster and compute the mean value across the park in that year
+    ppt10 <- rep(NA, length(ppt10_files))
+    for (i in 1:length(ppt10_files)) {
+      ppt10_raster <- rast(ppt10_files[i])
+      ppt10[i] <- exact_extract(ppt10_raster, park_b, "mean")
+    }  
+    
+    ppt10 <- matrix(ppt10, 
+                    nrow = dim(dh)[1],
+                    ncol = dim(dh)[2],
+                    byrow = TRUE)
+    # Standardize
+    ppt10_mn <- mean(ppt10)
+    ppt10_sd <- sd(ppt10)
+    ppt10_z <- (ppt10 - ppt10_mn) / ppt10_sd 
+  }
+    
 #------------------------------------------------------------------------------#
 # Spatial covariates (time invariant)
 #------------------------------------------------------------------------------#
@@ -518,9 +522,9 @@ if (PARK == "SAGW") {
                      traffic_z = traffic_z,
                      lens_2023 = lens_2023))
 }
-if (PARK == "ORPI") {
+if (PARK != "CHIR" & max(YEARS) > 2022) {
   det_covs <- c(det_covs, 
-                list(lens_2023 = lens_2023))
+                list(lens_2023 = lens_2023))  
 }
 
 # spOccupancy needs camera locations, but can't take lat/long, so we'll need to 
