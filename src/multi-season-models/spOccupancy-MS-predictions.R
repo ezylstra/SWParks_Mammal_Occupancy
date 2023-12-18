@@ -208,20 +208,27 @@ yrRE <- ifelse(dim(best$X.re)[3] == 2, 1, 0)
   # summary(best$beta.star.samples)
 if (ignore.RE == FALSE) {
   siteRE <- matrix(0, nrow = dim(X.0)[1], ncol = dim(X.0)[2])
-  if (yrRE == 1 & ANN_PREDS == "observed") {
+  if (!exists("ANN_PREDS")) {
     yearRE <- matrix(pred_years, byrow = TRUE,
                      nrow = dim(X.0)[1], ncol = dim(X.0)[2])
     X.0 <- abind(X.0, siteRE, yearRE, along = 3)
     dimnames(X.0)[[3]] <- c(cov_order, "site", "years")
-  }
-  if (yrRE == 1 & ANN_PREDS == "averaged") {
-    yearRE <- matrix(0, nrow = dim(X.0)[1], ncol = dim(X.0)[2])
-    X.0 <- abind(X.0, siteRE, yearRE, along = 3)
-    dimnames(X.0)[[3]] <- c(cov_order, "site", "years")
-  }
-  if (yrRE == 0) {
-    X.0 <- abind(X.0, siteRE, along = 3)
-    dimnames(X.0)[[3]] <- c(cov_order, "site")
+  } else {
+    if (yrRE == 1 & ANN_PREDS == "observed") {
+      yearRE <- matrix(pred_years, byrow = TRUE,
+                       nrow = dim(X.0)[1], ncol = dim(X.0)[2])
+      X.0 <- abind(X.0, siteRE, yearRE, along = 3)
+      dimnames(X.0)[[3]] <- c(cov_order, "site", "years")
+    }
+    if (yrRE == 1 & ANN_PREDS == "averaged") {
+      yearRE <- matrix(0, nrow = dim(X.0)[1], ncol = dim(X.0)[2])
+      X.0 <- abind(X.0, siteRE, yearRE, along = 3)
+      dimnames(X.0)[[3]] <- c(cov_order, "site", "years")
+    }
+    if (yrRE == 0) {
+      X.0 <- abind(X.0, siteRE, along = 3)
+      dimnames(X.0)[[3]] <- c(cov_order, "site")
+    }
   }
 }
 
