@@ -151,6 +151,9 @@ for (t in 1:length(YEARS)) {
     }
   }
 }
+# NOTE: new files for CHIR and ORPI will need an updated CrewDeploy field in 
+# the events file that has crew lead names rather than the codes that were 
+# in the 2022 version of the data.
 
 # Make sure that values in deploy_exp matrix are NA wherever there are NA values 
 # in detection history matrix (this should already be true, but just in case)
