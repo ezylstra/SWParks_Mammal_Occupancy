@@ -478,6 +478,18 @@ occ_time_plot <- function(model,
   trend <- ifelse(any(str_detect(colnames(model$beta.samples), "years_z")), 1, 0)
   yrRE <- ifelse(dim(model$X.re)[3] == 2, 1, 0)
   
+  # Identify if burn (which isn't standardized) is the in the model
+  burn <- ifelse(any(str_detect(colnames(model$beta.samples), "burn")), 1, 0)
+  if (burn == 1) {
+    burn_raster <- park_raster[["burn_severity_2011"]]
+    # Crop and mask by park boundary
+    park_boundaries <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
+    park_boundary <- subset(park_boundaries, park_boundaries$UNIT_CODE == PARK)
+    burn_raster <- crop(burn_raster, park_boundary)
+    burn_raster <- mask(burn_raster, park_boundary)
+    burn_mean <- terra::global(burn_raster, "mean", na.rm = TRUE)[, 1]
+  }
+  
   cred_interval <- (upper_ci - lower_ci) * 100
   yaxis_label <- paste0("Proportion of area used (", 
                         cred_interval, 
@@ -496,11 +508,18 @@ occ_time_plot <- function(model,
   
   if (trend == 1) {
     tr_col <- str_subset(colnames(model$beta.samples), pattern = "years_z")
-    trend_samples <- model$beta.samples[,c("(Intercept)", tr_col)]
     X_trend <- seq(from = min(data_list$occ.covs[["years_z"]]), 
                    to = max(data_list$occ.covs[["years_z"]]),
                    length = 100)
     X_trend <- cbind(1, X_trend)
+    if (burn == 1) {
+      burn_col <- str_subset(colnames(model$beta.samples), pattern = "burn")
+      X_burn <- rep(burn_mean, length(X_trend))
+      X_trend <- cbind(1, X_trend, X_burn)
+      trend_samples <- model$beta.samples[,c("(Intercept)", tr_col, burn_col)] 
+    } else {
+      trend_samples <- model$beta.samples[,c("(Intercept)", tr_col)]
+    }
     preds_tr <-  X_trend %*% t(trend_samples)
     preds_tr <- exp(preds_tr)/(1 + exp(preds_tr))
     preds_tr_cent <- apply(preds_tr, 1, central_meas)
@@ -522,13 +541,32 @@ occ_time_plot <- function(model,
   ann_covs <- c("years_z", "traffic_z", "visits_z", "monsoon_ppt_z", "ppt10_z")
   ann_cols <- str_subset(colnames(model$beta.samples), 
                          pattern = paste0(ann_covs, collapse = "|"))
-  ann_samples <- model$beta.samples[,c("(Intercept)", ann_cols)]
-  if (ncol(ann_samples) > 1) {
-    ann_values <- data_list$occ.covs[ann_cols][[1]][1,]
-    X_ann <- cbind(1, ann_values)
+  if (length(ann_cols) == 0) {
+    if (burn == 1) {
+      burn_col <- str_subset(colnames(model$beta.samples), pattern = "burn")
+      ann_samples <- as.matrix(model$beta.samples[,c("(Intercept)", burn_col)])
+      X_ann <- as.matrix(data.frame(int = rep(1, length(YEARS)),
+                                    burn = burn_mean))
+    } else {
+      ann_samples <- as.matrix(model$beta.samples[,"(Intercept)"])
+      X_ann <- as.matrix(data.frame(int = rep(1, length(YEARS))))
+    }
   } else {
-    X_ann <- as.matrix(data.frame(int = rep(1, length(YEARS))))
-  }
+    if (burn == 1) {
+      burn_col <- str_subset(colnames(model$beta.samples), pattern = "burn")
+      ann_samples <- as.matrix(model$beta.samples[,c("(Intercept)", ann_cols, burn_col)])
+      ann_values <- data_list$occ.covs[ann_cols][[1]][1,]
+      X_ann <- as.matrix(data.frame(int = rep(1, length(YEARS)),
+                                    ann = ann_values,
+                                    burn = burn_mean))
+    } else {
+      ann_samples <- as.matrix(model$beta.samples[,c("(Intercept)", ann_cols)])
+      ann_values <- data_list$occ.covs[ann_cols][[1]][1,]
+      X_ann <- as.matrix(data.frame(int = rep(1, length(YEARS)),
+                                    ann = ann_values))
+    }
+  } 
+
   preds_ann <- X_ann %*% t(ann_samples)
   if (yrRE == 1) {
     yrREcols <- grepl("years", colnames(model$beta.star.samples))
@@ -600,8 +638,6 @@ occ_time_plot <- function(model,
       scale_y_continuous(limits = c(0, 1)) +
       theme_classic()
   }  
-  occ_time_plot
-  
   return(occ_time_plot)
 }
 
