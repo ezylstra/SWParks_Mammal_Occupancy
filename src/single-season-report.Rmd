@@ -283,7 +283,7 @@ segs
 
 ```
 
-# Detections
+## Detections
 ```{r detections}
 
 # Clean up species table
