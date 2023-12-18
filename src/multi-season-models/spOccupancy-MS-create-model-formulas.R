@@ -28,6 +28,9 @@ if (OCC_NULL) {occm <- c("1", occm)}
 occm <- occm[!is.na(occm)]
 occm <- paste0("~ ", occm) 
 
+# Remove any that elements with no covariates (that aren't ~ 1)
+occm <- occm[occm != "~ "]
+
 # If we want to include unstructured site random effects, add random site
 # intercepts using lme4 syntax
 if (SITE_RE_OCC == "unstructured") {
@@ -59,6 +62,9 @@ if (exists("DET_MODELS")) {
 if (DET_NULL) {detm <- c("1", detm)}
 detm <- detm[!is.na(detm)]
 detm <- paste0("~ ", detm) 
+
+# Remove any that elements with no covariates (that aren't ~ 1)
+detm <- detm[detm != "~ "]
 
 # If we want to include unstructured site random effects, add random site
 # intercepts using lme4 syntax
