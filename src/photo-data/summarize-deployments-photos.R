@@ -175,10 +175,10 @@ if (PARK == "CHIR") {
     geom_segment(filter(events, Park == "CHIR" & d_yr == 2018),
                  mapping = aes(x = d_date, xend = as.Date("2018-12-31"), 
                                y = locnum, yend = locnum),
-                 size = 0.3, color = "dodgerblue3") +   
+                 linewidth = 0.3, color = "dodgerblue3") +   
     geom_segment(filter(events, Park == "CHIR" & d_yr == 2018),
                  mapping = aes(x = d_date, xend = d_date, y = locnum+0.4, yend = locnum-0.4),
-                 size = 0.3, color = "dodgerblue3") +
+                 linewidth = 0.3, color = "dodgerblue3") +
     labs(x = "", y = "Camera number") + 
     scale_x_date(limits = as.Date(c("2018-01-01", "2018-12-31")), date_labels = "%b") +
     theme(text=element_text(size = 8),
@@ -197,13 +197,13 @@ if (PARK == "CHIR") {
     geom_segment(eventsCHIR19,
                  mapping = aes(x = as.Date("2019-01-01"), xend = r_date, 
                                y = locnum, yend = locnum),
-                 size = 0.3, color = "dodgerblue3") +   
+                 linewidth = 0.3, color = "dodgerblue3") +   
     geom_segment(eventsCHIR19,
                  mapping = aes(x = d_date, xend = d_date, y = locnum+0.4, yend = locnum-0.4),
-                 size = 0.3, color = "dodgerblue3") + 
+                 linewidth = 0.3, color = "dodgerblue3") + 
     geom_segment(filter(eventsCHIR19, r_date < as.Date("2019-12-31")),
                  mapping = aes(x = r_date, xend = r_date, y = locnum+0.4, yend = locnum-0.4),
-                 size = 0.3, color = "dodgerblue3") +   
+                 linewidth = 0.3, color = "dodgerblue3") +   
     labs(x = "", y = "Camera number") + 
     scale_x_date(limits = as.Date(c("2019-01-01", "2019-12-31")), date_labels = "%b") +
     theme(text=element_text(size = 8),
