@@ -64,7 +64,25 @@ psi_rasters_df <- psi_rasters_df %>%
 X.0 <- as.matrix(psi_rasters_df[, -1])
 # Make first column = 1 for the intercept
 X.0 <- cbind(1, X.0)
-best_pred <- predict(object = best, X.0 = X.0)
+
+# If site REs are in the occurrence model, we will need to decide if we want
+# them incorporated into predictions
+  
+  # Look at RE level names
+  # best$re.level.names
+  
+  # Logical indicating whether to ignore random effects or not (FALSE means
+  # that predictions will incorporate random effects)
+  ignore.RE <- FALSE
+  
+  if ("site" %in% colnames(best$X.re) & !ignore.RE) {
+    # site = 0 means that random effects will be generated for each raster cell
+    # from a normal distribution with the estimated SD
+    X.0 <- cbind(X.0, site = 0)
+  }
+
+# Generate predictions
+best_pred <- predict(object = best, X.0 = X.0, ignore.RE = ignore.RE)
 
 # Plot predicted occupancy probability (can also take a couple minutes)
 plot_dat <- data.frame(cell = psi_rasters_df$cell,
