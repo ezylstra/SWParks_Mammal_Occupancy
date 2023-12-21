@@ -122,13 +122,13 @@ events <- select(events, -c(DeployDate, RetrievalDate, ActiveStart, ActiveEnd,
   #
   # # At a few locations at ORPI in 2021, two cameras were deployed at the same 
   # # location simultaneously (removing event information for 1 of the cameras)
-  # events <- events %>%
-  #   filter(!(UnitCode == "ORPI" & LocationName == "V101_16W" & 
-  #              year(d_date) == 2021 & CameraName == "SODN_040")) %>%
-  #   filter(!(UnitCode == "ORPI" & LocationName ==  "V102_107W" & 
-  #              year(d_date) == 2021 & CameraName == "SODN_134")) %>%
-  #   filter(!(UnitCode == "ORPI" & LocationName ==  "V103_06W" & 
-  #              year(d_date) == 2021 & CameraName == "SODN_167"))     
+  events <- events %>%
+    filter(!(UnitCode == "ORPI" & LocationName == "101_16W" &
+               year(d_date) == 2021 & CameraName == "SODN_040")) %>%
+    filter(!(UnitCode == "ORPI" & LocationName ==  "102_107W" &
+               year(d_date) == 2021 & CameraName == "SODN_134")) %>%
+    filter(!(UnitCode == "ORPI" & LocationName ==  "103_06W" &
+               year(d_date) == 2021 & CameraName == "SODN_167"))
   # 
   # # Change the retrieval date for CHIR camera 502-003 deployed in 2019
   # events <- events %>%
@@ -236,13 +236,15 @@ dat <- dat %>%
 # include an ImageDate_Flag that marks these instances as "R" and they are being 
 # removed above. This won't work if there is more than one deployment in a year
 # (as occurred at CHIR)
-# dat <- dat %>%
-#   left_join(events[, c("UnitCode", "LocationName", 
-#                        "active_start", "active_end", "d_yr")], 
-#             by = c("UnitCode", "LocationName", "yr" = "d_yr")) %>%
-#   filter(obsdate >= active_start & obsdate <= active_end) %>%
-#   select(-c(active_start, active_end))
-
+if (PARK == "ORPI") {
+  dat <- dat %>%
+    left_join(events[, c("UnitCode", "LocationName",
+                         "active_start", "active_end", "d_yr")],
+              by = c("UnitCode", "LocationName", "yr" = "d_yr")) %>%
+    filter(obsdate >= active_start & obsdate <= active_end) %>%
+    select(-c(active_start, active_end))
+}
+  
 #------------------------------------------------------------------------------#
 # Attach spatial data to detections
 #------------------------------------------------------------------------------#
