@@ -32,7 +32,7 @@ library(tidyterra)
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "SAGW"
+PARK <- "CHIR"
 
 source("src/photo-data/format-mammal-data.R")
 
@@ -65,7 +65,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "URAM"
+SPECIES <- "URCI"
 
 # Save this script as: 
 # src/single-season-models/YEAR/PARK/spOccupancy-PARK-YEAR-SPECIES.R
@@ -161,7 +161,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 
 # Pick which detection covariates to use in subsequent candidate models
 # (for now, can use covariates with f >= 0.9)
-DET_MODELS <- list(c("burn", "effort")) 
+DET_MODELS <- list(c("burn", "deploy_exp", "effort")) 
 
 #------------------------------------------------------------------------------#
 # Specify the occurrence portion of candidate models
@@ -240,7 +240,7 @@ model_stats %>% arrange(waic)
 STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 6
+  best_index <- 14
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -261,11 +261,11 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 
   # Change occupancy part of model (if needed)
   # OCC_NULL <- FALSE
-  # OCC_MODELS <- list(c("burn", "elev"))
+  # OCC_MODELS <- list(c("slope"))
 
   # Change detection part of model (if needed)
   # DET_NULL <- TRUE
-  # DET_MODELS <- list(c("day", "effort"))
+  # DET_MODELS <- list(c("burn", "deploy_exp"))
   # rm(DET_MODELS)
   
   # source("src/single-season-models/spOccupancy-create-model-formulas.R")
@@ -301,17 +301,17 @@ ppc.site <- as.numeric(model_stats$ppc.sites[model_stats$model_no == best_index]
 ppc.rep <- as.numeric(model_stats$ppc.reps[model_stats$model_no == best_index])
 if (ppc.site < 0.1 | ppc.site > 0.9) {
   warning(paste0("PPC indicates that we have not adequately described spatial ",
-                 "variation in occupancy and/or detection."))
+                 "variation in occupancy and/or detection.\n"))
 } else {
   cat(paste0("PPC indicates that we have adequately described spatial ",
-             "variation in occupancy and detection."))
+             "variation in occupancy and detection.\n"))
 } 
 if (ppc.rep < 0.1 | ppc.site > 0.9) {
   warning(paste0("PPC indicates that we have not adequately described temporal ",
-                 "variation in detection."))
+                 "variation in detection.\n"))
 } else {
   cat(paste0("PPC indicates that we have adequately described temporal ",
-             "variation in detection."))
+             "variation in detection.\n"))
 }
 
 # If you received a warning that PPC indicates you have not adequately described
@@ -359,11 +359,12 @@ if (ppc.rep < 0.1 | ppc.site > 0.9) {
   # model_stats %>% arrange(waic)
   
   # # Select the best model, but BEWARE of models that didn't converge (high rhat
-  # # and/or low ESS)
+  # # and/or low ESS) or models with values for the random effect parameter (SD) 
+  # # that are unreasonably high (e.g., >10)
   # STAT <- "model_no"
   # if (STAT == "model_no") {
   #   # If STAT == "model_no", specify model of interest by model number in table
-  #   best_index <- 3
+  #   best_index <- 1
   # } else {
   #   min_stat <- min(model_stats[,STAT])
   #   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
