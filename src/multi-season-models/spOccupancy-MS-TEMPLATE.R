@@ -28,7 +28,7 @@ library(tidyterra)
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "CHIR"
+PARK <- "ORPI"
 
 source("src/photo-data/format-mammal-data.R")
 
@@ -59,7 +59,7 @@ detects %>%
   dplyr::select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "ODVI"
+SPECIES <- "LECA"
 
 # Save this script as: 
 # src/multi-season-models/PARK/spOccupancy-PARK-FIRSTYEAR-LASTYEAR-SPECIES.R
@@ -209,7 +209,7 @@ f_dets
   # DET_NULL <- TRUE
   # rm(DET_MODELS)
 # To use a model with a subset of those covariates, like day2 and effort:
-  DET_MODELS <- list(c("burn", "day2", "effort"))
+  DET_MODELS <- list(c("day", "deploy_exp", "camera"))
 # To use the same model, we can leave DET_MODELS as is.
 
 #------------------------------------------------------------------------------#
@@ -217,12 +217,14 @@ f_dets
   # which, if any, spatial covariates should be included in occurrence models
 #------------------------------------------------------------------------------#
 
-# There are 3 categories of spatial covariates:
+# There are 4 categories of spatial covariates (though each park only has 
+# covariates in 2 or 3 of the categories):
   # topographic: aspect, elev, slope
     # (using linear rather than quadratic forms of elev & slope because SAGW 
     # doesn't span that large of a range and we often get nonsensical results 
     # with highest probabilities at extreme values)
-  # veg: vegclasses + wash
+  # veg: vegclasses + wash (for now, only available for SAGW)
+  # burn: burn severity classes for 2011 fire (only available in CHIR)
   # anthropogenic: roads, boundary, trails, pois, roadbound, trailpois
 
 # For occurrence part of the models, try including item(s) from each category of
@@ -237,7 +239,7 @@ scov_combos <- list(c("aspect", "veg", "wash", "burn", "roads"),
                     c("elev", "veg", "wash", "burn", "roads"),
                     c("slope", "veg", "wash", "burn", "roads"),
                     c("aspect", "veg", "wash", "burn", "boundary"),
-                    # c("elev", "veg", "wash", "burn", "boundary"),
+                    c("elev", "veg", "wash", "burn", "boundary"),
                     c("slope", "veg", "wash", "burn", "boundary"),
                     c("aspect", "veg", "wash", "burn", "trail"),
                     c("elev", "veg", "wash", "burn", "trail"),
@@ -301,7 +303,7 @@ model_stats %>% arrange(waic)
 STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 13
+  best_index <- 11
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
