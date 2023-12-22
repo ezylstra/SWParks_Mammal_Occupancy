@@ -332,7 +332,7 @@ marginal_plot_occ <- function(covariate,
                           cent = preds_cent,
                           lcl = preds_lcl,
                           ucl = preds_ucl)
-  cov_name <- ifelse(covariate=="burn_severity_2011",
+  cov_name <- ifelse(covariate == "burn_severity_2011_z",
                      "burn",
                      str_remove(covariate, "_z"))
 
@@ -425,7 +425,7 @@ marginal_plot_det <- function(covariate,
                           cent = preds_cent,
                           lcl = preds_lcl,
                           ucl = preds_ucl)
-  cov_name <- ifelse(covariate=="burn_severity_2011",
+  cov_name <- ifelse(covariate == "burn_severity_2011_z",
                      "burn",
                      str_remove(covariate, "_z"))
 

@@ -51,7 +51,7 @@ source("src/functions.R")
 #------------------------------------------------------------------------------#
 
 # Select year of interest
-YEAR <- 2023
+YEAR <- 2022
 
 # Look at detection data for various species
 detects <- read.csv(paste0("output/species-detections-byyr-", PARK, ".csv"))
@@ -161,7 +161,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 
 # Pick which detection covariates to use in subsequent candidate models
 # (for now, can use covariates with f >= 0.9)
-DET_MODELS <- list(c("burn", "deploy_exp", "effort")) 
+DET_MODELS <- list(c("burn", "day2")) 
 
 #------------------------------------------------------------------------------#
 # Specify the occurrence portion of candidate models

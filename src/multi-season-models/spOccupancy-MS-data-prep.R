@@ -464,7 +464,7 @@ occ_covs <- list(boundary = spatial_covs$boundary,
                  monsoon_ppt_z = monsoon_ppt_z)
 if (PARK == "CHIR") {
   occ_covs <- c(occ_covs, 
-                list(burn_severity_2011 = spatial_covs$burn_severity_2011))
+                list(burn_severity_2011_z = spatial_covs$burn_severity_2011_z))
 }
 if (PARK == "ORPI") {
   occ_covs <- c(occ_covs,
@@ -511,7 +511,7 @@ det_covs <- list(boundary_z = spatial_covs$boundary_z,
                  effort_z = effort_z)
 if (PARK == "CHIR") {
   det_covs <- c(det_covs, 
-                list(burn_severity_2011 = spatial_covs$burn_severity_2011))
+                list(burn_severity_2011_z = spatial_covs$burn_severity_2011_z))
 }
 if (PARK == "SAGW") {
   det_covs <- c(det_covs,

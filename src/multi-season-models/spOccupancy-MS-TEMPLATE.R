@@ -28,7 +28,7 @@ library(tidyterra)
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "ORPI"
+PARK <- "CHIR"
 
 source("src/photo-data/format-mammal-data.R")
 
@@ -59,7 +59,7 @@ detects %>%
   dplyr::select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "LECA"
+SPECIES <- "ODVI"
 
 # Save this script as: 
 # src/multi-season-models/PARK/spOccupancy-PARK-FIRSTYEAR-LASTYEAR-SPECIES.R
@@ -130,7 +130,8 @@ covariates <- read.csv("data/covariates/covariates-MS.csv", header = TRUE)
   # which, if any, covariates should be included in detection models
 #------------------------------------------------------------------------------#
 
-# For detection, use a "full" model
+# For detection, use a "full" model (note: exclude lens_2023 if the last year in
+# series in 2022)
 DET_NULL <- FALSE
 DET_MODELS <- list(c("day2", 
                      "deploy_exp", 
@@ -209,7 +210,7 @@ f_dets
   # DET_NULL <- TRUE
   # rm(DET_MODELS)
 # To use a model with a subset of those covariates, like day2 and effort:
-  DET_MODELS <- list(c("day", "deploy_exp", "camera"))
+  DET_MODELS <- list(c("burn", "day2", "effort"))
 # To use the same model, we can leave DET_MODELS as is.
 
 #------------------------------------------------------------------------------#
@@ -303,7 +304,7 @@ model_stats %>% arrange(waic)
 STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 11
+  best_index <- 7
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -323,7 +324,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 # power from the model for occurrence.
 
   # Identify new set(s) of spatial covariates to explore:
-  scov_new <- list(c("elev", "roadbound", "burn"))
+  scov_new <- list(c("elev", "burn"))
   OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
   # If needed, refine the detection model
   # DET_MODELS <- list(c("burn", "effort"))

@@ -194,7 +194,7 @@ spatial_covs <- cbind(spatial_covs,
 # Identify continuous covariates that we want to standardize
 covs_cont <- names(spatial_covs)
 covs_cont <- str_subset(covs_cont, 
-                        "loc|long|lat|vegclass|burn_severity_2011", 
+                        "loc|long|lat|vegclass", 
                         negate = TRUE)
 
 # Scale continuous covariates by mean, SD
@@ -250,7 +250,7 @@ det_covs <- list(day = day,
                  site = spatial_covs$site)
 if (PARK == "CHIR") {
   det_covs <- c(det_covs, 
-                list(burn_severity_2011 = spatial_covs$burn_severity_2011))
+                list(burn_severity_2011_z = spatial_covs$burn_severity_2011_z))
 }
 if (PARK == "SAGW") {
   det_covs <- c(det_covs, 
