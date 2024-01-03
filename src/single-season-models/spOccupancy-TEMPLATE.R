@@ -32,7 +32,7 @@ library(tidyterra)
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "CHIR"
+PARK <- "SAGW"
 
 source("src/photo-data/format-mammal-data.R")
 
@@ -51,7 +51,7 @@ source("src/functions.R")
 #------------------------------------------------------------------------------#
 
 # Select year of interest
-YEAR <- 2022
+YEAR <- 2023
 
 # Look at detection data for various species
 detects <- read.csv(paste0("output/species-detections-byyr-", PARK, ".csv"))
@@ -65,7 +65,7 @@ detects %>%
   select(c(spp, Species, Common_name, nobs, propdetect))
 
 # Select species of interest (ideally with a detection rate of at least 5%)
-SPECIES <- "URCI"
+SPECIES <- "CALA"
 
 # Save this script as: 
 # src/single-season-models/YEAR/PARK/spOccupancy-PARK-YEAR-SPECIES.R
@@ -306,7 +306,7 @@ if (ppc.site < 0.1 | ppc.site > 0.9) {
   cat(paste0("PPC indicates that we have adequately described spatial ",
              "variation in occupancy and detection.\n"))
 } 
-if (ppc.rep < 0.1 | ppc.site > 0.9) {
+if (ppc.rep < 0.1 | ppc.rep > 0.9) {
   warning(paste0("PPC indicates that we have not adequately described temporal ",
                  "variation in detection.\n"))
 } else {
@@ -353,6 +353,7 @@ if (ppc.rep < 0.1 | ppc.site > 0.9) {
   # model_specs <- rbind(model_specs1, model_specs2, model_specs3, model_specs4)
   # occ_formulas <- c(occ_formulas1, occ_formulas2, occ_formulas3, occ_formulas4)
   # det_formulas <- c(det_formulas1, det_formulas2, det_formulas3, det_formulas4)
+  # model_specs
   # 
   # # Run models with all combinations of site random effects
   # source("src/single-season-models/spOccupancy-run-candidate-models.R")
@@ -371,6 +372,10 @@ if (ppc.rep < 0.1 | ppc.site > 0.9) {
   # }
   # # Look at model output
   # summary(out_list[[best_index]])
+  # samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
+  #             out_list[[best_index]]$alpha.samples[, -1])
+  # (f <- apply(samps, 2, function(x) ifelse(mean(x) > 0, sum(x > 0) / length(x),
+  #                                       sum(x < 0) / length(x))))
 
 # Identify model that will be used for inferences, extract output and formulas
 best <- out_list[[best_index]]
