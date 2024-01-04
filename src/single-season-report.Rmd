@@ -300,17 +300,15 @@ dat_park <- dat %>%
 total_photos <- filter(dat_park, Park == PARK & yr == YEAR)$n
 # within park and within given years' occasion start & end
 dat <- dat %>%
-  filter(Park == PARK & yr == YEAR) %>%
-  filter(obsdate >= occasions$start[1] & 
-           obsdate <= occasions$end[nrow(occasions)])
+  filter(Park == PARK & yr == YEAR)
 nphotos <- dat %>%
   group_by(Species_code) %>%
   summarize(n_photos = length(datetime),
             n_locs = length(unique(loc))) %>%
-  arrange(desc(n_photos)) %>%
-  left_join(species, by = "Species_code") %>%
-  relocate(Common_name:Species, .before = n_photos) %>%
   data.frame()
+dat <- dat %>%
+  filter(obsdate >= occasions$start[1] & 
+           obsdate <= occasions$end[nrow(occasions)])
 
 # Look at detection data for various species
 # Where detection is max of one per sampling occasion at each location
@@ -339,6 +337,9 @@ detects <- detects %>%
 
 nphotos <- nphotos %>%
   left_join(detects, by = "Species_code") %>%
+  arrange(desc(n_photos)) %>%
+  left_join(species, by = "Species_code") %>%
+  relocate(Common_name:Species, .before = n_photos) %>%
   relocate(n_detects, .after = n_photos) %>%
   select(-Species_code)
 
@@ -363,9 +364,10 @@ cameras during the `r nrow(occasions)` sampling occasions (weeks) in `r YEAR` (T
 ```{r detections-table}
 
 nphotos_cap <- paste0("Mammal species detected in ",
-  PARKL, " between ", season_start, " and ", season_end, ", ", YEAR, 
+  PARKL, " in ", YEAR, 
   ". No. photos is the total number of photographs obtained (multiple photos ",
-  "may occur at the same camera location in the same day). No. detections is ",
+  "may occur at the same camera location in the same day) in ", YEAR, 
+  ", regardless of date. No. detections is ",
   "the number of detections that could be used in an occupancy modeling ",
   "framework (maximum of one photographic detection per camera location per ",
   "sampling occasion). No. locations is the unique number of camera locations ",
