@@ -319,8 +319,8 @@ marginal_plot_occ <- function(covariate,
   } else {
   # Otherwise it's an annual covariate (other than years)
     if (str_detect(covariate, "_z")) {
-      cov_mn <- mean(c(get(str_remove(covariate, "_z"))))
-      cov_sd <- sd(c(get(str_remove(covariate, "_z"))))
+      cov_mn <- mean(data_list$occ.covs[[str_remove(covariate, "_z")]])
+      cov_sd <- sd(data_list$occ.covs[[str_remove(covariate, "_z")]])
       cov_plot <- X_cov[,2] * cov_sd + cov_mn
     } else {
       cov_plot <- X_cov[,2] 
@@ -412,8 +412,10 @@ marginal_plot_det <- function(covariate,
   } else {
     # Otherwise it's an annual or survey covariate
     if (str_detect(covariate, "_z")) {
-      cov_mn <- mean(c(get(str_remove(covariate, "_z"))), na.rm = TRUE)
-      cov_sd <- sd(c(get(str_remove(covariate, "_z"))), na.rm = TRUE)
+      cov_mn <- mean(data_list$det.covs[[str_remove(covariate, "_z")]], 
+                     na.rm = TRUE)
+      cov_sd <- sd(data_list$det.covs[[str_remove(covariate, "_z")]], 
+                   na.rm = TRUE)
       cov_plot <- X_cov[,2] * cov_sd + cov_mn
     } else {
       cov_plot <- X_cov[,2] 
