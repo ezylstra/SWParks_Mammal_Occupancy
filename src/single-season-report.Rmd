@@ -162,18 +162,18 @@ cov_list <- ifelse(PARK == "SAGW",
 
 ```
 
+For each species, we first evaluated whether day (using linear and quadratic terms), 
+effort (proportion of days during each sampling occasion that the camera was 
+operational), and the experience of deployment personnel influenced detection probability. 
 We identified a number of `r cov_list` spatial covariates for `r PARKL` that 
-could explain variation in occurrence probabilities. For each species, we 
-assembled a set of candidate models where each model included one element from 
-each covariate category, excluding any combination of covariates that were 
-highly correlated (pairwise correlation coefficient, |r| > 0.7). In each 
-candidate model, we allowed detection probability to vary as a function of day 
-(using linear and quadratic terms), effort (proportion of days during each 
-sampling occasion that the camera was operational), and the experience of 
-deployment personnel. We used widely applicable information criterion (WAIC) to 
-identify the best supported candidate model, and then removed any covariates 
-with little to no explanatory power (95% credible intervals that widely 
-overlapped zero). When necessary to estimate spatial variation in occupancy
+could explain variation in occurrence probabilities. We then assembled a set of candidate 
+models where each model included the best detection covariate(s) and one element from 
+each occupancy covariate category, excluding any combination of covariates that were 
+highly correlated (pairwise correlation coefficient, |r| > 0.7). We used widely applicable 
+information criterion (WAIC) to identify the best supported candidate model, and then removed any covariates 
+with little to no explanatory power (proportion of posterior samples that were < 0 if the posterior 
+mean was < 0 or the proportion of posterior samples > 0 if the posterior mean was > 0 [f-value] < 0.9) ). 
+When necessary to estimate spatial variation in occupancy
 or detection, we used camera location as a random effect. 
 We used the resulting model for all inferences.
 
