@@ -180,7 +180,7 @@ cor_df %>%
 
 # Logical indicating whether a null model for occurrence should be included in 
 # the candidate model set
-OCC_NULL <- FALSE
+OCC_NULL <- TRUE
 
 # There are 4 categories of spatial covariates (though each park only has 
 # covariates in 2 or 3 of the categories):
@@ -237,10 +237,10 @@ View(model_stats %>% arrange(waic))
 # "model_no" and specifying the "best_index" directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "waic"   
+STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 14
+  best_index <- 10
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -261,7 +261,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 
   # Change occupancy part of model (if needed)
   # OCC_NULL <- FALSE
-   OCC_MODELS <- list(c("aspect", "veg"))
+   OCC_MODELS <- list(c("aspect", "veg"), c("aspect"), c("veg"))
 
   # Change detection part of model (if needed)
   # DET_NULL <- TRUE
