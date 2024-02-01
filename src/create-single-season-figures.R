@@ -15,26 +15,26 @@ library(tidyterra)
 #------------------------------------------------------------------------------#
 # Park, year, and species
 PARK <- "SAGW"
-YEAR <- 2022
-SPECIES <- "CALA"
+YEAR <- 2023
+SPECIES <- "LYRU"
 
 # Logical indicating whether to create a map with mean occurrence probabilities 
 MAP <- TRUE
 # Logical indicating whether to create a map with SD of occurrence probabilities
-MAP_SD <- TRUE
+MAP_SD <- FALSE
   # If creating maps, indicate whether to include lat/long axes labels
   LATLONG <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the occurrence part of the model
-MARG_OCC <- TRUE
+MARG_OCC <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the detection part of the model
-MARG_DET <- TRUE
+MARG_DET <- FALSE
 
 # Figure parameters
-file_extension <- ".pdf"
+file_extension <- ".png"
 device <- cairo_pdf
 dpi <- 300
 width <- 6
@@ -104,7 +104,7 @@ theme_NPS <- ggplot2::theme_classic() +
 
 # Create longer park name for use in plots
 park <- ifelse(PARK == "CHIR", "Chiricahua NM",
-               ifelse(PARK == "SAGW", "Saguaro NP", "Organ Pipe Cactus NM"))
+               ifelse(PARK == "SAGW", "Saguaro NP (TMD)", "Organ Pipe Cactus NM"))
   
 #------------------------------------------------------------------------------#
 # Marginal effects of covariates in the occurrence part of the model
@@ -142,7 +142,6 @@ if (MARG_OCC) {
 
       ggsave(plot_marg, 
              file = paste0(base_out, plotname, file_extension),
-             device = device, 
              dpi = dpi, 
              width = width, 
              height = height, 
@@ -198,7 +197,6 @@ if (MARG_DET) {
       
       ggsave(plot_marg, 
              file = paste0(base_out, plotname, file_extension),
-             device = device, 
              dpi = dpi, 
              width = width, 
              height = height, 
@@ -267,7 +265,6 @@ if (MAP) {
   
   ggsave(plot_preds_mn, 
          file = paste0(base_out, "occmap-mn", file_extension),
-         device = device, 
          dpi = dpi, 
          width = width, 
          height = height, 
@@ -275,7 +272,6 @@ if (MAP) {
   if (MAP_SD) {
     ggsave(plot_preds_sd, 
            file = paste0(base_out, "occmap-sd", file_extension),
-           device = device, 
            dpi = dpi, 
            width = width, 
            height = height, 
