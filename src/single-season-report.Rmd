@@ -291,13 +291,27 @@ species <- species %>%
   select(-c(TSN, Family, Nativeness)) 
 species$Species[species$Species_code == "FOX"] <- "Vulpes or Urocyon sp."
 
-# Filter detection data
-# within park over time
-dat_park <- dat %>%
-  filter(Park == PARK) %>%
+# Filter observation data
+# total photos during deployment 
+total_photos <- (dat %>%
+  filter(Park == PARK & yr == YEAR) %>%
   group_by(Park, yr) %>%
-  count()
-total_photos <- filter(dat_park, Park == PARK & yr == YEAR)$n
+  count())$n
+
+# any new species observation
+obs_new <- dat %>%
+  mutate(visit = ifelse(yr == YEAR, "Current", ifelse(yr > YEAR, "Future", "Past"))) %>%
+  filter(visit != "Future") %>%
+  ungroup() %>%
+  group_by(Park, Species_code, visit) %>%
+  summarize(sumobs = n(), .groups="keep") %>%
+  pivot_wider(., names_from="visit", values_from="sumobs", values_fill=0) %>%
+  filter(Past==0 & Current > 0) %>%
+  left_join(species, by = "Species_code") %>%
+  mutate(name = paste0(Common_name," (",Species,")", sep=""))
+
+obs_new_run = ifelse(nrow(obs_new) > 0, TRUE, FALSE)
+
 # within park and within given years' occasion start & end
 dat <- dat %>%
   filter(Park == PARK & yr == YEAR)
@@ -314,19 +328,22 @@ dat <- dat %>%
 # Where detection is max of one per sampling occasion at each location
 detects <- read.csv(paste0("output/species-detections-byyr-", PARK, ".csv"))
 
+# any new detections
 detects_new <- detects %>%
   mutate(visit = ifelse(yr == YEAR, "Current", ifelse(yr > YEAR, "Future", "Past"))) %>%
   filter(visit != "Future") %>%
   ungroup() %>%
   group_by(Park, spp, visit) %>%
   summarize(sumdetects = sum(ndetects), .groups="keep") %>%
-  pivot_wider(., names_from="visit", values_from="sumdetects") %>%
+  pivot_wider(., names_from="visit", values_from="sumdetects", values_fill=0) %>%
   filter(Past==0 & Current > 0) %>%
   left_join(species, by = c("spp" = "Species_code")) %>%
   mutate(name = paste0(Common_name," (",Species,")", sep=""))
 
-detects_new_run = ifelse(nrow(detects_new) > 0, TRUE, FALSE)
-detects_new_text = paste("In ",YEAR, ", we detected ",paste(unlist(detects_new$name), collapse=", "), " for the first time during a sampling occasion. ", sep="")
+new_species_run = ifelse(nrow(obs_new) > 0 | nrow(detects_new) > 0, TRUE, FALSE)
+
+new_species_text = ifelse(nrow(obs_new) > 0 & nrow(detects_new) == 0, paste("In ",YEAR, ", our cameras captured ",paste(unlist(detects_new$name), collapse=", "), " for the first time during SODN monitoring.", sep=""), ifelse(nrow(detects_new) > 0, paste("In ",YEAR, ", we detected ",paste(unlist(detects_new$name), collapse=", "), " for the first time during a sampling occasion. ", sep=""), "uh oh"))
+
 
 # for selected year
 detects <- detects %>%
@@ -343,22 +360,37 @@ nphotos <- nphotos %>%
   relocate(n_detects, .after = n_photos) %>%
   select(-Species_code)
 
-species_type <- nphotos %>%
+# summarize species & genera counts for observations 
+species_type_obs <- nphotos %>%
   mutate(separate_wider_delim(., cols=Species, delim=" ", names=c("Genus", "SpEp"), too_few = "align_start", too_many="drop")) %>%
   mutate(Type = ifelse(is.na(SpEp),"Genera","Species")) %>%
   mutate(Type = ifelse(Common_name == "unknown animal", "Unknown", Type))
 
 # count species and genera separately
-species_count <- nrow(filter(species_type, Type == "Species"))
-genera_count <- nrow(filter(species_type, Type == "Genera"))
+species_count_obs <- nrow(filter(species_type_obs, Type == "Species"))
+genera_count_obs <- nrow(filter(species_type_obs, Type == "Genera"))
+
+species_text_obs <- ifelse(genera_count_obs > 0, paste("We captured a total of ", species_count_obs, " mammal species plus ", genera_count_obs, " mammalian families or genera", sep=""), paste("We captured a total of ", species_count_obs, " mammal species", sep=""))
+
+# summarize species & genera counts for detections 
+species_type_det <- nphotos %>%
+  filter(n_detects > 0) %>%
+  mutate(separate_wider_delim(., cols=Species, delim=" ", names=c("Genus", "SpEp"), too_few = "align_start", too_many="drop")) %>%
+  mutate(Type = ifelse(is.na(SpEp),"Genera","Species")) %>%
+  mutate(Type = ifelse(Common_name == "unknown animal", "Unknown", Type))
+
+# count species and genera separately
+species_count_det <- nrow(filter(species_type_det, Type == "Species"))
+genera_count_det <- nrow(filter(species_type_det, Type == "Genera"))
+
+species_text_det <- ifelse(species_count_obs == species_count_det & genera_count_obs == genera_count_det & genera_count_obs == 0, paste("had at least one detection of each of the ", species_count_obs, " species", sep=""), ifelse(species_count_obs == species_count_det & genera_count_obs == genera_count_det & genera_count_obs > 0, paste("had at least one detection of each of the ", species_count_obs, " species and ", genera_count_obs, " genera/families", sep=""), ifelse(species_count_obs > species_count_det & genera_count_obs == 0, paste("only had detections for ", species_count_det, " of the ", species_count_obs, " species", sep=""), ifelse(species_count_obs > species_count_det & genera_count_obs == species_count_det, paste("only had detections for ", species_count_det, " of the ", species_count_obs, " species but all ",genera_count_obs, " of the genera/families", sep=""), ifelse(species_count_obs == species_count_det & genera_count_obs > genera_count_det, paste("had at least one detection of each of the ", species_count_obs, " species but only had detections for ", genera_count_det, " of the ", genera_count_obs, " genera/families", sep=""),"hmmm")))))
+
 ```
 
-We captured `r nrow(dat)` photos and detected a total of `r species_count` mammal species plus `r genera_count` mammalian 
-families or genera on the `r nrow(events)` 
-cameras during the `r nrow(occasions)` sampling occasions (weeks) in `r YEAR` (Table #). 
-`r if(detects_new_run){detects_new_text}`
+`r species_text_obs` in `r total_photos` photos from the `r nrow(events)` cameras during the `r YEAR` camera deployment. During the `r nrow(occasions)` sampling occasions (weeks) in `r YEAR`, we captured `r nrow(dat)` photos and `r species_text_det` (Table #). 
+`r if(new_species_run){new_species_text}`
 
-**Take a look and see if there are any interesting or notable detections, even if there weren’t many of them. If there were new detections, those will be mentioned above.**
+**Take a look and see if there are any interesting or notable detections, even if there weren’t many of them. If there were new observations or detections, those will be mentioned above.**
 
 
 ```{r detections-table}
