@@ -32,7 +32,7 @@ library(tidyterra)
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "SAGW"
+PARK <- "CHIR"
 
 source("src/photo-data/format-mammal-data.R")
 
@@ -226,7 +226,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
 # Note: this will often take several minutes to run
 
 # View summary table, ranked by WAIC
-model_stats %>% arrange(waic)
+View(model_stats %>% arrange(waic))
 
 #------------------------------------------------------------------------------#
 # Select "best" model
@@ -237,7 +237,7 @@ model_stats %>% arrange(waic)
 # "model_no" and specifying the "best_index" directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "model_no"   
+STAT <- "waic"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
   best_index <- 14
