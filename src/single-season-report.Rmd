@@ -130,10 +130,11 @@ occurrence and the probability of detection given occurrence (MacKenzie et al.
 the last retrieval date when ≥ 60% of the cameras were operational. We then delineated
 consecutive 7-day sampling occasions within the season, with the first sampling occasion
 beginning on the first day ≥ 60% of the cameras were operational. For each species and 
-camera location, we generated encounter histories for each camera location, where a "1" 
-denotes that the species was detected at least once during a sampling occasion and a "0"
-indicates that the species was not detected. For example, an encounter history of "10011"
-would indicate that a species was photographed at least once during the first, fourth, and fifth sampling occasions and was not photographed during the second and third sampling 
+camera location, we generated encounter histories, where a "1" 
+denoted that the species was detected at least once during a sampling occasion and a "0"
+indicated that the species was not detected. For example, an encounter history of "10011"
+would indicate that a species was photographed at least once during the first, fourth, and fifth 
+sampling occasions and was not photographed during the second and third sampling 
 occasions. 
 
 We used a Bayesian framework to estimate model parameters, as this made it 
@@ -162,7 +163,7 @@ cov_list <- ifelse(PARK == "SAGW",
 
 ```
 
-For each species, we first evaluated whether day (using linear and quadratic terms), 
+For each species, we first evaluated whether day of the year (using linear and quadratic terms), 
 effort (proportion of days during each sampling occasion that the camera was 
 operational), and the experience of deployment personnel influenced detection probability. 
 We identified a number of `r cov_list` spatial covariates for `r PARKL` that 
@@ -171,10 +172,10 @@ models where each model included the best detection covariate(s) and one element
 each occupancy covariate category, excluding any combination of covariates that were 
 highly correlated (pairwise correlation coefficient, |r| > 0.7). We used widely applicable 
 information criterion (WAIC) to identify the best supported candidate model, and then removed any covariates 
-with little to no explanatory power (proportion of posterior samples that were < 0 if the posterior 
-mean was < 0 or the proportion of posterior samples > 0 if the posterior mean was > 0 [f-value] < 0.9) ). 
+with little to no explanatory power (*f* < 0.9; where *f* represents the proportion of posterior samples that were < 0 if the posterior 
+mean was < 0 or the proportion of posterior samples > 0 if the posterior mean was > 0 ) ). 
 When necessary to estimate spatial variation in occupancy
-or detection, we used camera location as a random effect. 
+or detection, we included camera location as a random effect. 
 We used the resulting model for all inferences.
 
 # Results 
@@ -244,7 +245,7 @@ A total of `r nrow(events)` cameras (`r cam_type_text`) were deployed in `r PARK
 `r deploy_start` and `r deploy_end` and were retrieved between 
 `r retr_start` and `r retr_end`, `r YEAR`. We delineated a total of 
 `r nrow(occasions)` sampling occasions that were each `r occasions$duration[1]` 
-days long. The first sampling occasion began on `r season_start` and the last sampling occasion ended on `r season_end`. Community scientists, park staff, and/or partner organizations typically assist with the fieldwork associated with camera deployments and retrievals. In `r YEAR`, __##__ volunteers and __##__ interns and staff from various parks and partner organizations helped deploy and retrieve cameras in `r PARKL`. We are grateful for their support.
+days long. The first sampling occasion began on `r season_start` and the last sampling occasion ended on `r season_end`. Community scientists, park staff, and/or partner organizations typically assist with camera deployments and retrievals. In `r YEAR`, __##__ volunteers, __##__ interns, and __##__ staff from various parks and partner organizations helped deploy and retrieve cameras in `r PARKL`. We are grateful for their support.
 
 ```{r deployment-table}
 
@@ -299,7 +300,7 @@ total_photos <- (dat %>%
   count())$n
 
 # any new species observation
-obs_new <- dat %>%
+if(PARK == "SAGW")obs_new <- dat %>%
   mutate(visit = ifelse(yr == YEAR, "Current", ifelse(yr > YEAR, "Future", "Past"))) %>%
   filter(visit != "Future") %>%
   ungroup() %>%
@@ -309,8 +310,9 @@ obs_new <- dat %>%
   filter(Past==0 & Current > 0) %>%
   left_join(species, by = "Species_code") %>%
   mutate(name = paste0(Common_name," (",Species,")", sep=""))
+  
 
-obs_new_run = ifelse(nrow(obs_new) > 0, TRUE, FALSE)
+obs_new_run = ifelse(PARK != "SAGW", FALSE, ifelse(nrow(obs_new) > 0, TRUE, FALSE))
 
 # within park and within given years' occasion start & end
 dat <- dat %>%
@@ -329,7 +331,7 @@ dat <- dat %>%
 detects <- read.csv(paste0("output/species-detections-byyr-", PARK, ".csv"))
 
 # any new detections
-detects_new <- detects %>%
+if(PARK == "SAGW")detects_new <- detects %>%
   mutate(visit = ifelse(yr == YEAR, "Current", ifelse(yr > YEAR, "Future", "Past"))) %>%
   filter(visit != "Future") %>%
   ungroup() %>%
@@ -340,9 +342,9 @@ detects_new <- detects %>%
   left_join(species, by = c("spp" = "Species_code")) %>%
   mutate(name = paste0(Common_name," (",Species,")", sep=""))
 
-new_species_run = ifelse(nrow(obs_new) > 0 | nrow(detects_new) > 0, TRUE, FALSE)
+new_species_run = ifelse(PARK != "SAGW", FALSE, ifelse(nrow(obs_new) > 0 | nrow(detects_new) > 0, TRUE, FALSE))
 
-new_species_text = ifelse(nrow(obs_new) > 0 & nrow(detects_new) == 0, paste("In ",YEAR, ", our cameras captured ",paste(unlist(detects_new$name), collapse=", "), " for the first time during SODN monitoring.", sep=""), ifelse(nrow(detects_new) > 0, paste("In ",YEAR, ", we detected ",paste(unlist(detects_new$name), collapse=", "), " for the first time during a sampling occasion. ", sep=""), "uh oh"))
+new_species_text = ifelse(PARK != "SAGW", "Past observation and detection data are not available for comparison.", ifelse(nrow(obs_new) > 0 & nrow(detects_new) == 0, paste("In ",YEAR, ", our cameras captured ",paste(unlist(detects_new$name), collapse=", "), " for the first time during SODN monitoring.", sep=""), ifelse(nrow(detects_new) > 0, paste("In ",YEAR, ", we detected ",paste(unlist(detects_new$name), collapse=", "), " for the first time during a sampling occasion. ", sep=""), "All species listed in Table X were observed and detected during previous SODN monitoring.")))
 
 
 # for selected year
@@ -370,7 +372,7 @@ species_type_obs <- nphotos %>%
 species_count_obs <- nrow(filter(species_type_obs, Type == "Species"))
 genera_count_obs <- nrow(filter(species_type_obs, Type == "Genera"))
 
-species_text_obs <- ifelse(genera_count_obs > 0, paste("We captured a total of ", species_count_obs, " mammal species plus ", genera_count_obs, " mammalian families or genera", sep=""), paste("We captured a total of ", species_count_obs, " mammal species", sep=""))
+species_text_obs <- ifelse(genera_count_obs > 0, paste("We observed a total of ", species_count_obs, " mammal species plus ", genera_count_obs, " mammalian families or genera", sep=""), paste("We observed a total of ", species_count_obs, " mammal species", sep=""))
 
 # summarize species & genera counts for detections 
 species_type_det <- nphotos %>%
@@ -383,12 +385,12 @@ species_type_det <- nphotos %>%
 species_count_det <- nrow(filter(species_type_det, Type == "Species"))
 genera_count_det <- nrow(filter(species_type_det, Type == "Genera"))
 
-species_text_det <- ifelse(species_count_obs == species_count_det & genera_count_obs == genera_count_det & genera_count_obs == 0, paste("had at least one detection of each of the ", species_count_obs, " species", sep=""), ifelse(species_count_obs == species_count_det & genera_count_obs == genera_count_det & genera_count_obs > 0, paste("had at least one detection of each of the ", species_count_obs, " species and ", genera_count_obs, " genera/families", sep=""), ifelse(species_count_obs > species_count_det & genera_count_obs == 0, paste("only had detections for ", species_count_det, " of the ", species_count_obs, " species", sep=""), ifelse(species_count_obs > species_count_det & genera_count_obs == species_count_det, paste("only had detections for ", species_count_det, " of the ", species_count_obs, " species but all ",genera_count_obs, " of the genera/families", sep=""), ifelse(species_count_obs == species_count_det & genera_count_obs > genera_count_det, paste("had at least one detection of each of the ", species_count_obs, " species but only had detections for ", genera_count_det, " of the ", genera_count_obs, " genera/families", sep=""),"hmmm")))))
+species_text_det <- ifelse(species_count_obs == species_count_det & genera_count_obs == genera_count_det & genera_count_obs == 0, paste("with at least one detection of each of the ", species_count_obs, " species", sep=""), ifelse(species_count_obs == species_count_det & genera_count_obs == genera_count_det & genera_count_obs > 0, paste("with at least one detection of each of the ", species_count_obs, " species and ", genera_count_obs, " genera/families", sep=""), ifelse(species_count_obs > species_count_det & genera_count_obs == 0, paste("but only had detections for ", species_count_det, " of the ", species_count_obs, " species", sep=""), ifelse(species_count_obs > species_count_det & genera_count_obs == species_count_det, paste("but only had detections for ", species_count_det, " of the ", species_count_obs, " species but all ",genera_count_obs, " of the genera/families", sep=""), ifelse(species_count_obs == species_count_det & genera_count_obs > genera_count_det, paste("with at least one detection of each of the ", species_count_obs, " species but only had detections for ", genera_count_det, " of the ", genera_count_obs, " genera/families", sep=""),"hmmm")))))
 
 ```
 
-`r species_text_obs` in `r total_photos` photos from the `r nrow(events)` cameras during the `r YEAR` camera deployment. During the `r nrow(occasions)` sampling occasions (weeks) in `r YEAR`, we captured `r nrow(dat)` photos and `r species_text_det` (Table #). 
-`r if(new_species_run){new_species_text}`
+`r species_text_obs` in `r total_photos` photos from the `r nrow(events)` cameras during the `r YEAR` camera deployment. During the `r nrow(occasions)` sampling occasions (weeks) in `r YEAR`, we recorded `r nrow(dat)` detections `r species_text_det` (Table #). 
+`r {new_species_text}`
 
 **Take a look and see if there are any interesting or notable detections, even if there weren’t many of them. If there were new observations or detections, those will be mentioned above.**
 
