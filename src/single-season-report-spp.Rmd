@@ -177,50 +177,50 @@ if ("vegclass2" %in% psi_covs) {
   mean_occ <- NULL
   lcl_occ <- NULL
   ucl_occ <- NULL
-} else if ("burn_severity_2011" %in% psi_covs) {
-  burnclass_table <- data.frame(burnclass = 1:4,
-                                descript = c("Unburned/Low burn severity",
-                                             "Low burn severity",
-                                             "Moderate burn severity",
-                                             "High burn severity"),
-                                perc = c(0.07, 0.36, 0.41, 0.16),
-                                mean_prob = NA,
-                                sd_prob = NA,
-                                ci_lower = NA,
-                                ci_upper = NA)
-  
-  # Probability of occurrence in each burn class
-  burnsamples <- beta_samples[, c("(Intercept)", "burn_severity_2011")]
-  burnX <- data.frame(int = 1, burn = 1:4)
-  burnpost <- burnsamples %*% t(burnX)
-  burnpost <- exp(burnpost) / (1 + exp(burnpost))
-  burnclass_table$mean_prob <- apply(burnpost, 2, mean)
-  burnclass_table$sd_prob <- apply(burnpost, 2, sd)
-  burnclass_table$ci_lower <- apply(burnpost, 2, quantile, probs = 0.025)
-  burnclass_table$ci_upper <- apply(burnpost, 2, quantile, probs = 0.975)
-  burnclass_table <- burnclass_table %>%
-    mutate(across(ci_lower:ci_upper, function(x) round(x, 2))) %>%
-    mutate("95% CI" = paste0(ci_lower, ", ", ci_upper)) %>%
-    select(-c(ci_lower, ci_upper)) 
-  burnocc_cap <- paste0("Mean occurrence estimates for ", spp_plural, 
-    " in each burn severity class (from the 2011 Horseshoe Fire) in ", 
-    PARKL, ", ",  YEAR, ". ",
-    "% of Park indicates the percent of land area in each burn class.")
-  burnocc_ft <- flextable(burnclass_table) %>%
-    align(j = 1:2, align = "left") %>%
-    align(j = 3:6, align = "center", part = "all") %>%
-    bold(bold = TRUE, part = "header") %>%
-    colformat_double(j = 3:5, digits = 2) %>%
-    set_caption(caption = burnocc_cap, autonum = tab_num) %>%
-    set_header_labels(burnclass = "Burn class",
-                      descript = "Description",
-                      perc = "% of Park",
-                      mean_prob = "Mean",
-                      sd_prob = "SD") %>%
-    add_footer_lines("")
-  mean_occ <- NULL
-  lcl_occ <- NULL
-  ucl_occ <- NULL
+# } else if ("burn_severity_2011" %in% psi_covs) {
+#   burnclass_table <- data.frame(burnclass = 1:4,
+#                                 descript = c("Unburned/Low burn severity",
+#                                              "Low burn severity",
+#                                              "Moderate burn severity",
+#                                              "High burn severity"),
+#                                 perc = c(0.07, 0.36, 0.41, 0.16),
+#                                 mean_prob = NA,
+#                                 sd_prob = NA,
+#                                 ci_lower = NA,
+#                                 ci_upper = NA)
+#   
+#   # Probability of occurrence in each burn class
+#   burnsamples <- beta_samples[, c("(Intercept)", "burn_severity_2011")]
+#   burnX <- data.frame(int = 1, burn = 1:4)
+#   burnpost <- burnsamples %*% t(burnX)
+#   burnpost <- exp(burnpost) / (1 + exp(burnpost))
+#   burnclass_table$mean_prob <- apply(burnpost, 2, mean)
+#   burnclass_table$sd_prob <- apply(burnpost, 2, sd)
+#   burnclass_table$ci_lower <- apply(burnpost, 2, quantile, probs = 0.025)
+#   burnclass_table$ci_upper <- apply(burnpost, 2, quantile, probs = 0.975)
+#   burnclass_table <- burnclass_table %>%
+#     mutate(across(ci_lower:ci_upper, function(x) round(x, 2))) %>%
+#     mutate("95% CI" = paste0(ci_lower, ", ", ci_upper)) %>%
+#     select(-c(ci_lower, ci_upper)) 
+#   burnocc_cap <- paste0("Mean occurrence estimates for ", spp_plural, 
+#     " in each burn severity class (from the 2011 Horseshoe Fire) in ", 
+#     PARKL, ", ",  YEAR, ". ",
+#     "% of Park indicates the percent of land area in each burn class.")
+#   burnocc_ft <- flextable(burnclass_table) %>%
+#     align(j = 1:2, align = "left") %>%
+#     align(j = 3:6, align = "center", part = "all") %>%
+#     bold(bold = TRUE, part = "header") %>%
+#     colformat_double(j = 3:5, digits = 2) %>%
+#     set_caption(caption = burnocc_cap, autonum = tab_num) %>%
+#     set_header_labels(burnclass = "Burn class",
+#                       descript = "Description",
+#                       perc = "% of Park",
+#                       mean_prob = "Mean",
+#                       sd_prob = "SD") %>%
+#     add_footer_lines("")
+#   mean_occ <- NULL
+#   lcl_occ <- NULL
+#   ucl_occ <- NULL
 } else {
   probs_logit <- beta_samples[ ,"(Intercept)"]
   occ_probs <- exp(probs_logit) / (1 + exp(probs_logit))
@@ -228,7 +228,7 @@ if ("vegclass2" %in% psi_covs) {
   lcl_occ <- quantile(occ_probs, 0.025)
   ucl_occ <- quantile(occ_probs, 0.975)
   vegocc_ft <- NULL
-  burnocc_ft <- NULL
+  # burnocc_ft <- NULL
 }
 
 ```
@@ -243,13 +243,14 @@ veg_class_text <- ifelse(PARK=="SAGW","There are three coarse vegetation / landf
 
 `r if("vegclass2" %in% psi_covs){veg_class_text}`
 
-```{r, ft.align = "left", tab.id = "table", eval = ("burn_severity_2011" %in% psi_covs)}
+```{r, ft.align = "left", tab.id = "table", eval = FALSE}
 
+#eval = ("burn_severity_2011" %in% psi_covs)
 burnocc_ft
 
 ```
 
-```{r, results = "asis", eval = (!"vegclass2" %in% psi_covs & !"burn_severity_2011" %in% psi_covs)}
+```{r, results = "asis", eval = (!"vegclass2" %in% psi_covs)}
 
 res <- knitr::knit_child(text = paste0("Overall occurrence probability for ",
                                        spp_plural, " was ", 
