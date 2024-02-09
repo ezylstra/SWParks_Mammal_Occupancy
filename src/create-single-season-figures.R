@@ -9,6 +9,7 @@ library(tidyverse)
 library(terra)
 library(spOccupancy)
 library(tidyterra)
+library(sf)
 
 #------------------------------------------------------------------------------#
 # Specify parameters of interest
@@ -16,7 +17,7 @@ library(tidyterra)
 # Park, year, and species
 PARK <- "SAGW"
 YEAR <- 2023
-SPECIES <- "LYRU"
+SPECIES <- "URCI"
 
 # Logical indicating whether to create a map with mean occurrence probabilities 
 MAP <- TRUE
@@ -89,7 +90,7 @@ base_out <- paste0("output/NPS-figures/single-season/",
   # download Fruiter to their NPS computer from 
   # https://www.nps.gov/subjects/hfc/nps-typefaces.htm
   # (must be on the vpn to do the download)
-  windowsFonts("Frutiger LT Std 55 Roman" = windowsFont("Frutiger LT Std 55 Roman"))
+windowsFonts("Frutiger LT Std 55 Roman" = windowsFont("Frutiger LT Std 55 Roman"))
 
 theme_NPS <- ggplot2::theme_classic() + 
   theme(legend.title = element_text(size = 10, color = "black")) +
@@ -262,7 +263,26 @@ if (MAP) {
       theme(axis.text = element_blank(),
             axis.ticks = element_blank())
   }  
-  
+  if("roads" %in% psi_covs & PARK=="SAGW") {
+    # Load roads shapefile 
+    park_roads <- vect(paste0("data/covariates/shapefiles/roads_", PARK, "_v2.shp"))
+    plot_preds_mn <- plot_preds_mn + 
+       geom_spatvector(data=park_roads, color="grey", inherit.aes=FALSE, lwd = 0.25)
+   } else {
+    plot_preds_mn <- plot_preds_mn
+    plot_preds_sd <- plot_preds_sd
+  }
+  if("trail" %in% psi_covs) {
+     # Load trails shapefile
+    park_trails <- vect("data/covariates/shapefiles/trails.shp")
+    # clip to current park
+    park_trails <- crop(park_trails, park_boundary)
+    plot_preds_mn <- plot_preds_mn +
+      geom_spatvector(data=park_trails, color="grey", lwd = 0.25)
+   } else {
+     plot_preds_mn <- plot_preds_mn
+     plot_preds_sd <- plot_preds_sd
+   }
   ggsave(plot_preds_mn, 
          file = paste0(base_out, "occmap-mn", file_extension),
          dpi = dpi, 
