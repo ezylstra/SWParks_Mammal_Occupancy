@@ -222,7 +222,7 @@ ggcust_segs <- function(dat, park, year, xlims, occ){
     geom_segment(filter(dat, Park == park & d_yr == year),
                  mapping = aes(x = d_date, xend = d_date, y = locnum+0.4, yend = locnum-0.4),
                  linewidth = 0.3, color = "dodgerblue3") + 
-    geom_segment(filter(dat, Park == park & d_yr == year),
+    geom_segment(filter(dat, Park == park & d_yr == year & r_date < xlims[2]),
                  mapping = aes(x = r_date, xend = r_date, y = locnum+0.4, yend = locnum-0.4),
                  linewidth = 0.3, color = "dodgerblue3") +
     geom_vline(xintercept = as.Date(occ$start), color = "gray50") + 
@@ -237,7 +237,10 @@ ggcust_segs <- function(dat, park, year, xlims, occ){
 xmin <- as.Date(occasions$start[1]) - 15
 xmax <- as.Date(occasions$end[nrow(occasions)]) + 15
 
-segs <- ggcust_segs(events, PARK, YEAR, xlims = as.Date(c(xmin, xmax)),
+events_plotting <- events %>%
+  mutate(r_date = if_else(r_date > xmax, xmax, r_date))
+
+segs <- ggcust_segs(events_plotting, PARK, YEAR, xlims = as.Date(c(xmin, xmax)),
                     occ = occasions)
 ```
 
