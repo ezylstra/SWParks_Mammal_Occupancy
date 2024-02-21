@@ -223,6 +223,18 @@ if (MAP) {
   # lands (boundaryUP). For now, we'll remove the original boundary layer.
   park_raster <- subset(park_raster, "boundary", negate = TRUE)
   names(park_raster)[names(park_raster) == "boundaryUP"] <- "boundary"
+  
+  # Crop and mask by park boundary
+  park_boundaries <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
+  park_boundary <- subset(park_boundaries, park_boundaries$UNIT_CODE == PARK)
+  
+  # Load and clip trails layer to park boundary
+  park_trails <- vect("data/covariates/shapefiles/trails.shp")
+  # clip to current park
+  park_trails <- crop(park_trails, park_boundary)
+  
+  # Load roads shapefile (within 3km)
+  park_roads <- if(PARK=="SAGW") vect("data/covariates/shapefiles/roads_sagw_v2.shp") else vect(paste0("data/covariates/shapefiles/roads_",PARK,"_tigris.shp", sep=""))
 
   # Generate predicted probabilities (preds_mn raster)
   source("src/single-season-models/spOccupancy-predictions.R")
@@ -233,13 +245,15 @@ if (MAP) {
   sd_title <- paste0("Standard deviation of occurrence probability of ",
                      species$Common_name[species$Species_code == SPECIES])
   subtitle <- paste0(park, ", ", YEAR)
-  
+
   plot_preds_mn <- ggplot() + 
     geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) + 
     scale_fill_viridis_c(na.value = 'transparent') +
     # geom_spatvector(data = park_boundary, fill = NA, color = "black", size = 0.5) + 
     labs(fill = '', title = mn_title, subtitle = subtitle) +
     theme_NPS + 
+    geom_spatvector(data=park_trails, color="grey", lwd = 0.2, linetype = "dashed") +
+    geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
     theme(axis.title = element_blank(),
           axis.line = element_blank())
   plot_preds_sd <- ggplot() + 
@@ -248,6 +262,8 @@ if (MAP) {
     # geom_spatvector(data = park_boundary, fill = NA, color = "black", size = 0.5) + 
     labs(fill = '', title = sd_title, subtitle = subtitle) +
     theme_NPS +
+    geom_spatvector(data=park_trails, color="grey", lwd = 0.2, linetype = "dashed") +
+    geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
     theme(axis.title = element_blank(),
           axis.line = element_blank())
   if (LATLONG) {
@@ -263,26 +279,9 @@ if (MAP) {
       theme(axis.text = element_blank(),
             axis.ticks = element_blank())
   }  
-  if("roads" %in% psi_covs & PARK=="SAGW") {
-    # Load roads shapefile 
-    park_roads <- vect(paste0("data/covariates/shapefiles/roads_", PARK, "_v2.shp"))
-    plot_preds_mn <- plot_preds_mn + 
-       geom_spatvector(data=park_roads, color="grey", inherit.aes=FALSE, lwd = 0.25)
-   } else {
-    plot_preds_mn <- plot_preds_mn
-    plot_preds_sd <- plot_preds_sd
-  }
-  if("trail" %in% psi_covs) {
-     # Load trails shapefile
-    park_trails <- vect("data/covariates/shapefiles/trails.shp")
-    # clip to current park
-    park_trails <- crop(park_trails, park_boundary)
-    plot_preds_mn <- plot_preds_mn +
-      geom_spatvector(data=park_trails, color="grey", lwd = 0.25)
-   } else {
-     plot_preds_mn <- plot_preds_mn
-     plot_preds_sd <- plot_preds_sd
-   }
+
+    
+
   ggsave(plot_preds_mn, 
          file = paste0(base_out, "occmap-mn", file_extension),
          dpi = dpi, 
