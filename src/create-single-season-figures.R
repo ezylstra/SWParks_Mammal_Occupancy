@@ -252,7 +252,9 @@ if (MAP) {
     # geom_spatvector(data = park_boundary, fill = NA, color = "black", size = 0.5) + 
     labs(fill = '', title = mn_title, subtitle = subtitle) +
     theme_NPS + 
-    geom_spatvector(data=park_trails, color="grey", lwd = 0.2, linetype = "dashed") +
+    geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
+    geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+    geom_spatvector(data=park_roads, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
     geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
     theme(axis.title = element_blank(),
           axis.line = element_blank())
@@ -263,7 +265,7 @@ if (MAP) {
     labs(fill = '', title = sd_title, subtitle = subtitle) +
     theme_NPS +
     geom_spatvector(data=park_trails, color="grey", lwd = 0.2, linetype = "dashed") +
-    geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    geom_spatvector(data=park_roads, color="grey", inherit.aes=FALSE, lwd = 0.2) + 
     theme(axis.title = element_blank(),
           axis.line = element_blank())
   if (LATLONG) {

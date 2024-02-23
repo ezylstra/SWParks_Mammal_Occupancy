@@ -269,7 +269,7 @@ cat(unlist(res))
 ```{r, fig.id = "figure", fig.cap = occmap_cap, eval = psi_cov_run}
 
 occmap_cap <- paste0("Predicted probability of ", spp_name, " occurrence in ", 
-                     PARKL, " in ", YEAR, ". ")
+                     PARKL, " in ", YEAR, ". Dashed grey/black lines are park trails, solid grey/black lines indicate roads inside and within 3 kilometers of the park.")
 occmap_base <- ggplot() +
   geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) +
   scale_fill_viridis_c(na.value = "transparent") +

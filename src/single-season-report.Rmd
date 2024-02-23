@@ -151,7 +151,7 @@ all the chains) to summarize the posterior distribution.
 ```{r covariates-by-park}
 
 topo <- "topographic (aspect, elevation, slope)"
-anthro <- "anthropogenic (distance to nearest road, park boundary, trail, point-of-interest)"
+anthro <- "human-caused (distance to nearest road, park boundary, trail, point-of-interest)"
 veg_related <- "vegetation-related (vegetation classes and distance to nearest wash)"
 burn_related <- "burn-related (burn severity during 2011 fire)"
 
