@@ -10,6 +10,7 @@ library(terra)
 library(spOccupancy)
 library(tidyterra)
 library(sf)
+library(ggspatial)
 
 #------------------------------------------------------------------------------#
 # Specify parameters of interest
@@ -35,8 +36,9 @@ MARG_OCC <- FALSE
 MARG_DET <- FALSE
 
 # Figure parameters
-file_extension <- ".png"
-device <- cairo_pdf
+file_extension1 <- ".png"  # default to save both a png and pdf file (can change png to jpg)
+file_extension2 <- ".pdf"  # should stay as pdf
+device <- cairo_pdf  # needed to embed fonts into pdf figure
 dpi <- 300
 width <- 6
 height <- 4
@@ -142,7 +144,14 @@ if (MARG_OCC) {
       plotname <- paste0("marg-occ-", str_remove(cov, "_z"))
 
       ggsave(plot_marg, 
-             file = paste0(base_out, plotname, file_extension),
+             file = paste0(base_out, plotname, file_extension1),
+             dpi = dpi, 
+             width = width, 
+             height = height, 
+             units = units)
+      ggsave(plot_marg, 
+             file = paste0(base_out, plotname, file_extension2),
+             device = device,
              dpi = dpi, 
              width = width, 
              height = height, 
@@ -197,8 +206,15 @@ if (MARG_DET) {
       plotname <- paste0("marg-det-", str_remove(cov, "_z"))
       
       ggsave(plot_marg, 
-             file = paste0(base_out, plotname, file_extension),
+             file = paste0(base_out, plotname, file_extension1),
              dpi = dpi, 
+             width = width, 
+             height = height, 
+             units = units)
+      ggsave(plot_marg, 
+             file = paste0(base_out, plotname, file_extension2),
+             dpi = dpi, 
+             device = device,
              width = width, 
              height = height, 
              units = units)
@@ -227,6 +243,7 @@ if (MAP) {
   # Crop and mask by park boundary
   park_boundaries <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
   park_boundary <- subset(park_boundaries, park_boundaries$UNIT_CODE == PARK)
+  park_boundary_1km <- buffer(park_boundary, width=1000, singlesided=FALSE)
   
   # Load and clip trails layer to park boundary
   park_trails <- vect("data/covariates/shapefiles/trails.shp")
@@ -235,7 +252,8 @@ if (MAP) {
   
   # Load roads shapefile (within 3km)
   park_roads <- if(PARK=="SAGW") vect("data/covariates/shapefiles/roads_sagw_v2.shp") else vect(paste0("data/covariates/shapefiles/roads_",PARK,"_tigris.shp", sep=""))
-
+  park_roads_1km <- crop(park_roads, park_boundary_1km)
+  
   # Generate predicted probabilities (preds_mn raster)
   source("src/single-season-models/spOccupancy-predictions.R")
   
@@ -254,8 +272,10 @@ if (MAP) {
     theme_NPS + 
     geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
     geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
-    geom_spatvector(data=park_roads, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
-    geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    geom_spatvector(data=park_roads_1km, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+    geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
+    annotation_scale(location = "br", style="ticks") +
     theme(axis.title = element_blank(),
           axis.line = element_blank())
   plot_preds_sd <- ggplot() + 
@@ -264,8 +284,12 @@ if (MAP) {
     # geom_spatvector(data = park_boundary, fill = NA, color = "black", size = 0.5) + 
     labs(fill = '', title = sd_title, subtitle = subtitle) +
     theme_NPS +
-    geom_spatvector(data=park_trails, color="grey", lwd = 0.2, linetype = "dashed") +
-    geom_spatvector(data=park_roads, color="grey", inherit.aes=FALSE, lwd = 0.2) + 
+    geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
+    geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+    geom_spatvector(data=park_roads_1km, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+    geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
+    annotation_scale(location = "br", style="ticks") +
     theme(axis.title = element_blank(),
           axis.line = element_blank())
   if (LATLONG) {
@@ -285,15 +309,29 @@ if (MAP) {
     
 
   ggsave(plot_preds_mn, 
-         file = paste0(base_out, "occmap-mn", file_extension),
+         file = paste0(base_out, "occmap-mn", file_extension1),
+         dpi = dpi, 
+         width = width, 
+         height = height, 
+         units = units)
+  ggsave(plot_preds_mn, 
+         file = paste0(base_out, "occmap-mn", file_extension2),
+         device=device,
          dpi = dpi, 
          width = width, 
          height = height, 
          units = units)
   if (MAP_SD) {
     ggsave(plot_preds_sd, 
-           file = paste0(base_out, "occmap-sd", file_extension),
+           file = paste0(base_out, "occmap-sd", file_extension1),
            dpi = dpi, 
+           width = width, 
+           height = height, 
+           units = units)
+    ggsave(plot_preds_sd, 
+           file = paste0(base_out, "occmap-sd", file_extension2),
+           dpi = dpi, 
+           device = device,
            width = width, 
            height = height, 
            units = units)

@@ -12,6 +12,7 @@ library(tidyterra)
 library(abind)
 require(gridExtra)
 require(cowplot)
+library(ggspatial)
 
 #------------------------------------------------------------------------------#
 # Specify parameters of interest
@@ -19,7 +20,7 @@ require(cowplot)
 # Park, year, and species
 PARK <- "SAGW"
 YEARS <- 2017:2023
-SPECIES <- "SYAU"
+SPECIES <- "PETA"
 
 # Logical indicating whether to create maps with mean occurrence probabilities 
 MAP <- TRUE
@@ -45,8 +46,9 @@ MARG_DET <- TRUE
 OCC_TIME <- TRUE
 
 # Parameters, for single-panel figures
-file_extension <- ".pdf"
-device <- cairo_pdf
+file_extension1 <- ".png"   # can update to jpg
+file_extension2 <- ".pdf"   # keep as pdf
+device <- cairo_pdf    # required to embed fonts in pdf
 dpi <- 300
 width <- 6
 height <- 4
@@ -140,7 +142,7 @@ theme_NPS <- ggplot2::theme_classic() +
 
 # Create longer park name for use in plots
 park <- ifelse(PARK == "CHIR", "Chiricahua NM",
-               ifelse(PARK == "SAGW", "Saguaro NP", "Organ Pipe Cactus NM"))
+               ifelse(PARK == "SAGW", "Saguaro NP (TMD)", "Organ Pipe Cactus NM"))
 
 #------------------------------------------------------------------------------#
 # Annual occurrence estimates (and trends if "years" is in the model)
@@ -174,8 +176,14 @@ if (OCC_TIME) {
   plotname <- "occ-time"
   
   ggsave(plot_occtime, 
-         file = paste0(base_out, plotname, file_extension),
-         device = device, 
+         file = paste0(base_out, plotname, file_extension1),
+         dpi = dpi, 
+         width = width, 
+         height = height, 
+         units = units)
+  ggsave(plot_occtime, 
+         file = paste0(base_out, plotname, file_extension2),
+         device = device,
          dpi = dpi, 
          width = width, 
          height = height, 
@@ -226,8 +234,14 @@ if (MARG_OCC) {
       plotname <- paste0("marg-occ-", str_remove(cov, "_z"))
       
       ggsave(plot_marg, 
-             file = paste0(base_out, plotname, file_extension),
-             device = device, 
+             file = paste0(base_out, plotname, file_extension1),
+             dpi = dpi, 
+             width = width, 
+             height = height, 
+             units = units)
+      ggsave(plot_marg, 
+             file = paste0(base_out, plotname, file_extension2),
+             device = device,
              dpi = dpi, 
              width = width, 
              height = height, 
@@ -301,8 +315,14 @@ if (MARG_DET) {
       plotname <- paste0("marg-det-", str_remove(cov, "_z"))
       
       ggsave(plot_marg, 
-             file = paste0(base_out, plotname, file_extension),
-             device = device, 
+             file = paste0(base_out, plotname, file_extension1),
+             dpi = dpi, 
+             width = width, 
+             height = height, 
+             units = units)
+      ggsave(plot_marg, 
+             file = paste0(base_out, plotname, file_extension2),
+             device = device,
              dpi = dpi, 
              width = width, 
              height = height, 
@@ -348,6 +368,20 @@ if(MAP | MAP_SD) {
   park_raster <- subset(park_raster, "boundary", negate = TRUE)
   names(park_raster)[names(park_raster) == "boundaryUP"] <- "boundary"
   
+  # Crop and mask by park boundary
+  park_boundaries <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
+  park_boundary <- subset(park_boundaries, park_boundaries$UNIT_CODE == PARK)
+  park_boundary_1km <- buffer(park_boundary, width=1000, singlesided=FALSE)
+  
+  # Load and clip trails layer to park boundary
+  park_trails <- vect("data/covariates/shapefiles/trails.shp")
+  # clip to current park
+  park_trails <- crop(park_trails, park_boundary)
+  
+  # Load roads shapefile (within 3km)
+  park_roads <- if(PARK=="SAGW") vect("data/covariates/shapefiles/roads_sagw_v2.shp") else vect(paste0("data/covariates/shapefiles/roads_",PARK,"_tigris.shp", sep=""))
+  park_roads_1km <- crop(park_roads, park_boundary_1km)
+  
   # If there are time-varying covariates (other than year/trend) in the 
   # occurrence part of the model, identify whether we want predictions under 
   # average conditions ("averaged") or under observed conditions in the first 
@@ -379,6 +413,12 @@ if(MAP | MAP_SD) {
     scale_fill_viridis_c(na.value = 'transparent') +
     labs(fill = '', title = mn_title, subtitle = subtitle_fy) +
     theme_NPS + 
+    geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
+    geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+    geom_spatvector(data=park_roads, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+    geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
+    annotation_scale(location = "br", style="ticks") +
     theme(axis.title = element_blank(),
           axis.line = element_blank())
   plot_preds_sd_fy <- ggplot() + 
@@ -386,6 +426,12 @@ if(MAP | MAP_SD) {
     scale_fill_viridis_c(na.value = 'transparent') +
     labs(fill = '', title = sd_title, subtitle = subtitle_fy) +
     theme_NPS + 
+    geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
+    geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+    geom_spatvector(data=park_roads, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+    geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
+    annotation_scale(location = "br", style="ticks") +
     theme(axis.title = element_blank(),
           axis.line = element_blank()) 
   plot_preds_mn_ly <- ggplot() + 
@@ -393,6 +439,12 @@ if(MAP | MAP_SD) {
     scale_fill_viridis_c(na.value = 'transparent') +
     labs(fill = '', title = mn_title, subtitle = subtitle_ly) +
     theme_NPS + 
+    geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
+    geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+    geom_spatvector(data=park_roads, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+    geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
+    annotation_scale(location = "br", style="ticks") +
     theme(axis.title = element_blank(),
           axis.line = element_blank())
   plot_preds_sd_ly <- ggplot() + 
@@ -400,6 +452,12 @@ if(MAP | MAP_SD) {
     scale_fill_viridis_c(na.value = 'transparent') +
     labs(fill = '', title = sd_title, subtitle = subtitle_ly) +
     theme_NPS + 
+    geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
+    geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+    geom_spatvector(data=park_roads, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+    geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
+    annotation_scale(location = "br", style="ticks") +
     theme(axis.title = element_blank(),
           axis.line = element_blank()) 
   
@@ -429,15 +487,27 @@ if(MAP | MAP_SD) {
   
   if (MAP) {
     ggsave(plot_preds_mn_fy, 
-           file = paste0(base_out, "map-occ-fy", file_extension),
-           device = device, 
+           file = paste0(base_out, "map-occ-fy", file_extension1),
+           dpi = dpi, 
+           width = width, 
+           height = height, 
+           units = units)
+    ggsave(plot_preds_mn_fy, 
+           file = paste0(base_out, "map-occ-fy", file_extension2), 
+           device = device,
            dpi = dpi, 
            width = width, 
            height = height, 
            units = units)
     ggsave(plot_preds_mn_ly, 
-           file = paste0(base_out, "map-occ-ly", file_extension),
-           device = device, 
+           file = paste0(base_out, "map-occ-ly", file_extension1),
+           dpi = dpi, 
+           width = width, 
+           height = height, 
+           units = units)
+    ggsave(plot_preds_mn_ly, 
+           file = paste0(base_out, "map-occ-ly", file_extension2), 
+           device = device,
            dpi = dpi, 
            width = width, 
            height = height, 
@@ -445,15 +515,27 @@ if(MAP | MAP_SD) {
   }
   if (MAP_SD) {
     ggsave(plot_preds_sd_fy, 
-           file = paste0(base_out, "map-sd-fy", file_extension),
+           file = paste0(base_out, "map-sd-fy", file_extension1),
+           dpi = dpi, 
+           width = width, 
+           height = height, 
+           units = units)
+    ggsave(plot_preds_sd_fy, 
+           file = paste0(base_out, "map-sd-fy", file_extension2),
            device = device, 
            dpi = dpi, 
            width = width, 
            height = height, 
            units = units)
     ggsave(plot_preds_sd_ly, 
-           file = paste0(base_out, "map-sd-ly", file_extension),
-           device = device, 
+           file = paste0(base_out, "map-sd-ly", file_extension1),
+           dpi = dpi, 
+           width = width, 
+           height = height, 
+           units = units)
+    ggsave(plot_preds_sd_ly, 
+           file = paste0(base_out, "map-sd-ly", file_extension2),
+           device = device,
            dpi = dpi, 
            width = width, 
            height = height, 
@@ -550,7 +632,13 @@ if(MAP | MAP_SD) {
                    plot_preds_mn_ly, plot_preds_sd_ly, nrow = 2)
     pp <- plot_grid(title, p, ncol = 1, rel_heights = c(0.1, 1.9))
     ggsave(pp,
-           file = paste0(base_out, "map-occ-4panel", file_extension),
+           file = paste0(base_out, "map-occ-4panel", file_extension1),
+           dpi = dpi,
+           width = width_4,
+           height = height_4,
+           units = units)
+    ggsave(pp,
+           file = paste0(base_out, "map-occ-4panel", file_extension2),
            device = device,
            dpi = dpi,
            width = width_4,
