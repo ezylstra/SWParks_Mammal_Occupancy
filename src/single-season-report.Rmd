@@ -142,9 +142,9 @@ easier to estimate derived parameters (e.g., proportion of area occupied across
 the entire park) with associated uncertainties. We fit models in R using the 
 spOccupancy package (Doser et al. 2022). For each model, we ran `r n_chains` 
 Markov chains initiated at random values for `r n_samples` iterations. We 
-discarded the first `r n_burn` iterations and retained 1 of every `r n_thin` 
+discarded the first `r n_burn` iterations (the burn in) and retained 1 of every `r n_thin` 
 iterations thereafter, using the remaining `r n_chains * n_post` samples (across 
-all the chains) to summarize the posterior distribution.
+all the chains) to summarize the posterior distribution. We verified that the effective sample sizes for model parameters were > 400.
 
 ## Covariates and model selection
 
@@ -166,7 +166,8 @@ cov_list <- ifelse(PARK == "SAGW",
 For each species, we first evaluated whether day of the year (using linear and quadratic terms), 
 effort (proportion of days during each sampling occasion that the camera was 
 operational), and the experience of deployment personnel influenced detection probability. 
-We identified a number of `r cov_list` spatial covariates for `r PARKL` that 
+Personnel were categorized as novice (<1 year experience), experienced (1-2 years experience) 
+or expert (2+ years experience). We identified a number of `r cov_list` spatial covariates for `r PARKL` that 
 could explain variation in occurrence probabilities. We then assembled a set of candidate 
 models where each model included the best detection covariate(s) and one element from 
 each occupancy covariate category, excluding any combination of covariates that were 
@@ -248,7 +249,7 @@ A total of `r nrow(events)` cameras (`r cam_type_text`) were deployed in `r PARK
 `r deploy_start` and `r deploy_end` and were retrieved between 
 `r retr_start` and `r retr_end`, `r YEAR`. We delineated a total of 
 `r nrow(occasions)` sampling occasions that were each `r occasions$duration[1]` 
-days long. The first sampling occasion began on `r season_start` and the last sampling occasion ended on `r season_end`. Community scientists, park staff, and/or partner organizations typically assist with camera deployments and retrievals. In `r YEAR`, __##__ volunteers, __##__ interns, and __##__ staff from various parks and partner organizations helped deploy and retrieve cameras in `r PARKL`. We are grateful for their support.
+days long. The first sampling occasion began on `r season_start` and the last sampling occasion ended on `r season_end`. Community scientists, park staff, and/or partner organizations typically assist with camera deployments and retrievals. In `r YEAR`, __##__ volunteers, __##__ interns, and __##__ park staff helped deploy and retrieve cameras in `r PARKL`. We are grateful for their support.
 
 ```{r deployment-table}
 
