@@ -125,7 +125,7 @@ covariates %>%
 DET_NULL <- FALSE
 
 # Create a full model for detection
-DET_MODELS <- list(c("burn", "day2", "deploy_exp", "effort"))
+DET_MODELS <- list(c("burn", "day2", "deploy_exp", "effort"), c("effort", "day"))
 
 # Run a model model with no covariates on occurrence, full model for detection
 OCC_NULL <- TRUE
@@ -152,7 +152,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
 model_stats %>% arrange(waic)
 
 # Look at results
-best_index <- 1
+best_index <- 2
 summary(out_list[[best_index]])
 samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
                out_list[[best_index]]$alpha.samples[, -1])
@@ -240,7 +240,7 @@ View(model_stats %>% arrange(waic))
 STAT <- "waic"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 9
+  best_index <- 14
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -261,19 +261,19 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 
   # Change occupancy part of model (if needed)
   # OCC_NULL <- FALSE
-   OCC_MODELS <- list(c("aspect", "burn"))
+   OCC_MODELS <- list(c("east", "north", "burn"), c("east", "burn"))
 
   # Change detection part of model (if needed)
   # DET_NULL <- TRUE
   # DET_MODELS <- list(c("burn", "deploy_exp"))
   # rm(DET_MODELS)
   
-  source("src/single-season-models/spOccupancy-create-model-formulas.R")
-  message("Check candidate models:", sep = "\n")
-  model_specs
-
-  # Run model(s)
-  source("src/single-season-models/spOccupancy-run-candidate-models.R")
+   source("src/single-season-models/spOccupancy-create-model-formulas.R")
+   message("Check candidate models:", sep = "\n")
+   model_specs
+  # 
+  # # Run model(s)
+   source("src/single-season-models/spOccupancy-run-candidate-models.R")
   model_stats %>% arrange(waic)
 
   # Specify STAT as either: waic or model_no
@@ -564,3 +564,4 @@ if (p_n_cont == 0 & length(p_covs) == 0) {
                                upper_ci = 0.975)
   print(overall_det)
 }  
+

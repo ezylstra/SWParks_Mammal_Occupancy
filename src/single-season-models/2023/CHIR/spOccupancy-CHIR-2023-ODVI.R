@@ -240,7 +240,7 @@ View(model_stats %>% arrange(waic))
 STAT <- "waic"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 7
+  best_index <- 14
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -260,8 +260,8 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 # power from the model for occurrence.
 
   # Change occupancy part of model (if needed)
-  # OCC_NULL <- FALSE
-   OCC_MODELS <- list(c("elev"))
+   OCC_NULL <- FALSE
+   OCC_MODELS <- list(c("elev"), c("elev", "roads"), c("elev", "burn"))
 
   # Change detection part of model (if needed)
   # DET_NULL <- TRUE
@@ -277,20 +277,20 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
    model_stats %>% arrange(waic)
   # 
   # # Specify STAT as either: waic or model_no
-  STAT <- "waic"
-  if (STAT == "model_no") {
-    # If STAT == "model_no", specify model of interest by model number in table
-    best_index <- 4
-  } else {
-    min_stat <- min(model_stats[,STAT])
-    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
-  }
-  # Look at model output and f values
-  summary(out_list[[best_index]])
-  samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
-                 out_list[[best_index]]$alpha.samples[, -1])
-  (f <- apply(samps, 2, function(x) ifelse(mean(x) > 0, sum(x > 0) / length(x),
-                                           sum(x < 0) / length(x))))
+   STAT <- "waic"
+   if (STAT == "model_no") {
+     # If STAT == "model_no", specify model of interest by model number in table
+     best_index <- 4
+   } else {
+     min_stat <- min(model_stats[,STAT])
+     best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
+   }
+   # Look at model output and f values
+   summary(out_list[[best_index]])
+   samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
+                  out_list[[best_index]]$alpha.samples[, -1])
+   (f <- apply(samps, 2, function(x) ifelse(mean(x) > 0, sum(x > 0) / length(x),
+                                            sum(x < 0) / length(x))))
 
 # View trace plots
 # plot(best$beta.samples, density = FALSE)
@@ -564,4 +564,3 @@ if (p_n_cont == 0 & length(p_covs) == 0) {
                                upper_ci = 0.975)
   print(overall_det)
 }  
-

@@ -237,7 +237,7 @@ View(model_stats %>% arrange(waic))
 # "model_no" and specifying the "best_index" directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "waic"   
+STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
   best_index <- 14
@@ -260,7 +260,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 # power from the model for occurrence.
 
   # Change occupancy part of model (if needed)
-  # OCC_NULL <- FALSE
+   OCC_NULL <- FALSE
    OCC_MODELS <- list(c("slope"))
 
   # Change detection part of model (if needed)
@@ -268,14 +268,14 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
   # DET_MODELS <- list(c("burn", "deploy_exp"))
   # rm(DET_MODELS)
   
-  source("src/single-season-models/spOccupancy-create-model-formulas.R")
-  message("Check candidate models:", sep = "\n")
-  model_specs
-
-  # Run model(s)
-  source("src/single-season-models/spOccupancy-run-candidate-models.R")
-  model_stats %>% arrange(waic)
-
+   source("src/single-season-models/spOccupancy-create-model-formulas.R")
+   message("Check candidate models:", sep = "\n")
+   model_specs
+  # 
+  # # Run model(s)
+   source("src/single-season-models/spOccupancy-run-candidate-models.R")
+   model_stats %>% arrange(waic)
+  # 
   # Specify STAT as either: waic or model_no
   STAT <- "waic"
   if (STAT == "model_no") {
