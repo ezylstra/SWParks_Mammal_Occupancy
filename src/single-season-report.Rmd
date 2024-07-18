@@ -75,9 +75,7 @@ Use the text and outputs below to populate the text highlighted in yellow and th
 copy from the Rmd output in the Annual Report template on Teams. In general, the yellow in the overview and 
 key points can be populated once you've finished the results section.
 
-We don't want to include all outputs for all species. The idea is that someone looks at the outputs and 
-selects examples to include in the report. That may mean focusing on a few species or a few themes. 
-You will also need to produce publication quality graphics for your figures of interest. 
+We may or may want to include all outputs for all species. The idea is that someone looks at the outputs and selects examples to include in the report. That may mean focusing on a few species or a few themes. Or it may mean including all species but not showing all tables/figures for each species. You will also need to produce publication quality graphics for your figures of interest. 
 
 # Methods
 
