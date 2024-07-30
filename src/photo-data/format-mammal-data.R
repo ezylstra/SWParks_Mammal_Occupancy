@@ -42,8 +42,8 @@ names(locs_ann) <- c("UnitCode", "StdLocName", "LocationName", "DeployDate",
 events <- read.csv(paste0("data/mammals/PROTECTED_Events_", PARK, ".csv"))
 
 # Experience level of personnel deploying cameras
-deploys <- read.csv("data/covariates/deployment-personnel.csv")
-
+#deploys <- read.csv("data/covariates/deployment-personnel.csv")
+  # not needed anymore since experience in Events?
 #------------------------------------------------------------------------------#
 # Notes on "Flag" columns
 #------------------------------------------------------------------------------#
@@ -98,7 +98,7 @@ events <- events %>%
 # Only keep necessary columns and remove any events that aren't associated with 
 # the focal park:
 events <- events %>%
-  select(-c(StdLocName, CrewRetrieve)) %>%
+  select(-c(StdLocName, CrewRetrieveID, CrewDeployID)) %>%
   filter(UnitCode == PARK)
 
 # Convert deployment, retrieval, active dates to date objects, and check that 
@@ -183,20 +183,21 @@ events$operational <- as.double(difftime(as.POSIXct(events$active_end),
 #------------------------------------------------------------------------------#  
 
 # Identify deployment personnel that are experts or experienced
-exp2 <- deploys$personnel[deploys$expertise == "expert"]
-exp1 <- deploys$personnel[deploys$expertise == "experienced"]
+#exp2 <- deploys$personnel[deploys$expertise == "expert"]
+#exp1 <- deploys$personnel[deploys$expertise == "experienced"]
 
 # Create deploy_exp variable for each camera deployment with: 
   # 2 = at least one expert present 
   # 1 = at least one experienced person present
   # 0 = all novices
 events <- events %>%
-  mutate(deploy_exp = ifelse(str_detect(CrewDeploy, 
-                                        paste(exp2, collapse = "|")),
-                             2, ifelse(str_detect(CrewDeploy, 
-                                                  paste(exp1, collapse = "|")),
-                                       1, 0)),
-         deploy_exp = ifelse(is.na(deploy_exp), 0, deploy_exp))
+  # mutate(deploy_exp = ifelse(str_detect(CrewDeploy, 
+  #                                       paste(exp2, collapse = "|")),
+  #                            2, ifelse(str_detect(CrewDeploy, 
+  #                                                 paste(exp1, collapse = "|")),
+  #                                      1, 0)),
+  #        deploy_exp = ifelse(is.na(deploy_exp), 0, deploy_exp))
+  mutate(deploy_exp = ifelse(DeployExperience=="Expert",2,ifelse(DeployExperience=="Experienced",1,0)))
 
 #------------------------------------------------------------------------------#
 # Format and organize mammal observation data
@@ -222,7 +223,7 @@ dat <- dat %>%
   filter(UnitCode == PARK)
 
 # Create new date-, time-related columns
-dat$datetime <- parse_date_time(dat$ImageDate, orders = c("%m/%d/%Y %H:%M:%S"))
+dat$datetime <- parse_date_time(dat$ImageDate, orders = c("%Y-%m-%d %H:%M:%S"))
 dat <- dat %>%
   mutate(obsdate = date(datetime),
          yr = year(datetime),
@@ -251,7 +252,7 @@ if (PARK == "ORPI") {
 
 # Reproject to use the same crs as other objects used in the project 
 # (EPSG:4269; lon/lat NAD83)
-# may not work on NPS network, need to test
+# does not work on NPS network, need to figure out how to make it work
 locs_ann <- terra::project(locs_ann, "EPSG:4269")
 
 # Checked for flagged data
@@ -382,5 +383,5 @@ locs <- rename(locs, Park = UnitCode)
 # Remove objects that are no longer needed
 #------------------------------------------------------------------------------# 
 
-rm(ann_sf, centroids_sf, coords, deploys, locs_ann, locs_ann_df, species_list,
-   temp, centroid_save, detlocs, eventlocs, eventvec, exclude, exp1, exp2, i, j)
+rm(ann_sf, centroids_sf, coords, locs_ann, locs_ann_df, species_list,
+   temp, centroid_save, detlocs, eventlocs, eventvec, exclude, i, j)
