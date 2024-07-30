@@ -125,7 +125,7 @@ covariates %>%
 DET_NULL <- FALSE
 
 # Create a full model for detection
-DET_MODELS <- list(c("burn", "day2", "deploy_exp", "effort"))
+DET_MODELS <- list(c("burn", "day2", "deploy_exp", "effort"), c("burn", "deploy_exp"),c("burn", "day2"),c("burn", "effort"), c("burn"))
 
 # Run a model model with no covariates on occurrence, full model for detection
 OCC_NULL <- TRUE
@@ -152,7 +152,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
 model_stats %>% arrange(waic)
 
 # Look at results
-best_index <- 1
+best_index <- 5
 summary(out_list[[best_index]])
 samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
                out_list[[best_index]]$alpha.samples[, -1])
@@ -161,7 +161,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 
 # Pick which detection covariates to use in subsequent candidate models
 # (for now, can use covariates with f >= 0.9)
-DET_MODELS <- list(c("burn", "deploy_exp")) 
+DET_MODELS <- list(c("burn")) 
 
 #------------------------------------------------------------------------------#
 # Specify the occurrence portion of candidate models
@@ -237,7 +237,7 @@ View(model_stats %>% arrange(waic))
 # "model_no" and specifying the "best_index" directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "model_no"   
+STAT <- "waic"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
   best_index <- 14
