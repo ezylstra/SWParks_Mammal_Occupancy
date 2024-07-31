@@ -71,13 +71,13 @@ n_covs_dett <- ifelse(n_covs_det > 1, paste0(n_covs_det, " covariates"),
 psi_cov_run <- ifelse(length(psi_covs > 0), TRUE, FALSE)
 
 ```
-
-## `r spp_plural`: example of single-season occupancy analysis
+## Single Season Occupancy
+### `r spp_plural`
 Below is an example of outputs for a single-season occupancy model for `r spp_plural` (_`r spp_sciname`_) in `r PARKL`, based on data collected in `r YEAR`. 
   
 __Use the information below to write 1-2 short paragraphs about what you're seeing - this may include the influence of the covariates on occurrence or detection probabilities.__
 
-### Model used for inference
+#### Model used for inference
 
 The highest-ranking model for `r spp_plural` included `r n_covs_occt` in the 
 occurrence part of the model and `r n_covs_dett` in the detection part of the
@@ -118,7 +118,7 @@ estimates_ft
 
 ```
 
-### Estimated detection probabilities
+#### Estimated detection probabilities
 
 ```{r}
 
@@ -145,7 +145,7 @@ Overall detection probability for `r spp_plural` `r if("deploy_exp" %in% p_covs)
 (95% credible interval [CI] = `r sprintf("%.2f", lcl_det)`, 
 `r sprintf("%.2f", ucl_det)`). 
 
-### Estimated occurrence probabilities
+#### Estimated occurrence probabilities
 
 ```{r}
 
@@ -280,7 +280,7 @@ occmap_base + theme(axis.title = element_blank(),
 
 ```
 
-### Covariate effects
+#### Covariate effects
 
 ```{r}
 
