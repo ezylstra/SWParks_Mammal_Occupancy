@@ -252,8 +252,8 @@ invisible(gc())
 
 # Load roads files (If we have the more accurate data from NPS, use that. If 
 # not, use the tigris data)
-if (file.exists("data/covariates/shapefiles/roads_chir_nps.shp")) {
-  roads_chir <- vect("data/covariates/shapefiles/roads_chir_nps.shp")  
+if (file.exists("data/covariates/shapefiles/roads_chir_nps_usfs.shp")) {
+  roads_chir <- vect("data/covariates/shapefiles/roads_chir_nps_usfs.shp")  
 } else {
   roads_chir <- vect("data/covariates/shapefiles/roads_chir_tigris.shp")  
 }
@@ -269,16 +269,16 @@ if (file.exists("data/covariates/shapefiles/roads_sagw_nps.shp")) {
 }
 
 # Calculate distance to roads
-  # dist_roads_chir <- rast(elev_chir)
-  # dist_roads_chir <- terra::crop(dist_roads_chir, 
-  #                                subset(parks, parks$UNIT_CODE == "CHIR"),
-  #                                snap = "out")
-  # dist_roads_chir <- terra::distance(dist_roads_chir, 
-  #                                    roads_chir, 
-  #                                    rasterize = TRUE)
-  # writeRaster(dist_roads_chir, 
-  #             paste0(chir_folder, "dist_roads_chir.tif"), 
-  #             overwrite = TRUE)
+   # dist_roads_chir <- rast(elev_chir)
+   # dist_roads_chir <- terra::crop(dist_roads_chir, 
+   #                                subset(parks, parks$UNIT_CODE == "CHIR"),
+   #                                snap = "out")
+   # dist_roads_chir <- terra::distance(dist_roads_chir, 
+   #                                    roads_chir, 
+   #                                    rasterize = TRUE)
+   # writeRaster(dist_roads_chir, 
+   #             paste0(chir_folder, "dist_roads_chir.tif"), 
+   #             overwrite = TRUE)
   
   # dist_roads_sagw <- rast(elev_sagw)
   # dist_roads_sagw <- terra::crop(dist_roads_sagw, 
