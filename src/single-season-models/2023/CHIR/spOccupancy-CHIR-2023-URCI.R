@@ -240,7 +240,7 @@ View(model_stats %>% arrange(waic))
 STAT <- "waic"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 14
+  best_index <- 12
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -261,7 +261,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 
   # Change occupancy part of model (if needed)
    OCC_NULL <- FALSE
-   OCC_MODELS <- list(c("slope"))
+   OCC_MODELS <- list(c("slope"), c("slope", "boundary"))
 
   # Change detection part of model (if needed)
   # DET_NULL <- TRUE

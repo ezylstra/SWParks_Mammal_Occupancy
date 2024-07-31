@@ -240,7 +240,7 @@ View(model_stats %>% arrange(waic))
 STAT <- "waic"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 14
+  best_index <- 13
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
