@@ -16,12 +16,12 @@ library(ggspatial)
 # Specify parameters of interest
 #------------------------------------------------------------------------------#
 # Park, year, and species
-PARK <- "SAGW"
+PARK <- "CHIR"
 YEAR <- 2023
 SPECIES <- "URCI"
 
 # Logical indicating whether to create a map with mean occurrence probabilities 
-MAP <- TRUE
+MAP <- FALSE
 # Logical indicating whether to create a map with SD of occurrence probabilities
 MAP_SD <- FALSE
   # If creating maps, indicate whether to include lat/long axes labels
@@ -29,11 +29,11 @@ MAP_SD <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the occurrence part of the model
-MARG_OCC <- FALSE
+MARG_OCC <- TRUE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the detection part of the model
-MARG_DET <- FALSE
+MARG_DET <- TRUE
 
 # Figure parameters
 file_extension1 <- ".png"  # default to save both a png and pdf file (can change png to jpg)
@@ -251,7 +251,9 @@ if (MAP) {
   park_trails <- crop(park_trails, park_boundary)
   
   # Load roads shapefile (within 3km)
-  park_roads <- if(PARK=="SAGW") vect("data/covariates/shapefiles/roads_sagw_v2.shp") else vect(paste0("data/covariates/shapefiles/roads_",PARK,"_tigris.shp", sep=""))
+  park_roads_file <- ifelse(PARK=="SAGW", "data/covariates/shapefiles/roads_sagw_v2.shp", ifelse(PARK=="CHIR", "data/covariates/shapefiles/roads_chir_nps_usfs.shp", paste0("data/covariates/shapefiles/roads_",PARK,"_tigris.shp", sep="")))
+  park_roads <- vect(park_roads_file)
+  #park_roads <- if(PARK=="SAGW") vect("data/covariates/shapefiles/roads_sagw_v2.shp") else vect(paste0("data/covariates/shapefiles/roads_",PARK,"_tigris.shp", sep=""))
   park_roads_1km <- crop(park_roads, park_boundary_1km)
   
   # Generate predicted probabilities (preds_mn raster)
