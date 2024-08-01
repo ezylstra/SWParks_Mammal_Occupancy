@@ -280,7 +280,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
    STAT <- "waic"
    if (STAT == "model_no") {
      # If STAT == "model_no", specify model of interest by model number in table
-     best_index <- 4
+     best_index <- 3
    } else {
      min_stat <- min(model_stats[,STAT])
      best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
@@ -564,3 +564,4 @@ if (p_n_cont == 0 & length(p_covs) == 0) {
                                upper_ci = 0.975)
   print(overall_det)
 }  
+

@@ -274,7 +274,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
   # 
   # # Run model(s)
    source("src/single-season-models/spOccupancy-run-candidate-models.R")
-  model_stats %>% arrange(waic)
+   model_stats %>% arrange(waic)
 
   # Specify STAT as either: waic or model_no
   STAT <- "waic"

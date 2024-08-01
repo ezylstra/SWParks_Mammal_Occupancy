@@ -261,7 +261,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 
   # Change occupancy part of model (if needed)
    OCC_NULL <- FALSE
-   OCC_MODELS <- list(c("slope"), c("slope", "boundary"))
+   OCC_MODELS <- list(c("slope"), c("slope", "boundary"), c("slope", "pois"))
 
   # Change detection part of model (if needed)
   # DET_NULL <- TRUE
