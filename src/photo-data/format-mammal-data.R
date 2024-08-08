@@ -15,7 +15,7 @@ library(sf)
 library(terra)
 
 # Need to specify park if not calling this script via source()
-# PARK <- "CHIR"
+# PARK <- "SAGW"
 
 #------------------------------------------------------------------------------#
 # Import data
@@ -197,7 +197,7 @@ events <- events %>%
   #                                                 paste(exp1, collapse = "|")),
   #                                      1, 0)),
   #        deploy_exp = ifelse(is.na(deploy_exp), 0, deploy_exp))
-  mutate(deploy_exp = ifelse(DeployExperience=="Expert",2,ifelse(DeployExperience=="Experienced",1,0)))
+  mutate(deploy_exp = ifelse(str_to_title(DeployExperience)=="Expert",2,ifelse(str_to_title(DeployExperience)=="Experienced",1,0)))
 
 #------------------------------------------------------------------------------#
 # Format and organize mammal observation data
