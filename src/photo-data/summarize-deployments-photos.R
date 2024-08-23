@@ -113,14 +113,19 @@ if (PARK == "SAGW") {
     annotate("text", x = as.Date("2023-03-31"), y = Inf, hjust=1, vjust=1.5, label = "2023", size = 3.5)
   s23s <- ggcust_segs(events, "SAGW", 2023, xlims = as.Date(c("2023-01-01", "2023-03-31")))
   
+  s24h <- ggcust_hist(dat, "SAGW", 2024, xlims = as.Date(c("2024-01-01", "2024-03-31"))) +
+    annotate("text", x = as.Date("2024-03-31"), y = Inf, hjust=1, vjust=1.5, label = "2024", size = 3.5)
+  s24s <- ggcust_segs(events, "SAGW", 2024, xlims = as.Date(c("2024-01-01", "2024-03-31")))
+  
   s17 <- grid.arrange(s17h, s17s, nrow = 2)
   s18 <- grid.arrange(s18h, s18s, nrow = 2)
   s20 <- grid.arrange(s20h, s20s, nrow = 2)
   s21 <- grid.arrange(s21h, s21s, nrow = 2)
   s22 <- grid.arrange(s22h, s22s, nrow = 2)
   s23 <- grid.arrange(s23h, s23s, nrow = 2)
+  s24 <- grid.arrange(s24h, s24s, nrow = 2)
   
-  sALL <- grid.arrange(s17, s18, s20, s21, s22, s23, nrow = 2)
+  sALL <- grid.arrange(s17, s18, s20, s21, s22, s23, s24, nrow = 2)
   # Save plot in output/folder
   ggsave("output/Events&Obs_SAGW.jpg",
          sALL,
@@ -149,13 +154,23 @@ if (PARK == "ORPI") {
     annotate("text", x = as.Date("2022-11-30"), y = Inf, hjust=1, vjust=1.5, label = "2022", size = 3.5)
   o22s <- ggcust_segs(events, "ORPI", 2022, xlims = as.Date(c("2022-03-01", "2022-11-30")))
   
+  o23h <- ggcust_hist(dat, "ORPI", 2023, xlims = as.Date(c("2023-03-01", "2023-11-30"))) +
+    annotate("text", x = as.Date("2023-11-30"), y = Inf, hjust=1, vjust=1.5, label = "2023", size = 3.5)
+  o23s <- ggcust_segs(events, "ORPI", 2023, xlims = as.Date(c("2023-03-01", "2023-11-30")))
+  
+  o24h <- ggcust_hist(dat, "ORPI", 2024, xlims = as.Date(c("2024-03-01", "2024-11-30"))) +
+    annotate("text", x = as.Date("2024-11-30"), y = Inf, hjust=1, vjust=1.5, label = "2024", size = 3.5)
+  o24s <- ggcust_segs(events, "ORPI", 2024, xlims = as.Date(c("2024-03-01", "2024-11-30")))
+  
   o17 <- grid.arrange(o17h, o17s, nrow = 2)
   o18 <- grid.arrange(o18h, o18s, nrow = 2)
   o20 <- grid.arrange(o20h, o20s, nrow = 2)
   o21 <- grid.arrange(o21h, o21s, nrow = 2)
   o22 <- grid.arrange(o22h, o22s, nrow = 2)
+  o23 <- grid.arrange(o23h, o23s, nrow = 2)
+  o24 <- grid.arrange(o24h, o24s, nrow = 2)
   
-  oALL <- grid.arrange(o17, o18, o20, o21, o22, nrow = 2)
+  oALL <- grid.arrange(o17, o18, o20, o21, o22, o23, o24, nrow = 2)
   # Save plot in output/folder
   # ggsave("output/Events&Obs_ORPI.jpg",
   #        oALL,
@@ -218,13 +233,23 @@ if (PARK == "CHIR") {
     annotate("text", x = as.Date("2022-12-31"), y = Inf, hjust=1, vjust=1.5, label = "2022", size = 3.5)
   c22s <- ggcust_segs(events, "CHIR", 2022, xlims = as.Date(c("2022-01-01", "2022-12-31")))
   
+  c23h <- ggcust_hist(dat, "CHIR", 2023, xlims = as.Date(c("2023-01-01", "2023-12-31"))) +
+    annotate("text", x = as.Date("2023-12-31"), y = Inf, hjust=1, vjust=1.5, label = "2023", size = 3.5)
+  c23s <- ggcust_segs(events, "CHIR", 2023, xlims = as.Date(c("2023-01-01", "2023-12-31")))
+  
+  c24h <- ggcust_hist(dat, "CHIR", 2024, xlims = as.Date(c("2024-01-01", "2024-12-31"))) +
+    annotate("text", x = as.Date("2024-12-31"), y = Inf, hjust=1, vjust=1.5, label = "2024", size = 3.5)
+  c24s <- ggcust_segs(events, "CHIR", 2024, xlims = as.Date(c("2024-01-01", "2024-12-31")))
+  
   c17 <- grid.arrange(c17h, c17s, nrow = 2)
   c18 <- grid.arrange(c18h, c18s, nrow = 2)
   c19 <- grid.arrange(c19h, c19s, nrow = 2)
   c21 <- grid.arrange(c21h, c21s, nrow = 2)
   c22 <- grid.arrange(c22h, c22s, nrow = 2)
+  c23 <- grid.arrange(c23h, c23s, nrow = 2)
+  c24 <- grid.arrange(c24h, c24s, nrow = 2)
   
-  cALL <- grid.arrange(c17, c18, c19, c21, c22, nrow = 2)
+  cALL <- grid.arrange(c17, c18, c19, c21, c22, c23, c24, nrow = 2)
   # Save plot in output/folder
   # ggsave("output/Events&obs_CHIR.jpg",
   #        cALL,
