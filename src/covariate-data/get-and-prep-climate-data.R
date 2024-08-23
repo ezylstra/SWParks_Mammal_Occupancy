@@ -24,7 +24,7 @@ parks <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
 # tmmx = max near-surface air temperature
 
 # Select years
-yrs <- 2016:2023
+yrs <- 2016:2024
 
 # Select type of climate data 
 data_types <- c("pr")

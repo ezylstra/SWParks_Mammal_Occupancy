@@ -220,7 +220,7 @@ years_z <- (years - years_mn)/years_sd
 
 # Indicator for 2022 and 2023, when different types of cameras were used 
 # (will need to revisit this covariate after 2023 season when same cameras were 
-# used)
+# used - no change, same camera in 2024 as in 2022-2023)
 camera <- matrix(rep(c(0, 1), 
                           times = c(sum(YEARS < 2022), sum(YEARS >= 2022))),
                       nrow = dim(dh)[1],
@@ -229,9 +229,9 @@ camera <- matrix(rep(c(0, 1),
 
 # Indicator for SAGW & ORPI for 2023, when more sensitive lenses were used
 # (will need to revisit this covariate before/after 2024 once we decide which 
-# lenses will be used)
+# lenses will be used - updated since 2024 also used sensitive lens)
 if (max(YEARS) > 2022) {
-  lens_2023 <- matrix(rep(c(0, 1, 0), 
+  lens_2023 <- matrix(rep(c(0, 1, 1), 
                         times = c(sum(YEARS < 2023), 1, sum(YEARS > 2023))),
                         nrow = dim(dh)[1],
                         ncol = dim(dh)[2],
@@ -239,10 +239,10 @@ if (max(YEARS) > 2022) {
 }
   
 # Monthly visitation data (currently only available for Saguaro, both districts 
-# combined, through August 2023, 2023 data are preliminary [10/11/2023])
+# combined, through December 2023, 2024 data are zeros so Jan-Apr 2024 are means of 2022-2023 [8/23/2023])
 if (PARK == "SAGW") {
   # Read in data
-  monthlyvisits <- read.csv("data/covariates/SAGU_MonthlyVisits_1979-2023.csv")
+  monthlyvisits <- read.csv("data/covariates/SAGU_MonthlyVisits_1979-2024est.csv")
   # Identify months when surveys occurred
   surveymonths <- unique(c(month(occasions$start), month(occasions$end)))
   # Calculate the total number of visitors during survey months each year
@@ -266,11 +266,11 @@ if (PARK == "SAGW") {
   visits_z <- (visits - visits_mn)/visits_sd
 }
 
-# Monthly traffic data (currently only available for SAGW, through August 2023, 
-# 2023 data are preliminary [10/11/2023])
+# Monthly traffic data (currently only available for SAGW, through December 2023, 
+# 2024 data are missing so Jan-Apr 2024 are means of 2022-2023 [8/23/2024])
 if (PARK == "SAGW") {
   # Read in data
-  monthlytraffic <- read.csv("data/covariates/SAGW_MonthlyTraffic_1992-2023.csv")
+  monthlytraffic <- read.csv("data/covariates/SAGW_MonthlyTraffic_1992-2024est.csv")
   # Identify months when surveys occurred
   surveymonths <- unique(c(month(occasions$start), month(occasions$end)))
   # Calculate total traffic (averaged across locations) during survey months 
@@ -539,3 +539,4 @@ data_list <- list(y = dh,
                   occ.covs = occ_covs,
                   det.covs = det_covs,
                   coords = loc_utms)
+
