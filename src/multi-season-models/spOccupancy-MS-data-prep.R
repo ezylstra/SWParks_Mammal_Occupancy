@@ -227,11 +227,12 @@ camera <- matrix(rep(c(0, 1),
                       ncol = dim(dh)[2],
                       byrow = TRUE)
 
-# Indicator for SAGW & ORPI for 2023, when more sensitive lenses were used
+# Indicator for SAGW & ORPI for 2023 onward, when more sensitive lenses were used
 # (will need to revisit this covariate before/after 2024 once we decide which 
-# lenses will be used - updated since 2024 also used sensitive lens)
+# lenses will be used - updated since 2024 also used sensitive lens and likely
+# to continue to do so)
 if (max(YEARS) > 2022) {
-  lens_2023 <- matrix(rep(c(0, 1, 1), 
+  lens <- matrix(rep(c(0, 1, 1), 
                         times = c(sum(YEARS < 2023), 1, sum(YEARS > 2023))),
                         nrow = dim(dh)[1],
                         ncol = dim(dh)[2],
@@ -519,12 +520,11 @@ if (PARK == "SAGW") {
                      vegclass2 = spatial_covs$vegclass2,
                      vegclass3 = spatial_covs$vegclass3,
                      visits_z = visits_z,
-                     traffic_z = traffic_z,
-                     lens_2023 = lens_2023))
+                     traffic_z = traffic_z))
 }
 if (PARK != "CHIR" & max(YEARS) > 2022) {
   det_covs <- c(det_covs, 
-                list(lens_2023 = lens_2023))  
+                list(lens = lens))  
 }
 
 # spOccupancy needs camera locations, but can't take lat/long, so we'll need to 

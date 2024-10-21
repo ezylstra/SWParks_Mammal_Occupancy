@@ -612,7 +612,7 @@ occ_time_plot <- function(model,
 
 # INPUTS
 # model: output from spOccupancy single-season model (note: a categorical 
-# covariate, like camera or lens_2023, must have been included as a covariate in 
+# covariate, like camera or lens, must have been included as a covariate in 
 # the model formula for detection)
 # lower_ci: quantile for lower bound of credible interval (0.025 for 95% CI)
 # upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
@@ -629,7 +629,7 @@ det_cat_estimates <- function(model,
   covs <- colnames(samples)
   
   # Identify covariate(s)
-  cols <- covs[covs %in% c("camera", "lens_2023")]
+  cols <- covs[covs %in% c("camera", "lens")]
   
   if (length(cols) == 0) {
     stop("A categorical covariate with 2 levels must be included in model for detection.")

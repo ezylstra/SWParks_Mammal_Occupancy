@@ -30,6 +30,10 @@ dat <- read.csv(paste0("data/mammals/PROTECTED_Detections_", PARK, ".csv"))
 # Camera locations
 locs_ann <- vect(paste0("data/mammals/PROTECTED_CameraLocations_Annual_",
                         PARK, ".shp"))
+
+# locs_ann3 <- vect(st_as_sf(read.csv(paste0("data/mammals/PROTECTED_CameraLocations_Annual_",
+#                    PARK, ".csv")),coords = c("decLong", "decLat"), crs = 4326))
+
 names(locs_ann) <- c("UnitCode", "StdLocName", "LocationName", "DeployDate",
                      "StdLocName_Flag", "LocationName_Flag", "DeployDate_Flag",
                      "geometry_Flag")
