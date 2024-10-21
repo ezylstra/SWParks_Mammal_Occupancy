@@ -19,17 +19,19 @@ library(ggspatial)
 #------------------------------------------------------------------------------#
 # Park, year, and species
 PARK <- "SAGW"
-YEARS <- 2017:2023
-SPECIES <- "PETA"
+YEARS <- 2017:2024
+SPECIES <- "CALA"
 
-# Logical indicating whether to create maps with mean occurrence probabilities 
+# Logical indicating whether to create maps with mean occurrence probabilities (with roads/trails)
 MAP <- TRUE
-# Logical indicating whether to create maps with SD of occurrence probabilities
-MAP_SD <- TRUE
+# Logical indicating whether to create maps with SD of occurrence probabilities (with roads/trails)
+MAP_SD <- FALSE
+# Logical indicating whether to create maps with mean occurrence probabilities and raw detections
+MAP_DETECT <- TRUE
 # Logical indicating whether to create a 4-panel figure with mean and SD
 # of occurrence probabilities in first and last year in addition to the single
 # panel figures for each parameter. (Only relevant if MAP_SD == TRUE)
-FOUR_PANEL <- TRUE
+FOUR_PANEL <- FALSE
 # If creating maps, indicate whether to include lat/long axes labels
 LATLONG <- FALSE
 
@@ -82,6 +84,22 @@ psi_model <- model_list$psi_model
 p_model <- model_list$p_model
 data_list <- model_list$data
 
+# Make naive estimate dataframe from data_list
+naive <- as.data.frame(data_list$y) %>%
+  mutate(loc = row.names(.)) %>% 
+  pivot_longer(cols=-loc, names_to = c("year", "occ"), names_sep = 4, values_to = "detect") %>% 
+  mutate(occ = str_remove(occ,".occ")) %>% 
+  mutate(year=as.numeric(year), occ=as.numeric(occ)) %>%
+  mutate(occ.active = ifelse(is.na(detect),0,1)) %>%
+  group_by(loc,year) %>%
+  mutate(Present = max(detect, na.rm=TRUE), Pct_Present = sum(detect, na.rm=TRUE)/sum(occ.active)) %>%
+  mutate(Present = as.character(Present)) %>%
+  mutate(Present = ifelse(Present=="1","detected", ifelse(Present=="0","not detected", "no data"))) %>%
+  left_join(., locs %>% dplyr::select(loc, longitude, latitude), by = "loc")
+
+naive_spat <- vect(st_as_sf(naive,coords = c("longitude", "latitude"), crs = 4269))
+  
+
 # Extract dataframe with covariate values at each camera location
 spatial_covs <- data_list$occ.covs[lengths(data_list$occ.covs) == dim(data_list$y)[1]]
 spatial_covs <- as.data.frame(spatial_covs)
@@ -109,14 +127,23 @@ if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
   p_covs <- p_covs_z %>% str_remove_all(pattern = "_z")
 }
 
-# Create table with parameter estimates in occurrence part of model
+# Create table with parameter estimates
 occ_estimates <- parameter_estimates(model = best, 
                                      parameter = "occ",
+                                     lower_ci = 0.025,
+                                     upper_ci = 0.975)
+det_estimates <- parameter_estimates(model = best, 
+                                     parameter = "det",
                                      lower_ci = 0.025,
                                      upper_ci = 0.975)
 occ_estimates <- occ_estimates %>%
   rename(Covariate = Parameter) %>%
   mutate(Parameter = "Occurrence", .before = "Covariate")
+det_estimates <- det_estimates %>%
+  rename(Covariate = Parameter) %>%
+  mutate(Parameter = "Detection", .before = "Covariate")
+estimates <- rbind(occ_estimates, det_estimates)
+estimates
 
 # Create basename for output files
 base_out <- paste0("output/NPS-figures/multi-season/",
@@ -139,6 +166,23 @@ theme_NPS <- ggplot2::theme_classic() +
   theme(axis.line = element_line(color = 'black')) +
   theme(plot.subtitle = element_text(size = 10, color = "black", hjust = 0.5)) +
   theme(text = element_text(family = "Frutiger LT Std 55 Roman", face = "plain"))
+
+# Define shape and color for detections
+scale_color_detect <- function(...){
+  ggplot2:::manual_scale('colour', 
+                         values = setNames(c("black","darkgrey","lightgrey"),
+                                           c("detected", "no data", "not detected")), 
+                         ...)
+}
+
+scale_shape_detect <- function(...){
+  ggplot2:::manual_scale('shape', 
+                         values = setNames(c(19,25,17),
+                                           c("detected", "no data", "not detected")), 
+                         ...)
+}
+
+
 
 # Create longer park name for use in plots
 park <- ifelse(PARK == "CHIR", "Chiricahua NM",
@@ -280,7 +324,7 @@ if (MARG_DET) {
   
   # Identify continuous covariates in detection part of the best model
   p_continuous <- p_covs_z[!p_covs_z %in% c("vegclass2", "vegclass3", 
-                                            "camera", "lens_2023")]
+                                            "camera", "lens")]
   p_cont_unique <- unique(p_continuous)
   p_n_cont <- length(p_cont_unique)
   
@@ -645,4 +689,78 @@ if(MAP | MAP_SD) {
            height = height_4,
            units = units)
   }
+  if (MAP_DETECT) {
+
+    if (!MAP) {
+      stop("Cannot create map with detections figure with MAP set to FALSE")
+    } 
+    
+    plot_preds_mn_naive_fy <- ggplot() + 
+      geom_spatraster(data = preds_mn_firstyr, mapping = aes(fill = mean_firstyr)) + 
+      scale_fill_viridis_c(na.value = 'transparent') +
+      geom_spatvector(data=naive_spat[naive_spat$year==min(YEARS)], mapping=aes(color=as.factor(Present), shape=as.factor(Present))) +
+      scale_color_detect() +
+      scale_shape_detect() +
+      annotation_scale(location = "br", style="ticks") +
+      labs(fill = 'Probability', title = mn_title, subtitle = subtitle_fy, color="Present", shape="Present") +
+      theme_NPS + 
+      theme(axis.title = element_blank(),
+            axis.line = element_blank())
+    
+    plot_preds_mn_naive_ly <- ggplot() + 
+      geom_spatraster(data = preds_mn_lastyr, mapping = aes(fill = mean_lastyr)) + 
+      scale_fill_viridis_c(na.value = 'transparent') +
+      geom_spatvector(data=naive_spat[naive_spat$year==max(YEARS)], mapping=aes(color=as.factor(Present), shape=as.factor(Present))) +
+      scale_color_detect() +
+      scale_shape_detect() +
+      annotation_scale(location = "br", style="ticks") +
+      labs(fill = 'Probability', title = mn_title, subtitle = subtitle_ly, color="Present", shape="Present") +
+      theme_NPS + 
+      theme(axis.title = element_blank(),
+            axis.line = element_blank())
+    
+    if (LATLONG) {
+      plot_preds_mn_naive_fy <- plot_preds_mn_naive_fy +
+        theme(panel.border = element_rect(color = 'black', fill = NA))
+      plot_preds_mn_naive_ly <- plot_preds_mn_naive_ly +
+        theme(panel.border = element_rect(color = 'black', fill = NA))
+    } else {
+      plot_preds_mn_naive_fy <- plot_preds_mn_naive_fy + 
+        theme(axis.text = element_blank(),
+              axis.ticks = element_blank())
+      plot_preds_mn_naive_ly <- plot_preds_mn_naive_ly +
+        theme(axis.text = element_blank(),
+              axis.ticks = element_blank())
+          } 
+    
+      ggsave(plot_preds_mn_naive_fy, 
+             file = paste0(base_out, "map-occ-detect-fy", file_extension1),
+             dpi = dpi, 
+             width = width, 
+             height = height, 
+             units = units)
+      ggsave(plot_preds_mn_naive_fy, 
+             file = paste0(base_out, "map-occ-detect-fy", file_extension2), 
+             device = device,
+             dpi = dpi, 
+             width = width, 
+             height = height, 
+             units = units)
+      ggsave(plot_preds_mn_naive_ly, 
+             file = paste0(base_out, "map-occ-detect-ly", file_extension1),
+             dpi = dpi, 
+             width = width, 
+             height = height, 
+             units = units)
+      ggsave(plot_preds_mn_naive_ly, 
+             file = paste0(base_out, "map-occ-detect-ly", file_extension2), 
+             device = device,
+             dpi = dpi, 
+             width = width, 
+             height = height, 
+             units = units)
+    }
 }
+
+
+
