@@ -22,28 +22,28 @@ library(terra)
 #------------------------------------------------------------------------------#
 
 # Species list
-species_list <- read.csv(paste0("data/mammals/PROTECTED_SpeciesList_", PARK, ".csv"))
+species_list <- read.csv(paste0("data/mammals/SpeciesList_", PARK, ".csv"))
 
 # Observations
-dat <- read.csv(paste0("data/mammals/PROTECTED_Detections_", PARK, ".csv"))
+dat <- read.csv(paste0("data/mammals/Detections_", PARK, ".csv"))
 
 # Camera locations
-locs_ann <- vect(paste0("data/mammals/PROTECTED_CameraLocations_Annual_",
-                        PARK, ".shp"))
+#locs_ann <- vect(paste0("data/mammals/CameraLocations_Annual_",
+#                        PARK, ".shp"))
 
-# locs_ann3 <- vect(st_as_sf(read.csv(paste0("data/mammals/PROTECTED_CameraLocations_Annual_",
-#                    PARK, ".csv")),coords = c("decLong", "decLat"), crs = 4326))
+locs_ann <- vect(st_as_sf(read.csv(paste0("data/mammals/CameraLocations_Annual_",
+                    PARK, ".csv")),coords = c("decimalLongitude", "decimalLatitude"), crs = 4326))
 
-names(locs_ann) <- c("UnitCode", "StdLocName", "LocationName", "DeployDate",
-                     "StdLocName_Flag", "LocationName_Flag", "DeployDate_Flag",
-                     "geometry_Flag")
+# names(locs_ann) <- c("UnitCode", "StdLocName", "LocationName", "DeployDate",
+#                      "StdLocName_Flag", "LocationName_Flag", "DeployDate_Flag",
+#                      "geometry_Flag")
 
   # Logical indicating whether to save a new shapefile with central location
   # for each camera across years (should only need to do this once per year)
   centroid_save <- FALSE
 
 # Deployment schedule
-events <- read.csv(paste0("data/mammals/PROTECTED_Events_", PARK, ".csv"))
+events <- read.csv(paste0("data/mammals/Events_", PARK, ".csv"))
 
 # Experience level of personnel deploying cameras
 #deploys <- read.csv("data/covariates/deployment-personnel.csv")
@@ -73,7 +73,8 @@ events <- read.csv(paste0("data/mammals/PROTECTED_Events_", PARK, ".csv"))
 exclude <- c("Harris's antelope squirrel", "Merriam's kangaroo rat", 
              "round-tailed ground squirrel", "unknown animal", 
              "unknown kangaroo rat", "unknown rodent", 
-             "unknown woodrat", "western white-throated woodrat")
+             "unknown woodrat", "western white-throated woodrat",
+             "rock squirrel")
 
 species <- species_list %>%
   filter(!Common_Name %in% exclude) %>%
