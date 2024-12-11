@@ -5,7 +5,7 @@
 # 2022-07-07
 ################################################################################
 
-# relies on the dh from the sagw-leca-2017 code
+# relies on the dh from the single season model template code, spOccupancy-data-prep.R
 # just playing around and learning how to make maps in R
 
 library(sf) # for working with simple features
@@ -17,9 +17,11 @@ library(dplyr)
 naive <- as.data.frame(dh) %>%
   mutate(V1 = ifelse(is.na(V1),0,V1)) %>% # set V1 = 0 for single NA
   mutate(Pct_Present = (V1 + V2 + V3 + V4 + V5)/5) %>%
-  mutate(Present = ifelse(Pct_Present>0,1,0))
+  mutate(Present = ifelse(Pct_Present>0,1,0)) %>%
+  mutate(Present = ifelse(is.na(V2),V1,Present)) %>% 
+  mutate(WeeksPresent = V1 + V2 + V3 + V4 + V5) %>%
+  mutate(WeeksPresent = ifelse(is.na(WeeksPresent),Present,WeeksPresent))
 
-# naive occupancy = 0.417 (25 sites out of 60 had at least one detection)
 
 naive_sf <- st_as_sf(naive %>% 
                        tibble::rownames_to_column(., "loc") %>%
@@ -49,7 +51,7 @@ NPSlight = 'https://atlas-stg.geoplatform.gov/styles/v1/atlas-user/ck5cpia2u0auf
 
 naive_map_lf <-
   leaflet() %>% 
-  setView(lng = -111.166, lat = 32.298, zoom = 13) %>% 
+  #setView(lng = -111.166, lat = 32.298, zoom = 13) %>% 
   # parktiles
   addTiles(group = 'Map',
            urlTemplate = NPSbasic) %>%
@@ -93,7 +95,7 @@ naive_sf_100 <- naive_sf %>% filter(Pct_Present ==1)
 
 naive_map_pct <-
   leaflet() %>% 
-  setView(lng = -111.166, lat = 32.298, zoom = 12) %>% 
+  #setView(lng = -111.166, lat = 32.298, zoom = 12) %>% 
   # parktiles
   addTiles(group = 'Map',
            urlTemplate = NPSbasic) %>%
@@ -135,21 +137,22 @@ naive_map_pct <-
                    radius = 4,
                    stroke = FALSE, # turn off outline
                    fillOpacity = 1) %>%
-  addCircleMarkers(data = naive_sf_80,
-                   lng = st_coordinates(naive_sf_80)[,1],
-                   lat = st_coordinates(naive_sf_80)[,2],
-                   fillColor = '#584b6f',
-                   radius = 4,
-                   stroke = FALSE, # turn off outline
-                   fillOpacity = 1) %>%
-  addCircleMarkers(data = naive_sf_100,
-                   lng = st_coordinates(naive_sf_100)[,1],
-                   lat = st_coordinates(naive_sf_100)[,2],
-                   fillColor = '#2e1e4b',
-                   radius = 4,
-                   stroke = FALSE, # turn off outline
-                   fillOpacity = 1) %>%
+  # addCircleMarkers(data = naive_sf_80,
+  #                  lng = st_coordinates(naive_sf_80)[,1],
+  #                  lat = st_coordinates(naive_sf_80)[,2],
+  #                  fillColor = '#584b6f',
+  #                  radius = 4,
+  #                  stroke = FALSE, # turn off outline
+  #                  fillOpacity = 1) %>%
+  # addCircleMarkers(data = naive_sf_100,
+  #                  lng = st_coordinates(naive_sf_100)[,1],
+  #                  lat = st_coordinates(naive_sf_100)[,2],
+  #                  fillColor = '#2e1e4b',
+  #                  radius = 4,
+  #                  stroke = FALSE, # turn off outline
+  #                  fillOpacity = 1) %>%
   # scale bar and settings
+  #addLegend() %>%
   addScaleBar(position = 'bottomright') %>% 
   scaleBarOptions(maxWidth = 10, metric = TRUE) 
 

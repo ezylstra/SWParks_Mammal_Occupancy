@@ -16,12 +16,12 @@ library(ggspatial)
 # Specify parameters of interest
 #------------------------------------------------------------------------------#
 # Park, year, and species
-PARK <- "CHIR"
-YEAR <- 2023
-SPECIES <- "URCI"
+PARK <- "ORPI"
+YEAR <- 2024
+SPECIES <- "CALA"
 
 # Logical indicating whether to create a map with mean occurrence probabilities 
-MAP <- FALSE
+MAP <- TRUE
 # Logical indicating whether to create a map with SD of occurrence probabilities
 MAP_SD <- FALSE
   # If creating maps, indicate whether to include lat/long axes labels
@@ -251,7 +251,7 @@ if (MAP) {
   park_trails <- crop(park_trails, park_boundary)
   
   # Load roads shapefile (within 3km)
-  park_roads_file <- ifelse(PARK=="SAGW", "data/covariates/shapefiles/roads_sagw_v2.shp", ifelse(PARK=="CHIR", "data/covariates/shapefiles/roads_chir_nps_usfs.shp", paste0("data/covariates/shapefiles/roads_",PARK,"_tigris.shp", sep="")))
+  park_roads_file <- ifelse(PARK=="SAGW", "data/covariates/shapefiles/roads_sagw_v2.shp", ifelse(PARK=="CHIR", "data/covariates/shapefiles/roads_chir_nps_usfs.shp", "data/covariates/shapefiles/roads_orpi_nps.shp"))
   park_roads <- vect(park_roads_file)
   #park_roads <- if(PARK=="SAGW") vect("data/covariates/shapefiles/roads_sagw_v2.shp") else vect(paste0("data/covariates/shapefiles/roads_",PARK,"_tigris.shp", sep=""))
   park_roads_1km <- crop(park_roads, park_boundary_1km)

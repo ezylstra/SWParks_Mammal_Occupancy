@@ -240,10 +240,10 @@ if (max(YEARS) > 2022) {
 }
   
 # Monthly visitation data (currently only available for Saguaro, both districts 
-# combined, through December 2023, 2024 data are zeros so Jan-Apr 2024 are means of 2022-2023 [8/23/2023])
+# combined, through October 2024 (updated 11/27/2024)
 if (PARK == "SAGW") {
   # Read in data
-  monthlyvisits <- read.csv("data/covariates/SAGU_MonthlyVisits_1979-2024est.csv")
+  monthlyvisits <- read.csv("data/covariates/SAGU_MonthlyVisits_1979-2024.csv")
   # Identify months when surveys occurred
   surveymonths <- unique(c(month(occasions$start), month(occasions$end)))
   # Calculate the total number of visitors during survey months each year
@@ -267,11 +267,10 @@ if (PARK == "SAGW") {
   visits_z <- (visits - visits_mn)/visits_sd
 }
 
-# Monthly traffic data (currently only available for SAGW, through December 2023, 
-# 2024 data are missing so Jan-Apr 2024 are means of 2022-2023 [8/23/2024])
+# Monthly traffic data (currently only available for SAGW, through October 2024 (updated 11/27/2024)
 if (PARK == "SAGW") {
   # Read in data
-  monthlytraffic <- read.csv("data/covariates/SAGW_MonthlyTraffic_1992-2024est.csv")
+  monthlytraffic <- read.csv("data/covariates/SAGW_MonthlyTraffic_1992-2024.csv")
   # Identify months when surveys occurred
   surveymonths <- unique(c(month(occasions$start), month(occasions$end)))
   # Calculate total traffic (averaged across locations) during survey months 

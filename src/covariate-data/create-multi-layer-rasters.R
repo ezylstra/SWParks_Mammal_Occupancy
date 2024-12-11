@@ -29,6 +29,8 @@ library(terra)
     # mountain foothills, rocky, often north facing, cooler, wetter; 
     # 3 = Medium-high gradient, contrasting topography (hilly), often Jojoba 
     # dominant; 4 = developed (no cameras located in this vegclass)
+  # LTAclass [ORPI only] = land type association class where 1 = valley
+    # 2 = bajadas, 3 = hills, and 4 = mountains
   # burn_severity_2011 [CHIR only] = severity of 2011 burn (integer values, 0:4 
     # with 0 = unburned to 4 = high burn severity)
 
@@ -93,6 +95,20 @@ for (PARK in parks) {
     raster_list <- c(raster_list, vegclass2 = vegclass2, vegclass3 = vegclass3)
   }  
 
+  # For land type associations, create layers for three dummy variables (classes 2, 3 and 4)
+  # [this is just ORPI]
+  if (PARK == "ORPI") {
+    lta_rast <- raster_list[["ltaclasses"]]
+    ltaclass2 <- 1 * (lta_rast == 2)
+    names(ltaclass2) <- "ltaclass2"
+    ltaclass3 <- 1 * (lta_rast == 3)
+    names(ltaclass3) <- "ltaclass3"
+    ltaclass4 <- 1 * (lta_rast == 4)
+    names(ltaclass4) <- "ltaclass4"
+    raster_list <- c(raster_list, ltaclass2 = ltaclass2, ltaclass3 = ltaclass3, ltaclass4=ltaclass4)
+  }  
+  
+  
   # For ORPI, boundaryUP layer is slightly smaller than the rest
   if (PARK == "ORPI") {
     raster_list$boundaryUP <- resample(raster_list$boundaryUP,
@@ -103,7 +119,9 @@ for (PARK in parks) {
   raster_order <- c("boundary", "boundaryUP", "east", "elev", "north", "pois", 
                     "roads", "roadbound", "slope", "trail", "trailpoi",
                     "burn_severity_2011",
-                    "vegclasses", "vegclass2", "vegclass3", "wash")
+                    "vegclasses", "vegclass2", "vegclass3", 
+                    "ltaclasses", "ltaclass2", "ltaclass3", "ltaclass4",
+                    "wash")
   raster_order <- raster_order[raster_order %in% names(raster_list)]
   raster_list <- raster_list[raster_order]
 

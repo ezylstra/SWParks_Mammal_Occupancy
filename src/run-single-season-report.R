@@ -11,8 +11,8 @@
 
 # Specify the park and year of interest
 
-  park <- "SAGW"
-  year <- 2023
+  park <- "ORPI"
+  year <- 2024
 
 # Install any needed packages if they're not installed already
   

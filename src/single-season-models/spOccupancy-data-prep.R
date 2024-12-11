@@ -194,7 +194,7 @@ spatial_covs <- cbind(spatial_covs,
 # Identify continuous covariates that we want to standardize
 covs_cont <- names(spatial_covs)
 covs_cont <- str_subset(covs_cont, 
-                        "loc|long|lat|vegclass", 
+                        "loc|long|lat|vegclass|ltaclass", 
                         negate = TRUE)
 
 # Scale continuous covariates by mean, SD
@@ -258,7 +258,12 @@ if (PARK == "SAGW") {
                 list(vegclass3 = spatial_covs$vegclass3),
                 list(wash_z = spatial_covs$wash_z))
 }
-
+if (PARK == "ORPI") {
+  det_covs <- c(det_covs, 
+                list(ltaclass2 = spatial_covs$ltaclass2),
+                list(ltaclass3 = spatial_covs$ltaclass3),
+                list(ltaclass4 = spatial_covs$ltaclass4))
+}
 # Create data object (also a list)
 data_list <- list(y = dh,
                   occ.covs = spatial_covs,

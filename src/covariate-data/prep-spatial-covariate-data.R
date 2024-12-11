@@ -292,14 +292,14 @@ if (file.exists("data/covariates/shapefiles/roads_sagw_nps.shp")) {
   #             overwrite = TRUE)
   
   # dist_roads_orpi <- rast(elev_orpi)
-  # dist_roads_orpi <- terra::crop(dist_roads_orpi, 
+  # dist_roads_orpi <- terra::crop(dist_roads_orpi,
   #                                subset(parks, parks$UNIT_CODE == "ORPI"),
   #                                snap = "out")
-  # dist_roads_orpi <- terra::distance(dist_roads_orpi, 
-  #                                    roads_orpi, 
+  # dist_roads_orpi <- terra::distance(dist_roads_orpi,
+  #                                    roads_orpi,
   #                                    rasterize = TRUE)
-  # writeRaster(dist_roads_orpi, 
-  #             paste0(orpi_folder, "dist_roads_orpi.tif"), 
+  # writeRaster(dist_roads_orpi,
+  #             paste0(orpi_folder, "dist_roads_orpi.tif"),
   #             overwrite = TRUE)
 
 #------------------------------------------------------------------------------#
@@ -660,6 +660,61 @@ dist_wash_sagw <- terra::distance(wash_raster)
 #             paste0(sagw_folder, "dist_wash_sagw.tif"),
 #             overwrite = TRUE)
  
+#------------------------------------------------------------------------------#
+# Land type associations (ORPI only)
+#------------------------------------------------------------------------------#
+
+# Read in original shapefile
+lta <- vect("data/covariates/vegclasses/ORPI_LTAs.shp")
+
+# Reproject 
+lta <- terra::project(lta, crs(elev_orpi))
+
+# Aggregate polygons into 4-class land type layer,
+# get rid of variables we don't need, and 
+# create clas snumbers
+lta4 <- terra::aggregate(lta, by = "CherylCat") %>%
+  mutate(LTAclass = CherylCat) %>%
+  mutate(LTAclasssNo = ifelse(LTAclass=="valley", 1, ifelse(LTAclass=="bajada",2, ifelse(LTAclass=="hills",3,4)))) %>%
+  dplyr::select(LTAclass, LTAclasssNo)
+plot(lta4, "LTAclass", border = NULL, main = NULL)
+plot(lta4, "LTAclasssNo", border = NULL, main = NULL)
+
+# Rasterize
+lta4_raster <- terra::rasterize(lta4, elev_orpi, field = "LTAclasssNo")
+lta4_raster <- terra::crop(lta4_raster, 
+                           subset(parks, parks$UNIT_CODE == "ORPI"),
+                           snap = "out")
+
+# See how the camera locations relate to the veg classes:  
+locs_ann <- vect(st_as_sf(read.csv(paste0("data/mammals/CameraLocations_Annual_ORPI.csv")),
+                          coords = c("decimalLongitude", "decimalLatitude"), crs = 4326))
+
+plot(lta4_raster)
+plot(parks, add = T)
+plot(locs_ann, add = T)
+
+# Veg classes at each camera location (using original classes)
+camera_lta4 <- cbind(as.data.frame(locs_ann), 
+                     LTAclass = terra::extract(lta4, locs_ann)[, c("LTAclass")])
+count(camera_lta4, LTAclass)
+# 27 in valley
+# 8 in bajada
+# 6 in hills
+# 20 in mountains
+
+# Convert to factor
+lta5 <- as.factor(lta4_raster)
+
+# Write to file
+lta5 <- as.numeric(lta5)
+# writeRaster(lta5, paste0(orpi_folder, "ltaclasses_orpi.tif"), overwrite = TRUE)
+# This is a 4-class categorical raster with:
+# 1 = valley
+# 2 = bajada
+# 3 = hills
+# 4 = mountains
+
 #------------------------------------------------------------------------------#
 # Put all park-specific rasters in zip files
 #------------------------------------------------------------------------------#
