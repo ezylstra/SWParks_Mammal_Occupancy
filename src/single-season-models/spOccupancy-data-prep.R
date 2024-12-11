@@ -66,6 +66,11 @@ for (i in 1:nrow(obs)) {
 # checks:
 # sum(ddh == 1, na.rm = TRUE); sum(obs$o_day %in% occ_days)
 
+# Remove locations where camera wasn't deployed or active (all NAs)
+# may happen if camera malfunctioned after a few days
+ddh <- ddh[rowSums(is.na(ddh)) != ncol(ddh), ] 
+
+
 # Summarize detection data (dh) and effort during each occasion 
 dh <- effort <- matrix(NA, 
                        nrow = nrow(ddh), 
