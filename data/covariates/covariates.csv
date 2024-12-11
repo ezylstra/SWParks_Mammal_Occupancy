@@ -15,6 +15,7 @@ either,all,trailpoi,trailpoi_z,Distance to nearest trail or point of interest (m
 either,CHIR,burn,burn_severity_2011_z,Burn severity
 either,SAGW,wash,wash_z,Distance to nearest wash (m)
 either,SAGW,veg,vegclass2 + vegclass3,NA
+either,ORPI,lta,ltaclass2 + ltaclass3 + ltaclass4,NA
 detection,all,day,day_z,Day of the year
 detection,all,day2,day_z + I(day_z^2),Day of the year
 detection,all,deploy_exp,deploy_exp,Deployment personnel experience
