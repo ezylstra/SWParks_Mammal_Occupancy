@@ -157,7 +157,7 @@ source("src/single-season-models/spOccupancy-run-candidate-models.R")
 model_stats %>% arrange(waic)
 
 # Look at results
-best_index <- 3
+best_index <- 4
 summary(out_list[[best_index]])
 samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
                out_list[[best_index]]$alpha.samples[, -1])
@@ -194,6 +194,7 @@ OCC_NULL <- TRUE
     # doesn't span that large of a range and we often get nonsensical results 
     # with highest probabilities at extreme values)
   # veg: vegclasses + wash (for now, only available for SAGW)
+  # lta: ltaclasses (only for ORPI)
   # burn: burn severity classes for 2011 fire (only available in CHIR)
   # anthropogenic: roads, boundary, trails, pois, roadbound, trailpois
 
@@ -202,24 +203,24 @@ OCC_NULL <- TRUE
 # (|r| >= 0.7).
 
 # Pick covariates to include candidate models
-OCC_MODELS <- list(c("aspect", "veg", "wash", "burn", "roads"),
-                   c("elev", "veg", "wash", "burn", "roads"),
-                   c("slope", "veg", "wash", "burn", "roads"),
-                   c("aspect", "veg", "wash", "burn", "boundary"),
-                   c("elev", "veg", "wash", "burn", "boundary"),
-                   c("slope", "veg", "wash", "burn", "boundary"),
-                   c("aspect", "veg", "wash", "burn", "trail"),
-                   # c("elev", "veg", "wash", "burn", "trail"),
-                   c("slope", "veg", "wash", "burn", "trail"),
-                   c("aspect", "veg", "wash", "burn", "pois"),
-                   c("elev", "veg", "wash", "burn", "pois"),
-                   c("slope", "veg", "wash", "burn", "pois"),
-                   c("aspect", "veg", "wash", "burn", "roadbound"),
-                   c("elev", "veg", "wash", "burn", "roadbound"),
-                   c("slope", "veg", "wash", "burn", "roadbound"),
-                   c("aspect", "veg", "wash", "burn", "trailpoi"),
-                   c("elev", "veg", "wash", "burn", "trailpoi"),
-                   c("slope", "veg", "wash", "burn", "trailpoi"))
+OCC_MODELS <- list(c("aspect", "lta", "wash", "burn", "roads"),
+                   c("elev", "lta", "wash", "burn", "roads"),
+                   c("slope", "lta", "wash", "burn", "roads"),
+                   c("aspect", "lta", "wash", "burn", "boundary"),
+                   c("elev", "lta", "wash", "burn", "boundary"),
+                   c("slope", "lta", "wash", "burn", "boundary"),
+                   c("aspect", "lta", "wash", "burn", "trail"),
+                   # c("elev", "lta", "wash", "burn", "trail"),
+                   c("slope", "lta", "wash", "burn", "trail"),
+                   c("aspect", "lta", "wash", "burn", "pois"),
+                   c("elev", "lta", "wash", "burn", "pois"),
+                   c("slope", "lta", "wash", "burn", "pois"),
+                   c("aspect", "lta", "wash", "burn", "roadbound"),
+                   c("elev", "lta", "wash", "burn", "roadbound"),
+                   c("slope", "lta", "wash", "burn", "roadbound"),
+                   c("aspect", "lta", "wash", "burn", "trailpoi"),
+                   c("elev", "lta", "wash", "burn", "trailpoi"),
+                   c("slope", "lta", "wash", "burn", "trailpoi"))
 
 # Use OCC and DET objects to create formulas for candidate models:
 source("src/single-season-models/spOccupancy-create-model-formulas.R")
@@ -266,7 +267,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 
   # Change occupancy part of model (if needed)
    OCC_NULL <- TRUE
-   OCC_MODELS <- list(c("slope"), c("roads", "slope"))
+   OCC_MODELS <- list(c("slope"), c("roads", "slope"), c("lta", "slope"))
 
   # Change detection part of model (if needed)
   # DET_NULL <- TRUE
@@ -471,7 +472,7 @@ if (length(psi_covs) > 0) {
 #------------------------------------------------------------------------------#
 
 # Identify continuous covariates in occurrence part of the best model
-psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
+psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3", "ltaclass2", "ltaclass3", "ltaclass4")]
 psi_cont_unique <- unique(psi_continuous)
 psi_n_cont <- length(psi_cont_unique)
 

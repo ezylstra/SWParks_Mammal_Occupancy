@@ -26,6 +26,11 @@ psi_model <- model_list$psi_model
 p_model <- model_list$p_model
 data_list <- model_list$data
 
+# Were camera locations included as random effects for detection or occupancy?
+psi_random <- ifelse(str_detect(psi_model, "(1 | site)"), TRUE, FALSE)
+p_random <- ifelse(str_detect(p_model, "(1 | site)"), TRUE, FALSE)
+random_text <- ifelse(psi_random == TRUE & p_random == FALSE, "Camera locations were included as a random effect for occupancy.", ifelse(psi_random == TRUE & p_random == TRUE, "Camera locations were included as random effects for detection and occupancy.", ifelse(psi_random == FALSE & p_random == TRUE, "Camera locations were included as a random effect for detection.", "")))
+
 # Extract names of covariates (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(psi_model)
 if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
@@ -71,7 +76,7 @@ n_covs_dett <- ifelse(n_covs_det > 1, paste0(n_covs_det, " covariates"),
 psi_cov_run <- ifelse(length(psi_covs > 0), TRUE, FALSE)
 
 ```
-## Single Season Occupancy
+
 ### `r spp_plural`
 Below is an example of outputs for a single-season occupancy model for `r spp_plural` (_`r spp_sciname`_) in `r PARKL`, based on data collected in `r YEAR`. 
   
@@ -81,7 +86,7 @@ __Use the information below to write 1-2 short paragraphs about what you're seei
 
 The highest-ranking model for `r spp_plural` included `r n_covs_occt` in the 
 occurrence part of the model and `r n_covs_dett` in the detection part of the
-model. 
+model. `r random_text`
 
 ```{r}
 
@@ -177,6 +182,30 @@ if ("vegclass2" %in% psi_covs) {
   mean_occ <- NULL
   lcl_occ <- NULL
   ucl_occ <- NULL
+} else if ("ltaclass2" %in% psi_covs) {
+  ltaclass_table <- ltaclass_estimates(model_list$model,
+                                       parameter = "occ",
+                                       lower_ci = 0.025,
+                                       upper_ci = 0.975) %>%
+    mutate(across(ci_lower:ci_upper, function(x) round(x, 2))) %>%
+    mutate("95% CI" = paste0(ci_lower, ", ", ci_upper)) %>%
+    select(-c(ci_lower, ci_upper)) %>%
+    relocate("95% CI", .after = sd_prob)
+  ltaocc_cap <- paste0("Mean occurrence estimates for ", spp_plural, 
+    " in each land type association class in ", PARKL, ", ",  YEAR, ".")
+  ltaocc_ft <- flextable(ltaclass_table) %>%
+    align(j = 1, align = "left") %>%
+    align(j = 2:4, align = "center", part = "all") %>%
+    bold(bold = TRUE, part = "header") %>%
+    colformat_double(j = 2:3, digits = 2) %>%
+    set_caption(caption = ltaocc_cap, autonum = tab_num) %>%
+    set_header_labels(vegclass = "LTA class",
+                      mean_prob = "Mean",
+                      sd_prob = "SD") %>%
+    add_footer_lines("")
+  mean_occ <- NULL
+  lcl_occ <- NULL
+  ucl_occ <- NULL
 # } else if ("burn_severity_2011" %in% psi_covs) {
 #   burnclass_table <- data.frame(burnclass = 1:4,
 #                                 descript = c("Unburned/Low burn severity",
@@ -243,6 +272,16 @@ veg_class_text <- ifelse(PARK=="SAGW","There are three coarse vegetation / landf
 
 `r if("vegclass2" %in% psi_covs){veg_class_text}`
 
+```{r, ft.align = "left", tab.id = "table", eval = ("ltaclass2" %in% psi_covs)}
+
+ltaocc_ft
+
+lta_class_text <- ifelse(PARK=="ORPI","There are four coarse landtype association classes: 1) valleys; 2) bajadas; 3) hills and 4) mountains", "hmmmm")
+
+```
+
+`r if("ltaclass2" %in% psi_covs){lta_class_text}`
+
 ```{r, ft.align = "left", tab.id = "table", eval = FALSE}
 
 #eval = ("burn_severity_2011" %in% psi_covs)
@@ -285,7 +324,7 @@ occmap_base + theme(axis.title = element_blank(),
 ```{r}
 
 # Identify continuous covariates in occurrence part of the model
-  psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
+  psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3", "ltaclass2", "ltaclass3", "ltaclass4")]
   psi_cont_unique <- unique(psi_continuous)
   psi_n_cont <- length(psi_cont_unique)
 

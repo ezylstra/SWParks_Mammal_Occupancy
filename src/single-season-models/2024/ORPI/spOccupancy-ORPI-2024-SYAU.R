@@ -178,6 +178,29 @@ cor_df %>%
   arrange(desc(corr)) %>%
   dplyr::filter(abs(corr) >= 0.7)
 
+# visualize lta vs. elev and slope
+spatial_covs %>%
+  mutate(LTAclass = ifelse(ltaclasses==1,"valley", ifelse(ltaclasses==2,"bajada",ifelse(ltaclasses==3,"hills", "mountains")))) %>%
+  ggplot(., aes(x=LTAclass, y=elev)) + 
+  geom_boxplot() +
+  theme_classic()
+
+spatial_covs %>%
+  mutate(LTAclass = ifelse(ltaclasses==1,"valley", ifelse(ltaclasses==2,"bajada",ifelse(ltaclasses==3,"hills", "mountains")))) %>%
+  ggplot(., aes(x=LTAclass, y=slope)) + 
+  geom_boxplot() +
+  theme_classic()
+
+# here's a hack attempt at a point biserial correlation (continuous vs. binary) to look at 
+# ltaclasses 1 & 2 (valley and bajada), so not ideal but what I can do
+
+veg_corr <- spatial_covs %>% mutate(LTAclass = ifelse(ltaclasses<=2,1,0))
+cor.test(veg_corr$elev,veg_corr$LTAclass)  
+cor.test(veg_corr$slope,veg_corr$LTAclass) # cor = -0.703
+cor.test(veg_corr$east,veg_corr$LTAclass)
+cor.test(veg_corr$north,veg_corr$LTAclass)
+
+
 # Logical indicating whether a null model for occurrence should be included in 
 # the candidate model set
 OCC_NULL <- FALSE
@@ -200,22 +223,29 @@ OCC_NULL <- FALSE
 # Pick covariates to include candidate models
 OCC_MODELS <- list(c("aspect", "lta", "wash", "burn", "roads"),
                    c("elev", "lta", "wash", "burn", "roads"),
-                   c("slope", "lta", "wash", "burn", "roads"),
+                   c("slope", "wash", "burn", "roads"),
+                   c("lta", "wash", "burn", "roads"),
                    c("aspect", "lta", "wash", "burn", "boundary"),
                    c("elev", "lta", "wash", "burn", "boundary"),
-                   c("slope", "lta", "wash", "burn", "boundary"),
+                   c("slope", "wash", "burn", "boundary"),
+                   c("lta", "wash", "burn", "boundary"),
                    c("aspect", "lta", "wash", "burn", "trail"),
                    # c("elev", "lta", "wash", "burn", "trail"),
-                   c("slope", "lta", "wash", "burn", "trail"),
+                   c("slope", "wash", "burn", "trail"),
+                   c("lta", "wash", "burn", "trail"),
                    c("aspect", "lta", "wash", "burn", "pois"),
                    c("elev", "lta", "wash", "burn", "pois"),
-                   c("slope", "lta", "wash", "burn", "pois"),
+                   c("slope", "wash", "burn", "pois"),
+                   c("lta", "wash", "burn", "pois"),
                    c("aspect", "lta", "wash", "burn", "roadbound"),
                    c("elev", "lta", "wash", "burn", "roadbound"),
-                   c("slope", "lta", "wash", "burn", "roadbound"),
+                   c("slope", "wash", "burn", "roadbound"),
+                   c("lta", "wash", "burn", "roadbound"),
                    c("aspect", "lta", "wash", "burn", "trailpoi"),
                    c("elev", "lta", "wash", "burn", "trailpoi"),
-                   c("slope", "lta", "wash", "burn", "trailpoi"))
+                   c("slope", "wash", "burn", "trailpoi"),
+                   c("lta", "wash", "burn", "trailpoi"))
+
 
 # Use OCC and DET objects to create formulas for candidate models:
 source("src/single-season-models/spOccupancy-create-model-formulas.R")
@@ -262,36 +292,36 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 
   # Change occupancy part of model (if needed)
   # OCC_NULL <- FALSE
-   OCC_MODELS <- list(c("slope", "trail"))
+  # OCC_MODELS <- list(c("slope", "trail"))
 
   # Change detection part of model (if needed)
   # DET_NULL <- TRUE
   # DET_MODELS <- list(c("burn", "deploy_exp"))
   # rm(DET_MODELS)
-  
-  source("src/single-season-models/spOccupancy-create-model-formulas.R")
-  message("Check candidate models:", sep = "\n")
-  model_specs
-
-  # Run model(s)
-  source("src/single-season-models/spOccupancy-run-candidate-models.R")
-  model_stats %>% arrange(waic)
-
-  # Specify STAT as either: waic or model_no
-  STAT <- "waic"
-  if (STAT == "model_no") {
-    # If STAT == "model_no", specify model of interest by model number in table
-    best_index <- 4
-  } else {
-    min_stat <- min(model_stats[,STAT])
-    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
-  }
-  # Look at model output and f values
-  summary(out_list[[best_index]])
-  samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
-                 out_list[[best_index]]$alpha.samples[, -1])
-  (f <- apply(samps, 2, function(x) ifelse(mean(x) > 0, sum(x > 0) / length(x),
-                                           sum(x < 0) / length(x))))
+  # 
+  # source("src/single-season-models/spOccupancy-create-model-formulas.R")
+  # message("Check candidate models:", sep = "\n")
+  # model_specs
+  # 
+  # # Run model(s)
+  # source("src/single-season-models/spOccupancy-run-candidate-models.R")
+  # model_stats %>% arrange(waic)
+  # 
+  # # Specify STAT as either: waic or model_no
+  # STAT <- "waic"
+  # if (STAT == "model_no") {
+  #   # If STAT == "model_no", specify model of interest by model number in table
+  #   best_index <- 4
+  # } else {
+  #   min_stat <- min(model_stats[,STAT])
+  #   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
+  # }
+  # # Look at model output and f values
+  # summary(out_list[[best_index]])
+  # samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
+  #                out_list[[best_index]]$alpha.samples[, -1])
+  # (f <- apply(samps, 2, function(x) ifelse(mean(x) > 0, sum(x > 0) / length(x),
+  #                                          sum(x < 0) / length(x))))
 
 # View trace plots
 # plot(best$beta.samples, density = FALSE)
@@ -466,7 +496,7 @@ if (length(psi_covs) > 0) {
 #------------------------------------------------------------------------------#
 
 # Identify continuous covariates in occurrence part of the best model
-psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
+psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3", "ltaclass2", "ltaclass3", "ltaclass4")]
 psi_cont_unique <- unique(psi_continuous)
 psi_n_cont <- length(psi_cont_unique)
 

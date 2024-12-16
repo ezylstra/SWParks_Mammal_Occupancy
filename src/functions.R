@@ -211,6 +211,83 @@ vegclass_estimates <- function(model,
 }
 
 #------------------------------------------------------------------------------#
+# ltaclass_estimates: Create a table with occupancy or detection probabilities 
+# in each land type association class
+#------------------------------------------------------------------------------#
+
+# INPUTS
+# model: output from spOccupancy single-season model
+# parameter: character indicating whether to calculate occupancy or detection 
+# probabilities (note: ltaclasses must have been included as a covariate
+# in the model formula for that parameter)
+# lower_ci: quantile for lower bound of credible interval (0.025 for 95% CI)
+# upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
+
+# RETURNS
+# ltaclass_table: a dataframe with mean, SD, and 95% CI for occupancy/detection
+# probabilities in each land type association class
+
+ltaclass_estimates <- function(model, 
+                               parameter = c("occ", "det"),
+                               lower_ci = 0.025,
+                               upper_ci = 0.975) {
+  
+  parameter <- match.arg(arg = parameter)
+  
+  # Create table to hold results
+  ltaclass_table <- data.frame(ltaclass = 1:4,
+                               mean_prob = NA,
+                               sd_prob = NA,
+                               ci_lower = NA,
+                               ci_upper = NA)
+  
+  if (parameter == "occ") {
+    samples <- model$beta.samples
+    submodel <- "occupancy"
+  } else {
+    samples <- model$alpha.samples
+    submodel <- "detection"
+  }
+  
+  if (sum(str_detect(colnames(samples), "ltaclass")) == 0) {
+    stop("ltaclasses must be included in model for ", submodel)
+  }
+  
+  # Probability of occupancy/detection in ltaclass1 (reference level)
+  ltaclass1 <- exp(samples[,"(Intercept)"])/(1 + exp(samples[,"(Intercept)"])) 
+  ltaclass_table$mean_prob[1] <- mean(ltaclass1)
+  ltaclass_table$sd_prob[1] <- sd(ltaclass1)
+  ltaclass_table$ci_lower[1] <- quantile(ltaclass1, lower_ci)
+  ltaclass_table$ci_upper[1] <- quantile(ltaclass1, upper_ci)
+  
+  # Probability of occupancy/detection in ltaclass2
+  ltaclass2 <- samples[,"(Intercept)"] + samples[,"ltaclass2"]
+  ltaclass2 <- exp(ltaclass2)/(1 + exp(ltaclass2)) 
+  ltaclass_table$mean_prob[2] <- mean(ltaclass2)
+  ltaclass_table$sd_prob[2] <- sd(ltaclass2)
+  ltaclass_table$ci_lower[2] <- quantile(ltaclass2, lower_ci)
+  ltaclass_table$ci_upper[2] <- quantile(ltaclass2, upper_ci)
+  
+  # Probability of occupancy/detection in ltaclass3
+  ltaclass3 <- samples[,"(Intercept)"] + samples[,"ltaclass3"]
+  ltaclass3 <- exp(ltaclass3)/(1 + exp(ltaclass3)) 
+  ltaclass_table$mean_prob[3] <- mean(ltaclass3)
+  ltaclass_table$sd_prob[3] <- sd(ltaclass3)
+  ltaclass_table$ci_lower[3] <- quantile(ltaclass3, lower_ci)
+  ltaclass_table$ci_upper[3] <- quantile(ltaclass3, upper_ci)
+  
+  # Probability of occupancy/detection in ltaclass4
+  ltaclass4 <- samples[,"(Intercept)"] + samples[,"ltaclass4"]
+  ltaclass4 <- exp(ltaclass4)/(1 + exp(ltaclass4)) 
+  ltaclass_table$mean_prob[4] <- mean(ltaclass4)
+  ltaclass_table$sd_prob[4] <- sd(ltaclass4)
+  ltaclass_table$ci_lower[4] <- quantile(ltaclass4, lower_ci)
+  ltaclass_table$ci_upper[4] <- quantile(ltaclass4, upper_ci)
+  
+  return(ltaclass_table)
+}
+
+#------------------------------------------------------------------------------#
 # mean_estimate: Calculate mean occurrence or detection probability (or  
 # probability when all other covariates set to 0 [mean, for standardized covs])
 #------------------------------------------------------------------------------#

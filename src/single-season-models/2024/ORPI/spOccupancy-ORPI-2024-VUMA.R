@@ -178,43 +178,73 @@ cor_df %>%
   arrange(desc(corr)) %>%
   dplyr::filter(abs(corr) >= 0.7)
 
+# visualize lta vs. elev and slope
+spatial_covs %>%
+  mutate(LTAclass = ifelse(ltaclasses==1,"valley", ifelse(ltaclasses==2,"bajada",ifelse(ltaclasses==3,"hills", "mountains")))) %>%
+  ggplot(., aes(x=LTAclass, y=elev)) + 
+  geom_boxplot() +
+  theme_classic()
+
+spatial_covs %>%
+  mutate(LTAclass = ifelse(ltaclasses==1,"valley", ifelse(ltaclasses==2,"bajada",ifelse(ltaclasses==3,"hills", "mountains")))) %>%
+  ggplot(., aes(x=LTAclass, y=slope)) + 
+  geom_boxplot() +
+  theme_classic()
+
+# here's a hack attempt at a point biserial correlation (continuous vs. binary) to look at 
+# ltaclasses 1 & 2 (valley and bajada), so not ideal but what I can do
+
+veg_corr <- spatial_covs %>% mutate(LTAclass = ifelse(ltaclasses<=2,1,0))
+cor.test(veg_corr$elev,veg_corr$LTAclass)  
+cor.test(veg_corr$slope,veg_corr$LTAclass) # cor = -0.703
+cor.test(veg_corr$east,veg_corr$LTAclass)
+cor.test(veg_corr$north,veg_corr$LTAclass)
+
+
 # Logical indicating whether a null model for occurrence should be included in 
 # the candidate model set
 OCC_NULL <- FALSE
 
 # There are 4 categories of spatial covariates (though each park only has 
 # covariates in 2 or 3 of the categories):
-  # topographic: aspect, elev, slope
-    # (using linear rather than quadratic forms of elev & slope because SAGW 
-    # doesn't span that large of a range and we often get nonsensical results 
-    # with highest probabilities at extreme values)
-  # veg: vegclasses + wash (for now, only available for SAGW)
-  # burn: burn severity classes for 2011 fire (only available in CHIR)
-  # anthropogenic: roads, boundary, trails, pois, roadbound, trailpois
+# topographic: aspect, elev, slope
+# (using linear rather than quadratic forms of elev & slope because SAGW 
+# doesn't span that large of a range and we often get nonsensical results 
+# with highest probabilities at extreme values)
+# veg: vegclasses + wash (for now, only available for SAGW)
+# lta: ltaclasses (only for ORPI)
+# burn: burn severity classes for 2011 fire (only available in CHIR)
+# anthropogenic: roads, boundary, trails, pois, roadbound, trailpois
 
 # For occurrence part of the models, try including item(s) from each category of
 # spatial covariates, excluding any covariates that are highly correlated 
 # (|r| >= 0.7).
 
 # Pick covariates to include candidate models
-OCC_MODELS <- list(c("aspect", "veg", "wash", "burn", "roads"),
-                   c("elev", "veg", "wash", "burn", "roads"),
-                   c("slope", "veg", "wash", "burn", "roads"),
-                   c("aspect", "veg", "wash", "burn", "boundary"),
-                   c("elev", "veg", "wash", "burn", "boundary"),
-                   c("slope", "veg", "wash", "burn", "boundary"),
-                   c("aspect", "veg", "wash", "burn", "trail"),
-                   # c("elev", "veg", "wash", "burn", "trail"),
-                   c("slope", "veg", "wash", "burn", "trail"),
-                   c("aspect", "veg", "wash", "burn", "pois"),
-                   c("elev", "veg", "wash", "burn", "pois"),
-                   c("slope", "veg", "wash", "burn", "pois"),
-                   c("aspect", "veg", "wash", "burn", "roadbound"),
-                   c("elev", "veg", "wash", "burn", "roadbound"),
-                   c("slope", "veg", "wash", "burn", "roadbound"),
-                   c("aspect", "veg", "wash", "burn", "trailpoi"),
-                   c("elev", "veg", "wash", "burn", "trailpoi"),
-                   c("slope", "veg", "wash", "burn", "trailpoi"))
+OCC_MODELS <- list(c("aspect", "lta", "wash", "burn", "roads"),
+                   c("elev", "lta", "wash", "burn", "roads"),
+                   c("slope", "wash", "burn", "roads"),
+                   c("lta", "wash", "burn", "roads"),
+                   c("aspect", "lta", "wash", "burn", "boundary"),
+                   c("elev", "lta", "wash", "burn", "boundary"),
+                   c("slope", "wash", "burn", "boundary"),
+                   c("lta", "wash", "burn", "boundary"),
+                   c("aspect", "lta", "wash", "burn", "trail"),
+                   # c("elev", "lta", "wash", "burn", "trail"),
+                   c("slope", "wash", "burn", "trail"),
+                   c("lta", "wash", "burn", "trail"),
+                   c("aspect", "lta", "wash", "burn", "pois"),
+                   c("elev", "lta", "wash", "burn", "pois"),
+                   c("slope", "wash", "burn", "pois"),
+                   c("lta", "wash", "burn", "pois"),
+                   c("aspect", "lta", "wash", "burn", "roadbound"),
+                   c("elev", "lta", "wash", "burn", "roadbound"),
+                   c("slope", "wash", "burn", "roadbound"),
+                   c("lta", "wash", "burn", "roadbound"),
+                   c("aspect", "lta", "wash", "burn", "trailpoi"),
+                   c("elev", "lta", "wash", "burn", "trailpoi"),
+                   c("slope", "wash", "burn", "trailpoi"),
+                   c("lta", "wash", "burn", "trailpoi"))
 
 # Use OCC and DET objects to create formulas for candidate models:
 source("src/single-season-models/spOccupancy-create-model-formulas.R")
@@ -465,7 +495,7 @@ if (length(psi_covs) > 0) {
 #------------------------------------------------------------------------------#
 
 # Identify continuous covariates in occurrence part of the best model
-psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3")]
+psi_continuous <- psi_covs_z[!psi_covs_z %in% c("1", "vegclass2", "vegclass3", "ltaclass2", "ltaclass3", "ltaclass4")]
 psi_cont_unique <- unique(psi_continuous)
 psi_n_cont <- length(psi_cont_unique)
 
@@ -500,6 +530,14 @@ if (sum(str_detect(psi_covs, "veg")) > 0) {
   occprobs_veg <- vegclass_estimates(model = best, 
                                      parameter = "occ")
   print(occprobs_veg)
+}
+
+# If land type association classes were included as covariates in the model, extract
+# occurrence probabilities for each class
+if (sum(str_detect(psi_covs, "lta")) > 0) {
+  occprobs_lta <- ltaclass_estimates(model = best, 
+                                     parameter = "occ")
+  print(occprobs_lta)
 }
 
 # If there are no covariates in the model (ie, a null model), print overall 
@@ -553,6 +591,14 @@ if (sum(str_detect(p_covs, "veg")) > 0) {
   detprobs_veg <- vegclass_estimates(model = best, 
                                      parameter = "det")
   print(detprobs_veg)
+}
+
+# If land type association classes were included as covariates in the model, extract
+# detection probabilities for each class
+if (sum(str_detect(p_covs, "lta")) > 0) {
+  detprobs_lta <- ltaclass_estimates(model = best, 
+                                     parameter = "det")
+  print(detprobs_lta)
 }
 
 # If there are no covariates in the model (a null model), print overall 

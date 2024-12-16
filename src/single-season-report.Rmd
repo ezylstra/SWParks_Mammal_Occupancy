@@ -152,11 +152,12 @@ topo <- "topographic (aspect, elevation, slope)"
 anthro <- "human-caused (distance to nearest road, park boundary, trail, point-of-interest)"
 veg_related <- "vegetation-related (vegetation classes and distance to nearest wash)"
 burn_related <- "burn-related (burn severity during 2011 fire)"
+lta_related <- "landtype association-related (broad landtype classes)"
 
 cov_list <- ifelse(PARK == "SAGW",
                    paste0(topo, ", ", veg_related, ", and ", anthro),
                    ifelse(PARK == "ORPI",
-                          paste0(topo, " and ", anthro),
+                          paste0(topo,", ", lta_related, " and ", anthro),
                           paste0(topo, ", ", burn_related, ", and ", anthro)))
 
 ```
@@ -431,6 +432,7 @@ nphotos_ft
 
 ```
 
+## Single Season Occupancy
 ```{r spp-loop, results = "asis"}
 
 modelfile_base <- paste0(getwd(), "/output/single-season-models/")
