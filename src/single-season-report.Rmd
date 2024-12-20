@@ -303,7 +303,7 @@ total_photos <- (dat %>%
   count())$n
 
 # any new species observation
-if(PARK == "SAGW")obs_new <- dat %>%
+if(PARK != "ORPI")obs_new <- dat %>%
   mutate(visit = ifelse(yr == YEAR, "Current", ifelse(yr > YEAR, "Future", "Past"))) %>%
   filter(visit != "Future") %>%
   ungroup() %>%
@@ -315,7 +315,7 @@ if(PARK == "SAGW")obs_new <- dat %>%
   mutate(name = paste0(Common_name," (",Species,")", sep=""))
   
 
-obs_new_run = ifelse(PARK != "SAGW", FALSE, ifelse(nrow(obs_new) > 0, TRUE, FALSE))
+obs_new_run = ifelse(PARK == "ORPI", FALSE, ifelse(nrow(obs_new) > 0, TRUE, FALSE))
 
 # within park and within given years' occasion start & end
 dat <- dat %>%
@@ -334,7 +334,7 @@ dat <- dat %>%
 detects <- read.csv(paste0("output/species-detections-byyr-", PARK, ".csv"))
 
 # any new detections
-if(PARK == "SAGW")detects_new <- detects %>%
+if(PARK != "ORPI")detects_new <- detects %>%
   mutate(visit = ifelse(yr == YEAR, "Current", ifelse(yr > YEAR, "Future", "Past"))) %>%
   filter(visit != "Future") %>%
   ungroup() %>%
@@ -345,9 +345,9 @@ if(PARK == "SAGW")detects_new <- detects %>%
   left_join(species, by = c("spp" = "Species_code")) %>%
   mutate(name = paste0(Common_name," (",Species,")", sep=""))
 
-new_species_run = ifelse(PARK != "SAGW", FALSE, ifelse(nrow(obs_new) > 0 | nrow(detects_new) > 0, TRUE, FALSE))
+new_species_run = ifelse(PARK == "ORPI", FALSE, ifelse(nrow(obs_new) > 0 | nrow(detects_new) > 0, TRUE, FALSE))
 
-new_species_text = ifelse(PARK != "SAGW", "Past observation and detection data are not available for comparison.", ifelse(nrow(obs_new) > 0 & nrow(detects_new) == 0, paste("In ",YEAR, ", our cameras captured ",paste(unlist(detects_new$name), collapse=", "), " for the first time during SODN monitoring.", sep=""), ifelse(nrow(detects_new) > 0, paste("In ",YEAR, ", we detected ",paste(unlist(detects_new$name), collapse=", "), " for the first time during a sampling occasion. ", sep=""), "All species listed in Table X were observed and detected during previous SODN monitoring.")))
+new_species_text = ifelse(PARK == "ORPI", "Past observation and detection data are not available for comparison.", ifelse(nrow(obs_new) > 0 & nrow(detects_new) == 0, paste("In ",YEAR, ", our cameras captured ",paste(unlist(detects_new$name), collapse=", "), " for the first time during SODN monitoring.", sep=""), ifelse(nrow(detects_new) > 0, paste("In ",YEAR, ", we detected ",paste(unlist(detects_new$name), collapse=", "), " for the first time during a sampling occasion. ", sep=""), "All species listed in Table X were observed and detected during previous SODN monitoring.")))
 
 
 # for selected year
