@@ -18,18 +18,20 @@ library(ggspatial)
 # Park, year, and species
 PARK <- "ORPI"
 YEAR <- 2024
-SPECIES <- "CALA"
+SPECIES <- "VUMA"
 
 # Logical indicating whether to create a map with mean occurrence probabilities 
 MAP <- TRUE
 # Logical indicating whether to create a map with SD of occurrence probabilities
 MAP_SD <- FALSE
+# Logical indicating whether to create maps with mean occurrence probabilities and raw detections
+#MAP_DETECT <- TRUE
   # If creating maps, indicate whether to include lat/long axes labels
   LATLONG <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the occurrence part of the model
-MARG_OCC <- TRUE
+MARG_OCC <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the detection part of the model
@@ -63,6 +65,21 @@ best <- model_list$model
 psi_model <- model_list$psi_model
 p_model <- model_list$p_model
 data_list <- model_list$data
+
+# Make naive estimate dataframe from data_list
+naive <- as.data.frame(data_list$y) %>%
+  mutate(loc = row.names(.)) %>% 
+  pivot_longer(cols=-loc, names_to = "week", values_to = "detect") %>% 
+  mutate(week.active = ifelse(is.na(detect),0,1)) %>%
+  ungroup() %>%
+  group_by(loc) %>%
+  #count()
+  summarize(Present = max(detect, na.rm=TRUE), Pct_Present = sum(detect, na.rm=TRUE)/sum(week.active)) %>%
+  mutate(Present = as.character(Present)) %>%
+  mutate(Present = ifelse(Present=="1","detected", ifelse(Present=="0","not detected", "no data"))) %>%
+  left_join(., locs %>% dplyr::select(loc, longitude, latitude), by = "loc")
+
+naive_spat <- vect(st_as_sf(naive,coords = c("longitude", "latitude"), crs = 4269))
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
 psi_covs_z <- create_cov_list(psi_model)
@@ -339,3 +356,4 @@ if (MAP) {
            units = units)
   }
 }  
+
