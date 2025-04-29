@@ -266,7 +266,7 @@ if ("vegclass2" %in% psi_covs) {
 
 vegocc_ft
 
-veg_class_text <- ifelse(PARK=="SAGW","There are three coarse vegetation / landform classes (adapted from Galvin and Studd 2021): 1)  Low gradient desert with high-cover mixed cactus and ~2-15% tree cover (Palo Verde and Ironwood); 2) Low hillslope and mountain foothills, rocky, often north facing and cooler/wetter; and 3) Medium to high gradient and greater contrasting topography (rapidly switching aspects, hilly), with Jojoba shrubs dominant.", "hmmmm")
+veg_class_text <- ifelse(PARK=="SAGW","There are three coarse vegetation / landform classes (adapted from Galvin and Studd 2021): 1)  Low gradient desert with high-cover mixed cactus and ~2-15% tree cover (palo verde and ironwood); 2) Low hillslope and mountain foothills, rocky, often north facing and cooler/wetter; and 3) Medium to high gradient and greater contrasting topography (rapidly switching aspects, hilly), with jojoba shrubs dominant.", "hmmmm")
 
 ```
 
@@ -308,7 +308,7 @@ cat(unlist(res))
 ```{r, fig.id = "figure", fig.cap = occmap_cap, eval = psi_cov_run}
 
 occmap_cap <- paste0("Predicted probability of ", spp_name, " occurrence in ", 
-                     PARKL, " in ", YEAR, ". Dashed grey/black lines are park trails, solid grey/black lines indicate roads inside and within 3 kilometers of the park.")
+                     PARKL, " in ", YEAR, ". Dashed grey/black lines are park trails, solid grey/black lines indicate roads inside and within one kilometer of the park.")
 occmap_base <- ggplot() +
   geom_spatraster(data = preds_mn, mapping = aes(fill = mean)) +
   scale_fill_viridis_c(na.value = "transparent") +
