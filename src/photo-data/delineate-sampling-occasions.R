@@ -50,8 +50,8 @@ occ_max <- 6
 threshold <- 0.60
 
 # Range of photo observations
-yr_min <- min(dat$yr)
-yr_max = max(dat$yr)
+yr_min <- min(dat$yr, na.rm=TRUE)
+yr_max = max(dat$yr, na.rm=TRUE)
 
 # Extract columns from events data and limit events to only those years when
 # we have photo data

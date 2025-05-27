@@ -40,7 +40,7 @@ locs_ann <- vect(st_as_sf(read.csv(paste0("data/mammals/CameraLocations_Annual_"
 
   # Logical indicating whether to save a new shapefile with central location
   # for each camera across years (should only need to do this once per year)
-  centroid_save <- FALSE
+  centroid_save <- TRUE
 
 # Deployment schedule
 events <- read.csv(paste0("data/mammals/Events_", PARK, ".csv"))
