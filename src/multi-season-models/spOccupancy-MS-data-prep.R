@@ -220,7 +220,7 @@ years_z <- (years - years_mn)/years_sd
 
 # Indicator for 2022 and 2023, when different types of cameras were used 
 # (will need to revisit this covariate after 2023 season when same cameras were 
-# used - no change, same camera in 2024 as in 2022-2023)
+# used - no change, same camera in 2024-2025 as in 2022-2023)
 camera <- matrix(rep(c(0, 1), 
                           times = c(sum(YEARS < 2022), sum(YEARS >= 2022))),
                       nrow = dim(dh)[1],
@@ -231,6 +231,8 @@ camera <- matrix(rep(c(0, 1),
 # (will need to revisit this covariate before/after 2024 once we decide which 
 # lenses will be used - updated since 2024 also used sensitive lens and likely
 # to continue to do so)
+## Cheryl - think about if/how can pull from data because 
+# sometimes the wrong lens gets used on one camera
 if (max(YEARS) > 2022) {
   lens <- matrix(rep(c(0, 1, 1), 
                         times = c(sum(YEARS < 2023), 1, sum(YEARS > 2023))),
@@ -239,11 +241,13 @@ if (max(YEARS) > 2022) {
                         byrow = TRUE)
 }
   
-# Monthly visitation data (currently only available for Saguaro, both districts 
-# combined, through October 2024 (updated 11/27/2024)
+# Monthly visitation data (now SAGW only rather than all of SAGU) 
+# through April 2025 (updated 6/20/2025)
+# since monthly visits to the 2 districts have to be populated by hand,  
+# only went back to 2016 (instead of 1979 for all of SAGU)
 if (PARK == "SAGW") {
   # Read in data
-  monthlyvisits <- read.csv("data/covariates/SAGU_MonthlyVisits_1979-2024.csv")
+  monthlyvisits <- read.csv("data/covariates/SAGW_MonthlyVisits_2016-2025.csv")
   # Identify months when surveys occurred
   surveymonths <- unique(c(month(occasions$start), month(occasions$end)))
   # Calculate the total number of visitors during survey months each year
@@ -267,10 +271,10 @@ if (PARK == "SAGW") {
   visits_z <- (visits - visits_mn)/visits_sd
 }
 
-# Monthly traffic data (currently only available for SAGW, through October 2024 (updated 11/27/2024)
+# Monthly traffic data (currently only available for SAGW, through April 2025 (updated 6/20/2025)
 if (PARK == "SAGW") {
   # Read in data
-  monthlytraffic <- read.csv("data/covariates/SAGW_MonthlyTraffic_1992-2024.csv")
+  monthlytraffic <- read.csv("data/covariates/SAGW_MonthlyTraffic_1992-2025.csv")
   # Identify months when surveys occurred
   surveymonths <- unique(c(month(occasions$start), month(occasions$end)))
   # Calculate total traffic (averaged across locations) during survey months 
@@ -342,8 +346,7 @@ park_b <- as(park_b, "Spatial")
   monsoon_ppt_z <- (monsoon_ppt - monsoon_ppt_mn) / monsoon_ppt_sd 
   
 # Extract and compile 10-month precipitation data (10-months prior to survey
-# season in each park) [Don't have this set up for CHIR yet since there are only
-# a couple years when sampling was done in May-June]
+# season in each park) 
   if (PARK == "ORPI") {
     ppt10_files <- weather_files[str_detect(weather_files, "ORPI_MayFeb")]
     ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS)]
@@ -352,14 +355,19 @@ park_b <- as(park_b, "Spatial")
     ppt10_files <- weather_files[str_detect(weather_files, "SAGW_MarDec")]
     ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS - 1)]    
   }
+  
+  if (PARK == "CHIR") {
+    ppt10_files <- weather_files[str_detect(weather_files, "CHIR_JulApr")]
+    ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS - 1)]    
+  }
 
-  if (PARK != "CHIR") {
-    # Load each raster and compute the mean value across the park in that year
+ 
+      # Load each raster and compute the mean value across the park in that year
     ppt10 <- rep(NA, length(ppt10_files))
     for (i in 1:length(ppt10_files)) {
       ppt10_raster <- rast(ppt10_files[i])
       ppt10[i] <- exact_extract(ppt10_raster, park_b, "mean")
-    }  
+    }
     
     ppt10 <- matrix(ppt10, 
                     nrow = dim(dh)[1],
@@ -369,7 +377,7 @@ park_b <- as(park_b, "Spatial")
     ppt10_mn <- mean(ppt10)
     ppt10_sd <- sd(ppt10)
     ppt10_z <- (ppt10 - ppt10_mn) / ppt10_sd 
-  }
+
     
 #------------------------------------------------------------------------------#
 # Spatial covariates (time invariant)
