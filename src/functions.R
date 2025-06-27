@@ -598,7 +598,8 @@ occ_time_plot <- function(model,
   
   # Get annual estimates (for any model) 
   # (we're assuming a maximum of one annual covariate in the model)
-  ann_covs <- c("years_z", "traffic_z", "visits_z", "monsoon_ppt_z", "ppt10_z")
+  ann_covs <- c("years_z", "traffic_z", "visits_z", "monsoon_ppt_z", "ppt10_z", 
+                "monsoon_vpd_z","vpd10_z","aet10_z","deficit10_z", "savi_z")
   ann_cols <- str_subset(colnames(model$beta.samples), 
                          pattern = paste0(ann_covs, collapse = "|"))
   ann_samples <- model$beta.samples[,c("(Intercept)", ann_cols)]
