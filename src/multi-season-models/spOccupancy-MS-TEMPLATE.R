@@ -28,7 +28,7 @@ library(tidyterra)
 #------------------------------------------------------------------------------#
 
 # Select park of interest ("CHIR", "ORPI", or "SAGW")
-PARK <- "CHIR"
+PARK <- "SAGW"
 
 source("src/photo-data/format-mammal-data.R")
 
@@ -130,14 +130,14 @@ covariates <- read.csv("data/covariates/covariates-MS.csv", header = TRUE)
   # which, if any, covariates should be included in detection models
 #------------------------------------------------------------------------------#
 
-# For detection, use a "full" model (note: exclude lens_2023 if the last year in
+# For detection, use a "full" model (note: exclude lens if the last year in
 # series in 2022)
 DET_NULL <- FALSE
 DET_MODELS <- list(c("day2", 
                      "deploy_exp", 
                      "effort", 
                      "camera", 
-                     "lens_2023",
+                     "lens",
                      "burn"))
 
 # For occurrence, try each annual covariate in a separate model
@@ -146,7 +146,12 @@ OCC_MODELS <- list("years",
                    "visits", 
                    "traffic", 
                    "monsoon_ppt", 
-                   "ppt10")
+                   "ppt10",
+                   "monsoon_vpd",
+                   "vpd10",
+                   "aet10",
+                   "deficit10", 
+                   "savi")
 
 SITE_RE_OCC <- "unstructured"
 TIME_RE_OCC <- "unstructured" 
@@ -236,24 +241,31 @@ cor_df %>%
   arrange(desc(corr)) %>%
   filter(abs(corr) >= 0.7)
   
-scov_combos <- list(c("aspect", "veg", "wash", "burn", "roads"),
-                    c("elev", "veg", "wash", "burn", "roads"),
-                    c("slope", "veg", "wash", "burn", "roads"),
-                    c("aspect", "veg", "wash", "burn", "boundary"),
-                    c("elev", "veg", "wash", "burn", "boundary"),
-                    c("slope", "veg", "wash", "burn", "boundary"),
-                    c("aspect", "veg", "wash", "burn", "trail"),
-                    c("elev", "veg", "wash", "burn", "trail"),
-                    c("slope", "veg", "wash", "burn", "trail"),
-                    c("aspect", "veg", "wash", "burn", "pois"),
-                    c("elev", "veg", "wash", "burn", "pois"),
-                    c("slope", "veg", "wash", "burn", "pois"),
-                    c("aspect", "veg", "wash", "burn", "roadbound"),
-                    c("elev", "veg", "wash", "burn", "roadbound"),
-                    c("slope", "veg", "wash", "burn", "roadbound"),
-                    c("aspect", "veg", "wash", "burn", "trailpoi"),
-                    c("elev", "veg", "wash", "burn", "trailpoi"),
-                    c("slope", "veg", "wash", "burn", "trailpoi"))
+# Cheryl's updated combos - treating veg/lta as a topographic covariate
+scov_combos <- list(c("aspect", "wash", "burn", "roads"),
+                    c("elev", "wash", "burn", "roads"),
+                    c("slope", "wash", "burn", "roads"),
+                    c("veg", "wash", "burn", "roads"),
+                    c("aspect",  "wash", "burn", "boundary"),
+                    c("elev", "wash", "burn", "boundary"),
+                    c("slope", "wash", "burn", "boundary"),
+                    c("veg", "wash", "burn", "boundary"),
+                    c("aspect",  "wash", "burn", "trail"),
+                    c("elev", "wash", "burn", "trail"),
+                    c("slope", "wash", "burn", "trail"),
+                    c("veg", "wash", "burn", "trail"),
+                    c("aspect", "wash", "burn", "pois"),
+                    c("elev", "wash", "burn", "pois"),
+                    c("slope", "wash", "burn", "pois"),
+                    c("veg", "wash", "burn", "pois"))
+# c("aspect", "wash", "burn", "roadbound"), 
+# #c("elev", "wash", "burn", "roadbound"),
+# c("slope", "wash", "burn", "roadbound"),
+# c("veg", "wash", "burn", "roadbound"),
+# c("aspect", "wash", "burn", "trailpoi"),
+# c("elev", "wash", "burn", "trailpoi"),
+# c("slope", "wash", "burn", "trailpoi"),
+# c("veg", "wash", "burn", "trailpoi"))
 OCC_MODELS <- lapply(scov_combos, function(x) c(x, BEST_ANNUAL))
 OCC_NULL <- FALSE
 
@@ -400,7 +412,8 @@ if (ppc.rep < 0.1 | ppc.site > 0.9) {
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
 # And for occurrence, extract names of spatial covariates
-nonspat_z <- c("years_z", "visits_z", "traffic_z", "monsoon_ppt_z", "ppt10_z")
+nonspat_z <- c("years_z", "visits_z", "traffic_z", "monsoon_ppt_z", "ppt10_z",
+               "monsoon_vpd_z","vpd10_z","aet10_z","deficit10_z", "savi_z")
 nonspat <- str_remove(nonspat_z, "_z")
 psi_covs_z <- create_cov_list(best_psi_model)
 if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
@@ -448,7 +461,8 @@ saveRDS(model_list, file = model_filename)
 # below, we will make predictions using estimated effects for the first and last 
 # year.
 if (any(str_detect(string = psi_covs, 
-                   pattern = paste(c("visits", "traffic", "monsoon_ppt", "ppt10"),
+                   pattern = paste(c("visits", "traffic", "monsoon_ppt", "ppt10", 
+                                     "monsoon_vpd", "vpd10", "aet10", "deficit10", "savi"),
                                    collapse = "|")))) {
   ANN_PREDS <- "observed"
 }  
@@ -609,7 +623,7 @@ if (psi_n_cont == 0 & length(psi_covs) == 0) {
 
 # Identify continuous covariates in detection part of the best model
 p_continuous <- p_covs_z[!p_covs_z %in% c("vegclass2", "vegclass3", 
-                                          "camera", "lens_2023")]
+                                          "camera", "lens")]
 p_cont_unique <- unique(p_continuous)
 p_n_cont <- length(p_cont_unique)
 
@@ -656,7 +670,7 @@ if (sum(str_detect(p_covs, "veg")) > 0) {
 
 # If camera and/or lens was included as a covariate in the model, extract 
 # detection probabilities for each combination of covariate levels
-if (sum(str_detect(p_covs, c("camera|lens_2023"))) > 0) {
+if (sum(str_detect(p_covs, c("camera|lens"))) > 0) {
   detprob_cat <- det_cat_estimates(model = best,
                                    lower_ci = 0.025,
                                    upper_ci = 0.975)
