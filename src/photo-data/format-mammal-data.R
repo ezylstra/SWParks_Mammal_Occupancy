@@ -40,7 +40,7 @@ locs_ann <- vect(st_as_sf(read.csv(paste0("data/mammals/CameraLocations_Annual_"
 
   # Logical indicating whether to save a new shapefile with central location
   # for each camera across years (should only need to do this once per year)
-  centroid_save <- TRUE
+  centroid_save <- FALSE
 
 # Deployment schedule
 events <- read.csv(paste0("data/mammals/Events_", PARK, ".csv"))
@@ -171,6 +171,9 @@ events$duration <- as.double(difftime(as.POSIXct(events$r_date),
 events$operational <- as.double(difftime(as.POSIXct(events$active_end), 
                                          as.POSIXct(events$active_start), 
                                          units = 'days'))
+
+# Convert lens type to a binary 1 = sensitive, 0 = standard
+events <- events %>% mutate(lens = ifelse(LensType=="sensitive",1,0))
 
 # Summarize/Visualize
 # summary(events$operational)

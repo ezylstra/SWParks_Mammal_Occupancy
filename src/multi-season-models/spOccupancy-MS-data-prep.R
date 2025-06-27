@@ -151,9 +151,6 @@ for (t in 1:length(YEARS)) {
     }
   }
 }
-# NOTE: new files for CHIR and ORPI will need an updated CrewDeploy field in 
-# the events file that has crew lead names rather than the codes that were 
-# in the 2022 version of the data.
 
 # Make sure that values in deploy_exp matrix are NA wherever there are NA values 
 # in detection history matrix (this should already be true, but just in case)
@@ -227,20 +224,22 @@ camera <- matrix(rep(c(0, 1),
                       ncol = dim(dh)[2],
                       byrow = TRUE)
 
-# Indicator for SAGW & ORPI for 2023 onward, when more sensitive lenses were used
-# (will need to revisit this covariate before/after 2024 once we decide which 
-# lenses will be used - updated since 2024 also used sensitive lens and likely
-# to continue to do so)
-## Cheryl - think about if/how can pull from data because 
-# sometimes the wrong lens gets used on one camera
-if (max(YEARS) > 2022) {
-  lens <- matrix(rep(c(0, 1, 1), 
-                        times = c(sum(YEARS < 2023), 1, sum(YEARS > 2023))),
-                        nrow = dim(dh)[1],
-                        ncol = dim(dh)[2],
-                        byrow = TRUE)
+# Indicator for lens type SAGW & ORPI 
+# updated to use lens type in events table (rather than binary assumption)
+# starting in 2024 these data are now recorded in the field/spatial data, assumed for other years
+# accounts for situations where wrong lens was used
+
+# Create an matrix with lens type values 
+# (0 = standard; 1 = sensitive; NA = no sampling occasions that year)
+lens <- matrix(NA, nrow = dim(dh)[1], ncol = dim(dh)[2], dimnames = c(dimnames(dh)[1],dimnames(dh)[2]), byrow = TRUE)
+for (t in 1:length(YEARS)) {
+  YR <- YEARS[t]
+  for (i in 1:dim(lens)[1]) {
+    if (!is.na(table(events_park$loc == rownames(lens)[i]  &  events_park$d_yr == YR)["TRUE"]))
+    lens[i,t] <- events_park$lens[events_park$loc == rownames(lens)[i]  &  events_park$d_yr == YR]
+  }
 }
-  
+
 # Monthly visitation data (now SAGW only rather than all of SAGU) 
 # through April 2025 (updated 6/20/2025)
 # since monthly visits to the 2 districts have to be populated by hand,  
@@ -301,6 +300,85 @@ if (PARK == "SAGW") {
   traffic_z <- (traffic - traffic_mn)/traffic_sd
 }
 
+# Daily water balance variables (deficit, AET) for SAGW (climate zone 4, coordiantes in SAGW)
+# downloaded from https://parkfutures.s3.us-west-2.amazonaws.com/maca-tprh-data/index.html
+# more info here: https://www.climateanalyzer.biz/water_balance.html
+# Daily deficit and actual evapotranspiration (currently only available for SAGW, through December 2024 (updated 6/24/2025)
+
+# Generate cumulative deficit during 10 months prior to sampling. 
+# For SAGW, want deficit for Mar-Dec (sampling Jan-Feb)
+if (PARK == "SAGW") {
+  # Read in data
+  dailyWB <- read.csv("data/covariates/SAGU_04_water_balance_historical.csv")
+  # Calculate total deficit for Mar-Dec
+  deficit <- dailyWB %>%
+    mutate(Date = as.Date(Date)) %>%
+    mutate(MonthDay = format(Date, format="%m-%d")) %>%
+    mutate(Year = year(Date)) %>%
+    filter(MonthDay > "02-29") %>%
+    filter(Year >= (min(YEARS) - 1) & Year < (max(YEARS))) %>%  # want data for year Mar-Dec for year prior
+    group_by(Year) %>%
+    summarize(deficit = sum(Deficit.in), .groups = "keep") %>%
+    group_by(Year) %>%
+    summarize(deficit = mean(deficit)) %>%
+    data.frame() %>%
+    mutate(deficit = ifelse(Year==2023, deficit*10, deficit))  # 2023 is ridiculously low, by factor of 10?
+  deficit10 <- matrix(deficit$deficit, 
+                    nrow = dim(dh)[1],
+                    ncol = dim(dh)[2],
+                    byrow = TRUE)
+  # Standardize
+  deficit10_mn <- mean(deficit10)
+  deficit10_sd <- sd(deficit10)
+  deficit10_z <- (deficit10 - deficit10_mn)/deficit10_sd
+}
+
+# Generate cumulative AET during 10 months prior to sampling. 
+# For SAGW, want AET for Mar-Dec (sampling Jan-Feb)
+if (PARK == "SAGW") {
+  # Read in data
+  dailyWB <- read.csv("data/covariates/SAGU_04_water_balance_historical.csv")
+  # Calculate total deficit for Mar-Dec
+  aet <- dailyWB %>%
+    mutate(Date = as.Date(Date)) %>%
+    mutate(MonthDay = format(Date, format="%m-%d")) %>%
+    mutate(Year = year(Date)) %>%
+    filter(MonthDay > "02-29") %>%
+    filter(Year >= (min(YEARS) - 1) & Year < (max(YEARS))) %>%  # want data for year Mar-Dec for year prior
+    group_by(Year) %>%
+    summarize(aet = sum(AET.in), .groups = "keep") %>%
+    group_by(Year) %>%
+    summarize(aet = mean(aet)) %>%
+    data.frame() %>%
+    mutate(deficit = ifelse(Year==2023, deficit*10, deficit))  # 2023 is ridiculously low, by factor of 10?
+  aet10 <- matrix(aet$aet, 
+                      nrow = dim(dh)[1],
+                      ncol = dim(dh)[2],
+                      byrow = TRUE)
+  # Standardize
+  aet10_mn <- mean(aet10)
+  aet10_sd <- sd(aet10)
+  aet10_z <- (aet10 - aet10_mn)/aet10_sd
+}
+
+# Soil-adjusted vegetation index from Climate Engine (http://climateengine.org)
+# Park-wide average of maximum SAVI for April - March (so overlaps sampling)
+if (PARK == "SAGW") {
+  # Read in data
+  SAVI_max <- read.csv("data/covariates/SAGW_SAVImax_Apr-Mar.csv") %>%
+    filter(Year >= min(YEARS) & Year <= max(YEARS)) 
+  
+  savi <- matrix(SAVI_max$SAVImax, 
+                  nrow = dim(dh)[1],
+                  ncol = dim(dh)[2],
+                  byrow = TRUE)
+  # Standardize
+  savi_mn <- mean(savi)
+  savi_sd <- sd(savi)
+  savi_z <- (savi - savi_mn)/savi_sd
+}
+
+
 # Only other annual covariates are weather related
 
 # Load rasters with seasonal weather data (that also varies over space)
@@ -321,48 +399,105 @@ parks <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
 park_b <- terra::subset(parks, parks$UNIT_CODE == PARK)
 park_b <- as(park_b, "Spatial")
 
-# Extract and compile monsoon precipitation data
-  monsoon_files <- weather_files[str_detect(weather_files, "monsoon_ppt")]
+# Extract and compile monsoon vapor pressure deficit data
+  monsoon_vpd_files <- weather_files[str_detect(weather_files, "monsoon_vpd")]
   # Remove monsoon rasters associated with periods outside the years of interest
-  # (monsoon rainfall in year x could explain occupancy in year x + 1 since 
+  # (monsoon vpd in year x could explain occupancy in year x + 1 since 
   # surveys are done in the first half of the year)
-  monsoon_yrs <- paste0(as.character(YEARS - 1), collapse = "|")
-  monsoon_files <- monsoon_files[str_detect(monsoon_files, monsoon_yrs)]
+  monsoon_vpd_yrs <- paste0(as.character(YEARS - 1), collapse = "|")
+  monsoon_vpd_files <- monsoon_vpd_files[str_detect(monsoon_vpd_files, monsoon_vpd_yrs)]
 
   # Load each raster and compute the mean value across the park in that year
-  monsoon_ppt <- rep(NA, length(monsoon_files))
-  for (i in 1:length(monsoon_files)) {
-    monsoon_raster <- rast(monsoon_files[i])
-    monsoon_ppt[i] <- exact_extract(monsoon_raster, park_b, "mean")
+  monsoon_vpd <- rep(NA, length(monsoon_vpd_files))
+  for (i in 1:length(monsoon_vpd_files)) {
+    monsoon_vpd_raster <- rast(monsoon_vpd_files[i])
+    monsoon_vpd[i] <- exact_extract(monsoon_vpd_raster, park_b, "mean")
   }  
   
-  monsoon_ppt <- matrix(monsoon_ppt, 
+  monsoon_vpd <- matrix(monsoon_vpd, 
                         nrow = dim(dh)[1],
                         ncol = dim(dh)[2],
                         byrow = TRUE)
   # Standardize
-  monsoon_ppt_mn <- mean(monsoon_ppt)
-  monsoon_ppt_sd <- sd(monsoon_ppt)
-  monsoon_ppt_z <- (monsoon_ppt - monsoon_ppt_mn) / monsoon_ppt_sd 
+  monsoon_vpd_mn <- mean(monsoon_vpd)
+  monsoon_vpd_sd <- sd(monsoon_vpd)
+  monsoon_vpd_z <- (monsoon_vpd - monsoon_vpd_mn) / monsoon_vpd_sd 
   
-# Extract and compile 10-month precipitation data (10-months prior to survey
+# Extract and compile 10-month vapor pressure deficit data (10-months prior to survey
 # season in each park) 
   if (PARK == "ORPI") {
-    ppt10_files <- weather_files[str_detect(weather_files, "ORPI_MayFeb")]
-    ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS)]
+    vpd10_files <- weather_files[str_detect(weather_files, "ORPI_MayFeb_vpd")]
+    vpd10_files <- vpd10_files[str_sub(vpd10_files, -8, -5) %in% as.character(YEARS)]
   }
   if (PARK == "SAGW") {
-    ppt10_files <- weather_files[str_detect(weather_files, "SAGW_MarDec")]
-    ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS - 1)]    
+    vpd10_files <- weather_files[str_detect(weather_files, "SAGW_MarDec_vpd")]
+    vpd10_files <- vpd10_files[str_sub(vpd10_files, -8, -5) %in% as.character(YEARS - 1)]    
   }
   
   if (PARK == "CHIR") {
-    ppt10_files <- weather_files[str_detect(weather_files, "CHIR_JulApr")]
-    ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS - 1)]    
+    vpd10_files <- weather_files[str_detect(weather_files, "CHIR_JulApr_vpd")]
+    vpd10_files <- vpd10_files[str_sub(vpd10_files, -8, -5) %in% as.character(YEARS - 1)]    
   }
 
  
       # Load each raster and compute the mean value across the park in that year
+    vpd10 <- rep(NA, length(vpd10_files))
+    for (i in 1:length(vpd10_files)) {
+      vpd10_raster <- rast(vpd10_files[i])
+      vpd10[i] <- exact_extract(vpd10_raster, park_b, "mean")
+    }
+    
+    vpd10 <- matrix(vpd10, 
+                    nrow = dim(dh)[1],
+                    ncol = dim(dh)[2],
+                    byrow = TRUE)
+    # Standardize
+    vpd10_mn <- mean(vpd10)
+    vpd10_sd <- sd(vpd10)
+    vpd10_z <- (vpd10 - vpd10_mn) / vpd10_sd 
+
+# Extract and compile monsoon precipitation data
+    monsoon_files <- weather_files[str_detect(weather_files, "monsoon_ppt")]
+    # Remove monsoon rasters associated with periods outside the years of interest
+    # (monsoon rainfall in year x could explain occupancy in year x + 1 since 
+    # surveys are done in the first half of the year)
+    monsoon_yrs <- paste0(as.character(YEARS - 1), collapse = "|")
+    monsoon_files <- monsoon_files[str_detect(monsoon_files, monsoon_yrs)]
+    
+    # Load each raster and compute the mean value across the park in that year
+    monsoon_ppt <- rep(NA, length(monsoon_files))
+    for (i in 1:length(monsoon_files)) {
+      monsoon_raster <- rast(monsoon_files[i])
+      monsoon_ppt[i] <- exact_extract(monsoon_raster, park_b, "mean")
+    }  
+    
+    monsoon_ppt <- matrix(monsoon_ppt, 
+                          nrow = dim(dh)[1],
+                          ncol = dim(dh)[2],
+                          byrow = TRUE)
+    # Standardize
+    monsoon_ppt_mn <- mean(monsoon_ppt)
+    monsoon_ppt_sd <- sd(monsoon_ppt)
+    monsoon_ppt_z <- (monsoon_ppt - monsoon_ppt_mn) / monsoon_ppt_sd 
+    
+# Extract and compile 10-month precipitation data (10-months prior to survey
+# season in each park) 
+    if (PARK == "ORPI") {
+      ppt10_files <- weather_files[str_detect(weather_files, "ORPI_MayFeb_ppt")]
+      ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS)]
+    }
+    if (PARK == "SAGW") {
+      ppt10_files <- weather_files[str_detect(weather_files, "SAGW_MarDec_ppt")]
+      ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS - 1)]    
+    }
+    
+    if (PARK == "CHIR") {
+      ppt10_files <- weather_files[str_detect(weather_files, "CHIR_JulApr_ppt")]
+      ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS - 1)]    
+    }
+    
+    
+    # Load each raster and compute the mean value across the park in that year
     ppt10 <- rep(NA, length(ppt10_files))
     for (i in 1:length(ppt10_files)) {
       ppt10_raster <- rast(ppt10_files[i])
@@ -377,7 +512,8 @@ park_b <- as(park_b, "Spatial")
     ppt10_mn <- mean(ppt10)
     ppt10_sd <- sd(ppt10)
     ppt10_z <- (ppt10 - ppt10_mn) / ppt10_sd 
-
+    
+    
     
 #------------------------------------------------------------------------------#
 # Spatial covariates (time invariant)
@@ -469,7 +605,9 @@ occ_covs <- list(boundary = spatial_covs$boundary,
                  years = years,
                  years_z = years_z,
                  monsoon_ppt = monsoon_ppt,
-                 monsoon_ppt_z = monsoon_ppt_z)
+                 monsoon_ppt_z = monsoon_ppt_z,
+                 monsoon_vpd = monsoon_vpd,
+                 monsoon_vpd_z = monsoon_vpd_z)
 if (PARK == "CHIR") {
   occ_covs <- c(occ_covs, 
                 list(burn_severity_2011_z = spatial_covs$burn_severity_2011_z))
@@ -485,8 +623,16 @@ if (PARK == "SAGW") {
                      wash_z = spatial_covs$wash_z,
                      vegclass2 = spatial_covs$vegclass2,
                      vegclass3 = spatial_covs$vegclass3,
+                     deficit10 = deficit10,
+                     deficit10_z = deficit10_z,
+                     aet10 = aet10,
+                     aet10_z = aet10_z,
                      ppt10 = ppt10,
                      ppt10_z = ppt10_z,
+                     vpd10 = vpd10, 
+                     vpd10_z = vpd10_z,
+                     savi = savi,
+                     savi_z = savi_z,
                      visits = visits,
                      visits_z = visits_z,
                      traffic = traffic,

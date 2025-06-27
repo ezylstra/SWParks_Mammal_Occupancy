@@ -143,6 +143,61 @@ if ("ppt10_z" %in% cov_order) {
     X.0[, , which(cov_order == "ppt10_z")] <- 0
   }
 }
+if ("monsoon_vpd_z" %in% cov_order) {
+  if (ANN_PREDS == "observed") {
+    monsoon_vpd_pred <- matrix(rep(data_list$occ.covs$monsoon_vpd_z[1, which(YEARS %in% pred_years)],
+                               nrow(psi_rasters_df)),
+                           nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                           byrow = TRUE)
+    X.0[, , which(cov_order == "monsoon_vpd_z")] <- monsoon_vpd_pred
+  } else {
+    X.0[, , which(cov_order == "monsoon_vpd_z")] <- 0
+  }
+}
+if ("vpd10_z" %in% cov_order) {
+  if (ANN_PREDS == "observed") {
+    vpd10_pred <- matrix(rep(data_list$occ.covs$vpd10_z[1, which(YEARS %in% pred_years)],
+                             nrow(psi_rasters_df)),
+                         nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                         byrow = TRUE)
+    X.0[, , which(cov_order == "vpd10_z")] <- vpd10_pred
+  } else {
+    X.0[, , which(cov_order == "vpd10_z")] <- 0
+  }
+}
+if ("deficit10_z" %in% cov_order) {
+  if (ANN_PREDS == "observed") {
+    deficit10_pred <- matrix(rep(data_list$occ.covs$deficit10_z[1, which(YEARS %in% pred_years)],
+                             nrow(psi_rasters_df)),
+                         nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                         byrow = TRUE)
+    X.0[, , which(cov_order == "deficit10_z")] <- deficit10_pred
+  } else {
+    X.0[, , which(cov_order == "deficit10_z")] <- 0
+  }
+}
+if ("aet10_z" %in% cov_order) {
+  if (ANN_PREDS == "observed") {
+    aet10_pred <- matrix(rep(data_list$occ.covs$aet10_z[1, which(YEARS %in% pred_years)],
+                                 nrow(psi_rasters_df)),
+                             nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                             byrow = TRUE)
+    X.0[, , which(cov_order == "aet10_z")] <- aet10_pred
+  } else {
+    X.0[, , which(cov_order == "aet10_z")] <- 0
+  }
+}
+if ("savi_z" %in% cov_order) {
+  if (ANN_PREDS == "observed") {
+    savi_pred <- matrix(rep(data_list$occ.covs$savi_z[1, which(YEARS %in% pred_years)],
+                             nrow(psi_rasters_df)),
+                         nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                         byrow = TRUE)
+    X.0[, , which(cov_order == "savi_z")] <- savi_pred
+  } else {
+    X.0[, , which(cov_order == "savi_z")] <- 0
+  }
+}
 
 # If annual, spatial covariates are in the occurrence model and we want to make 
 # predictions for the first and last year under observed conditions, then grab

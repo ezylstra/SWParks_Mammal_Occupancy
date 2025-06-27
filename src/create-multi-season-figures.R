@@ -19,15 +19,15 @@ library(ggspatial)
 #------------------------------------------------------------------------------#
 # Park, year, and species
 PARK <- "SAGW"
-YEARS <- 2017:2024
-SPECIES <- "CALA"
+YEARS <- 2017:2025
+SPECIES <- "SYAU"
 
 # Logical indicating whether to create maps with mean occurrence probabilities (with roads/trails)
 MAP <- TRUE
 # Logical indicating whether to create maps with SD of occurrence probabilities (with roads/trails)
 MAP_SD <- FALSE
 # Logical indicating whether to create maps with mean occurrence probabilities and raw detections
-MAP_DETECT <- TRUE
+MAP_DETECT <- TRUE  # if TRUE, MAP must also be true
 # Logical indicating whether to create a 4-panel figure with mean and SD
 # of occurrence probabilities in first and last year in addition to the single
 # panel figures for each parameter. (Only relevant if MAP_SD == TRUE)
@@ -106,7 +106,8 @@ spatial_covs <- as.data.frame(spatial_covs)
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
 # And for occurrence, extract names of spatial covariates
-nonspat_z <- c("years_z", "visits_z", "traffic_z", "monsoon_ppt_z", "ppt10_z")
+nonspat_z <- c("years_z", "visits_z", "traffic_z", "monsoon_ppt_z", "ppt10_z",
+               "monsoon_vpd_z","vpd10_z","aet10_z","deficit10_z", "savi_z")
 nonspat <- str_remove(nonspat_z, "_z")
 psi_covs_z <- create_cov_list(psi_model)
 if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
@@ -142,8 +143,8 @@ occ_estimates <- occ_estimates %>%
 det_estimates <- det_estimates %>%
   rename(Covariate = Parameter) %>%
   mutate(Parameter = "Detection", .before = "Covariate")
-estimates <- rbind(occ_estimates, det_estimates)
-estimates
+estimates <- rbind(occ_estimates, det_estimates) %>% mutate(`95% CI` = paste0(round(`Lower95%`,2), ", ",round(`Upper95%`,2), sep=""))
+estimates %>% dplyr::select(Parameter, Covariate, Mean, SD, `95% CI`, Rhat, ESS, f)
 
 # Create basename for output files
 base_out <- paste0("output/NPS-figures/multi-season/",
@@ -378,7 +379,7 @@ if (MARG_DET) {
 
 # If camera and/or lens was included as a covariate in the model, extract 
 # detection probabilities for each combination of covariate levels
-if (sum(str_detect(p_covs, c("camera|lens_2023"))) > 0) {
+if (sum(str_detect(p_covs, c("camera|lens"))) > 0) {
   detprob_cat <- det_cat_estimates(model = best,
                                    lower_ci = 0.025,
                                    upper_ci = 0.975)
@@ -398,7 +399,7 @@ if (p_n_cont == 0 & length(p_covs) == 0) {
 #------------------------------------------------------------------------------#
 # Maps with occurrence probabilities (means, SDs)
 #------------------------------------------------------------------------------#
-if(MAP | MAP_SD) {
+if(MAP | MAP_SD | MAP_DETECT) {
   
   if (length(psi_covs) == 0) {
     stop("No covariates in the model of occurrence. Not creating maps.")
@@ -434,7 +435,8 @@ if(MAP | MAP_SD) {
   # year will be very similar (but not identical if we're incorporating random 
   # effects).
   if (any(str_detect(string = psi_covs, 
-                     pattern = paste(c("visits", "traffic", "monsoon_ppt", "ppt10"),
+                     pattern = paste(c("visits", "traffic", "monsoon_ppt", "ppt10", 
+                                       "monsoon_vpd", "vpd10", "aet10", "deficit10", "savi"),
                                      collapse = "|")))) {
     ANN_PREDS <- "observed"
   }  

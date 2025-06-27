@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<metadata>
+	<idinfo>
+		<citation>
+			<citeinfo>
+				<origin>NPS, Organ Pipe Cactus National Monument, Resources Division</origin>
+				<onlink>http://science.nature.nps.gov/nrdata</onlink>
+				<lworkcit>
+					<citeinfo></citeinfo>
+				</lworkcit>
+				<pubdate>REQUIRED: The date when the data set is published or otherwise made available for release.</pubdate><title>DRAFT land type associations of Organ Pipe Cactus National Monument</title><ftname Sync="TRUE">ltas_June07c</ftname><geoform Sync="TRUE">vector digital data</geoform></citeinfo>
+		</citation>
+		<descript>
+			<supplinf>Organ Pipe Cactus National Monument celebrates the life and landscape of the Sonoran Desert. Here, in this desert wilderness of plants and animals and dramatic mountains and plains scenery, you can drive a lonely road, hike a backcountry trail, camp beneath a clear desert sky, or just soak in the warmth and beauty of the Southwest. The Monument exhibits an extraordinary collection of plants of the Sonoran Desert, including the organ pipe cactus, a large cactus rarely found in the United States. There are also many creatures that have been able to adapt themselves to extreme temperatures, intense sunlight and little rainfall. Acreage: 330,688.86; Federal: 329,316.31; Non-federal: 1,372.55. Wilderness area: 312,600.</supplinf>
+			<langdata Sync="TRUE">en</langdata>
+			<abstract>This is a polygon vector dataset describing 43 land type associations of Organ Pipe Cactus National Monument. It was prepared by Sue Rutman and Larry Laing November 2006 and modified based on peer review.</abstract><purpose>The purpose of this dataset is to provide a conceptual model for the Organ Pipe Cactus NM ecosystem as well as to provide a foundation for ecosystem-based planning.</purpose></descript>
+		<timeperd>
+			<timeinfo><sngdate><caldate>2006</caldate></sngdate></timeinfo>
+			<current>publication date</current></timeperd>
+		<status><progress>In work</progress><update>As needed</update></status>
+		<spdom>
+			<bounding><westbc Sync="TRUE">-113.089901</westbc><eastbc Sync="TRUE">-112.606242</eastbc><northbc Sync="TRUE">32.207513</northbc><southbc Sync="TRUE">31.808960</southbc></bounding>
+			<lboundng><leftbc Sync="TRUE">303009.520150</leftbc><rightbc Sync="TRUE">347970.490880</rightbc><bottombc Sync="TRUE">3521146.818035</bottombc><topbc Sync="TRUE">3564578.191184</topbc></lboundng></spdom>
+		<keywords>
+			<theme>
+				<themekt>National Park Service Theme Category Thesaurus</themekt>
+				<themekey>REQUIRED: Common-use word or phrase used to describe the subject of the data set.</themekey><themekey>Geology</themekey><themekey>Hydrography</themekey><themekey>Landform</themekey><themekey>Resource Management</themekey><themekey>Soils</themekey><themekey>Vegetation</themekey></theme>
+			<theme>
+				<themekt>ISO 19115 Topic Category</themekt>
+				<themekey>REQUIRED: Common-use word or phrase used to describe the subject of the data set.</themekey></theme>
+			<place>
+				<placekt>National Park System Unit Name Thesaurus</placekt>
+				<placekey>Organ Pipe Cactus National Monument</placekey>
+			</place>
+			<place>
+				<placekt>National Park System Unit Code Thesaurus</placekt>
+				<placekey>ORPI</placekey>
+			</place>
+			<place>
+				<placekey>Pima County</placekey>
+				<placekey>Arizona</placekey>
+				<placekey>AZ</placekey>
+				<placekey>USA</placekey>
+			</place>
+			<place>
+				<placekt>none</placekt>
+			</place>
+		</keywords>
+		<accconst>Access is restricted to National Park Service personnel or approved by point of contact.</accconst>
+		<useconst>National Park Service use only.</useconst>
+		<ptcontac>
+			<cntinfo>
+				<cntorgp>
+					<cntorg>National Park Service, Organ Pipe CActus National Monument</cntorg>
+				</cntorgp>
+				<cntpos>GIS Collateral Duty</cntpos>
+				<cntaddr>
+					<addrtype>mailing and physical address</addrtype>
+					<address>10 Organ Pipe Drive</address>
+					<city>Ajo</city>
+					<state>AZ</state>
+					<postal>85321</postal>
+					<country>USA</country>
+				</cntaddr>
+				<cntvoice>520-387-6849</cntvoice>
+				<cntfax>520-387-7144</cntfax>
+				<hours>8:00 a.m. to 4:00 p.m. MST, Monday through Friday</hours>
+				<cntinst>Please contact by phone</cntinst>
+			</cntinfo>
+		</ptcontac>
+		<browse>
+			<browset>JPEG</browset>
+		</browse>
+		<datacred>NPS, Organ Pipe Cactus National Monument</datacred>
+		<crossref>
+			<citeinfo>
+				<title>Metadata for draft land type associations of Organ Pipe Cactus National Monument</title>
+				<onlink>http://nrdata.nps.gov/orpi/orpidata/filename.xml</onlink>
+				<pubdate>2007</pubdate></citeinfo>
+		</crossref>
+		<native Sync="TRUE">Microsoft Windows XP Version 5.1 (Build 2600) Service Pack 2; ESRI ArcCatalog 9.2.0.1324</native><natvform Sync="TRUE">Shapefile</natvform></idinfo>
+	<dataqual>
+		<attracc><attraccr>Features are accurately attributed. </attraccr></attracc>
+		<posacc>
+			<horizpa></horizpa>
+		</posacc>
+		<lineage><procstep><procdesc Sync="TRUE">Metadata imported.</procdesc><srcused>Y:\GIS-GPS_Admin\Metadata\NR-GIS_MDTemplate-ORPI-nonsensitive.xml</srcused><date Sync="TRUE">20070329</date><time Sync="TRUE">14373000</time></procstep><procstep><procdesc>Process is in process</procdesc></procstep></lineage>
+		<cloud>0</cloud>
+		<logic>Polygons are not snapped properly, slivers are present. This problem will be corrected in the final datset</logic></dataqual>
+	<spdoinfo>
+		<direct Sync="TRUE">Vector</direct><ptvctinf><esriterm Name="ORPI_LTAs"><efeatyp Sync="TRUE">Simple</efeatyp><efeageom code="4" Sync="TRUE"></efeageom><esritopo Sync="TRUE">FALSE</esritopo><efeacnt Sync="TRUE">0</efeacnt><spindex Sync="TRUE">FALSE</spindex><linrefer Sync="TRUE">FALSE</linrefer></esriterm></ptvctinf></spdoinfo>
+	<spref><horizsys><cordsysn><geogcsn Sync="TRUE">GCS_North_American_1983</geogcsn><projcsn Sync="TRUE">NAD_1983_UTM_Zone_12N</projcsn></cordsysn><planar><planci><plance Sync="TRUE">coordinate pair</plance><plandu Sync="TRUE">meters</plandu><coordrep><absres Sync="TRUE">0.000000</absres><ordres Sync="TRUE">0.000000</ordres></coordrep></planci></planar><geodetic><horizdn Sync="TRUE">North American Datum of 1983</horizdn><ellips Sync="TRUE">Geodetic Reference System 80</ellips><semiaxis Sync="TRUE">6378137.000000</semiaxis><denflat Sync="TRUE">298.257222</denflat></geodetic></horizsys></spref>
+	<eainfo><detailed Name="ORPI_LTAs"><enttyp><enttypl Sync="TRUE">ORPI_LTAs</enttypl><enttypt Sync="TRUE">Feature Class</enttypt><enttypc Sync="TRUE">0</enttypc></enttyp><attr><attrlabl Sync="TRUE">FID</attrlabl><attalias Sync="TRUE">FID</attalias><attrtype Sync="TRUE">OID</attrtype><attwidth Sync="TRUE">4</attwidth><atprecis Sync="TRUE">0</atprecis><attscale Sync="TRUE">0</attscale><attrdef Sync="TRUE">Internal feature number.</attrdef><attrdefs Sync="TRUE">ESRI</attrdefs><attrdomv><udom Sync="TRUE">Sequential unique whole numbers that are automatically generated.</udom></attrdomv></attr><attr><attrlabl Sync="TRUE">Shape</attrlabl><attalias Sync="TRUE">Shape</attalias><attrtype Sync="TRUE">Geometry</attrtype><attwidth Sync="TRUE">0</attwidth><atprecis Sync="TRUE">0</atprecis><attscale Sync="TRUE">0</attscale><attrdef Sync="TRUE">Feature geometry.</attrdef><attrdefs Sync="TRUE">ESRI</attrdefs><attrdomv><udom Sync="TRUE">Coordinates defining the features.</udom></attrdomv></attr><attr><attrlabl Sync="TRUE">LandType</attrlabl><attalias Sync="TRUE">LandType</attalias><attrtype Sync="TRUE">String</attrtype><attwidth Sync="TRUE">150</attwidth><attrdef>Descriptive name of land type association</attrdef><atprecis Sync="TRUE">0</atprecis><attscale Sync="TRUE">0</attscale></attr><attr><attrlabl Sync="TRUE">Unit</attrlabl><attalias Sync="TRUE">Unit</attalias><attrtype Sync="TRUE">String</attrtype><attwidth Sync="TRUE">10</attwidth><attrdef>Numerical designation of land type association</attrdef><atprecis Sync="TRUE">0</atprecis><attscale Sync="TRUE">0</attscale></attr><attr><attrlabl Sync="TRUE">Acres</attrlabl><attalias Sync="TRUE">Acres</attalias><attrtype Sync="TRUE">Double</attrtype><attwidth Sync="TRUE">16</attwidth><attrdef>Number of acres encompassed by the LTA</attrdef><attrdefs>Acres calculated by extension AlaskaPak</attrdefs><atprecis Sync="TRUE">15</atprecis><attscale Sync="TRUE">3</attscale></attr><attr><attrlabl Sync="TRUE">GridCode</attrlabl><attalias Sync="TRUE">GridCode</attalias><attrtype Sync="TRUE">Integer</attrtype><attwidth Sync="TRUE">5</attwidth><atprecis Sync="TRUE">5</atprecis><attscale Sync="TRUE">0</attscale></attr></detailed></eainfo>
+	<distinfo>
+		<distrib>
+			<cntinfo>
+				<cntorgp>
+					<cntorg>National Park Service, Intermountain Geographic Resource Information Management Team</cntorg>
+				</cntorgp>
+				<cntpos>GIS Coordinator/GIS Specialist</cntpos>
+				<cntaddr>
+					<addrtype>mailing and physical address</addrtype>
+					<address>12795 West Alameda Parkway</address>
+					<city>Lakewood</city>
+					<state>CO</state>
+					<postal>80228</postal>
+					<country>USA</country>
+				</cntaddr>
+				<cntemail>imro_gis_coordinator@nps.gov</cntemail>
+				<hours>8:00 a.m. to 4:00 p.m. MST, Monday through Friday</hours>
+				<cntinst>Please contact through email.</cntinst>
+			</cntinfo>
+		</distrib>
+		<distliab>The National Park Service shall not be held liable for improper or incorrect use of the data described and/or contained herein.  These data and related graphics (i.e. "GIF or JPG" format files) are not legal documents and are not intended to be used as such.  The information contained in these data is dynamic and may change over time. The data are not better than the original sources from which they were derived. It is the responsibility of the data user to use the data appropriately and consistent within the limitations of geospatial data in general and these data in particular.  The related graphics are intended to aid the data user in acquiring relevant data; it is not appropriate to use the related graphics as data.  The National Park Service gives no warranty, expressed or implied, as to the accuracy, reliability, or completeness of these data.  It is strongly recommended that these data are directly acquired from an NPS server and not indirectly through other sources which may have changed the data in some way. Although these data have been processed successfully on computer systems at the National Park Service, no warranty expressed or implied is made regarding the utility of the data on other systems for general or scientific purposes, nor shall the act of distribution constitute any such warranty. This disclaimer applies both to individual use of the data and aggregate use with other data.</distliab>
+		<stdorder>
+			<digform>
+				<digtinfo>
+					<transize>1MB</transize>
+					<dssize Sync="TRUE">0.000</dssize></digtinfo>
+				<digtopt>
+					<onlinopt>
+						<computer>
+							<networka>
+								<networkr>http://nrdata.nps.gov/orpi/orpidata/filename.zip</networkr>
+							</networka>
+						</computer>
+					</onlinopt>
+				</digtopt>
+			</digform>
+			<fees>none</fees>
+		</stdorder>
+		<resdesc Sync="TRUE">Downloadable Data</resdesc></distinfo>
+	<metainfo>
+		<metd Sync="TRUE">20070627</metd>
+		<metc>
+			<cntinfo>
+				<cntorgp><cntper>Susan Rutman</cntper><cntorg>Organ Pipe Cactus National Monument</cntorg></cntorgp>
+				<cntaddr><addrtype>mailing and physical address</addrtype><city>Ajo</city><state>AZ</state><postal>85321</postal><address>Organ Pipe Cactus National Monument</address><address>10 Organ Pipe Drive</address><country>USA</country></cntaddr><cntvoice>520-387-6849</cntvoice><cntpos>Botanist and collateral duty cartographer</cntpos><cntfax>520-387-7144</cntfax></cntinfo>
+		</metc>
+		<metextns>
+			<onlink>http://nrdata.nps.gov/profiles/NPS_Profile.xml</onlink>
+			<metprof>NPS NR and GIS Metadata Profile</metprof>
+		</metextns>
+		<langmeta Sync="TRUE">en</langmeta><metstdn Sync="TRUE">FGDC Content Standards for Digital Geospatial Metadata</metstdn><metstdv Sync="TRUE">FGDC-STD-001-1998</metstdv><mettc Sync="TRUE">local time</mettc><metac>None</metac><metuc>None</metuc></metainfo>
+	<Esri>
+		<ModDate>20241121</ModDate>
+		<ModTime>15052600</ModTime>
+		<SyncOnce>FALSE</SyncOnce>
+		<CreaDate>20070329</CreaDate>
+		<CreaTime>14373000</CreaTime>
+		<MetaID>{E5F6F107-0470-41F5-8D3B-B03198DE48CA}</MetaID><SyncDate>20241121</SyncDate><SyncTime>15052600</SyncTime><DataProperties><lineage><Process ToolSource="C:\ArcGIS\ArcToolbox\Toolboxes\Data Management Tools.tbx\CopyFeatures" Date="20070627" Time="150725">CopyFeatures R:\Programs\LandTypeAssociations\Data\Spatial\GIS_Final\LTAs_GISdataset\ltas_jan07.shp R:\Programs\LandTypeAssociations\Data\Spatial\GIS_Final\LTAs_GISdataset\ltas_June07.shp # 0 0 0</Process><Process ToolSource="C:\ArcGIS\ArcToolbox\Toolboxes\Data Management Tools.tbx\CopyFeatures" Date="20070627" Time="151327">CopyFeatures R:\Programs\LandTypeAssociations\Data\Spatial\GIS_Final\LTAs_GISdataset\ltas_June07.shp R:\Programs\LandTypeAssociations\Data\Spatial\GIS_Final\LTAs_GISdataset\ltas_June07c.shp # 0 0 0</Process><Process ToolSource="C:\ArcGIS\ArcToolbox\Toolboxes\Data Management Tools.tbx\AddField" Date="20070627" Time="151331">AddField R:\Programs\LandTypeAssociations\Data\Spatial\GIS_Final\LTAs_GISdataset\ltas_June07c.shp F_AREA DOUBLE # # # # NON_NULLABLE NON_REQUIRED # R:\Programs\LandTypeAssociations\Data\Spatial\GIS_Final\LTAs_GISdataset\ltas_June07c.shp</Process><Process Name="CalculateAreas_3" ToolSource="C:\ArcGIS\ArcToolbox\Toolboxes\Spatial Statistics Tools.tbx\CalculateAreas" Date="20070627" Time="151334">CalculateAreas R:\Programs\LandTypeAssociations\Data\Spatial\GIS_Final\LTAs_GISdataset\ltas_June07.shp R:\Programs\LandTypeAssociations\Data\Spatial\GIS_Final\LTAs_GISdataset\ltas_June07c.shp</Process><Process ToolSource="c:\program files\arcgis\pro\Resources\ArcToolbox\toolboxes\Conversion Tools.tbx\ExportFeatures" Date="20241121" Time="150534">ExportFeatures ltas_June07c C:\Users\CherylMcIntyre\Documents\Uplands\ArcMapProjects\ORPI_LTAs.shp # NOT_USE_ALIAS "LandType "LandType" true true false 150 Text 0 0,First,#,ltas_June07c,LandType,0,149;Unit "Unit" true true false 10 Text 0 0,First,#,ltas_June07c,Unit,0,9;Acres "Acres" true true false 16 Double 3 15,First,#,ltas_June07c,Acres,-1,-1;GridCode "GridCode" true true false 5 Long 0 5,First,#,ltas_June07c,GridCode,-1,-1" #</Process><Process ToolSource="c:\program files\arcgis\pro\Resources\ArcToolbox\toolboxes\Data Management Tools.tbx\UpdateSchema" Date="20241121" Time="150554">UpdateSchema "CIMDATA=&lt;CIMStandardDataConnection xsi:type='typens:CIMStandardDataConnection' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns:xs='http://www.w3.org/2001/XMLSchema' xmlns:typens='http://www.esri.com/schemas/ArcGIS/3.3.0'&gt;&lt;WorkspaceConnectionString&gt;DATABASE=C:\Users\CherylMcIntyre\Documents\Uplands\ArcMapProjects&lt;/WorkspaceConnectionString&gt;&lt;WorkspaceFactory&gt;Shapefile&lt;/WorkspaceFactory&gt;&lt;Dataset&gt;ORPI_LTAs&lt;/Dataset&gt;&lt;DatasetType&gt;esriDTFeatureClass&lt;/DatasetType&gt;&lt;/CIMStandardDataConnection&gt;" &lt;operationSequence&gt;&lt;workflow&gt;&lt;AddField&gt;&lt;field_name&gt;CherylCat&lt;/field_name&gt;&lt;field_type&gt;TEXT&lt;/field_type&gt;&lt;field_length&gt;255&lt;/field_length&gt;&lt;field_is_nullable&gt;False&lt;/field_is_nullable&gt;&lt;field_is_required&gt;False&lt;/field_is_required&gt;&lt;/AddField&gt;&lt;/workflow&gt;&lt;/operationSequence&gt;</Process></lineage><itemProps><itemName Sync="TRUE">ORPI_LTAs</itemName><imsContentType Sync="TRUE">002</imsContentType><itemSize Sync="TRUE">0.000</itemSize><itemLocation><linkage Sync="TRUE">file://\\INPCHDN135096\C$\Users\CherylMcIntyre\Documents\Uplands\ArcMapProjects\ORPI_LTAs.shp</linkage><protocol Sync="TRUE">Local Area Network</protocol></itemLocation></itemProps><coordRef><type Sync="TRUE">Projected</type><geogcsn Sync="TRUE">GCS_North_American_1983</geogcsn><csUnits Sync="TRUE">Linear Unit: Meter (1.000000)</csUnits><projcsn Sync="TRUE">NAD_1983_UTM_Zone_12N</projcsn><peXml Sync="TRUE">&lt;ProjectedCoordinateSystem xsi:type='typens:ProjectedCoordinateSystem' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xmlns:xs='http://www.w3.org/2001/XMLSchema' xmlns:typens='http://www.esri.com/schemas/ArcGIS/3.3.0'&gt;&lt;WKT&gt;PROJCS[&amp;quot;NAD_1983_UTM_Zone_12N&amp;quot;,GEOGCS[&amp;quot;GCS_North_American_1983&amp;quot;,DATUM[&amp;quot;D_North_American_1983&amp;quot;,SPHEROID[&amp;quot;GRS_1980&amp;quot;,6378137.0,298.257222101]],PRIMEM[&amp;quot;Greenwich&amp;quot;,0.0],UNIT[&amp;quot;Degree&amp;quot;,0.0174532925199433]],PROJECTION[&amp;quot;Transverse_Mercator&amp;quot;],PARAMETER[&amp;quot;False_Easting&amp;quot;,500000.0],PARAMETER[&amp;quot;False_Northing&amp;quot;,0.0],PARAMETER[&amp;quot;Central_Meridian&amp;quot;,-111.0],PARAMETER[&amp;quot;Scale_Factor&amp;quot;,0.9996],PARAMETER[&amp;quot;Latitude_Of_Origin&amp;quot;,0.0],UNIT[&amp;quot;Meter&amp;quot;,1.0],AUTHORITY[&amp;quot;EPSG&amp;quot;,26912]]&lt;/WKT&gt;&lt;XOrigin&gt;-5120900&lt;/XOrigin&gt;&lt;YOrigin&gt;-9998100&lt;/YOrigin&gt;&lt;XYScale&gt;450445547.3910538&lt;/XYScale&gt;&lt;ZOrigin&gt;-100000&lt;/ZOrigin&gt;&lt;ZScale&gt;10000&lt;/ZScale&gt;&lt;MOrigin&gt;-100000&lt;/MOrigin&gt;&lt;MScale&gt;10000&lt;/MScale&gt;&lt;XYTolerance&gt;0.001&lt;/XYTolerance&gt;&lt;ZTolerance&gt;0.001&lt;/ZTolerance&gt;&lt;MTolerance&gt;0.001&lt;/MTolerance&gt;&lt;HighPrecision&gt;true&lt;/HighPrecision&gt;&lt;WKID&gt;26912&lt;/WKID&gt;&lt;LatestWKID&gt;26912&lt;/LatestWKID&gt;&lt;/ProjectedCoordinateSystem&gt;</peXml></coordRef></DataProperties></Esri>
+	<mdDateSt Sync="TRUE">20241121</mdDateSt>
+	<NPS_Info>
+		<MetaPurp>NPS</MetaPurp>
+		<MetaPurp>OnlineData</MetaPurp>
+		<MetaPurp>CSDGM</MetaPurp>
+		<NPS_Unit>
+			<UnitCode>ORPI</UnitCode>
+			<UnitType>National Monument</UnitType>
+		</NPS_Unit>
+		<DatStore>
+			<Category>List Catagory</Category>
+			<DSteward>
+				<cntinfo>
+					<cntperp>
+						<cntper>Theresa Ely</cntper>
+						<cntorg>NPS, Intermountain Geographic Resource Information Management Team</cntorg>
+					</cntperp>
+					<cntaddr>
+						<addrtype>mailing and physical address</addrtype>
+						<address>12795 W Alameda Parkway</address>
+						<city>Denver</city>
+						<state>CO</state>
+						<postal>80225</postal>
+						<country>USA</country>
+					</cntaddr>
+					<cntvoice>303-969-2653</cntvoice>
+					<cntemail>theresa_ely@nps.gov</cntemail>
+				</cntinfo>
+			</DSteward>
+			<DataSite>NR-GIS</DataSite>
+		</DatStore>
+	</NPS_Info>
+	<dataIdInfo><envirDesc Sync="TRUE">Microsoft Windows 10 Version 10.0 (Build 22631) ; Esri ArcGIS 13.3.0.52636</envirDesc><dataLang><languageCode Sync="TRUE" value="eng"></languageCode><countryCode value="USA" Sync="TRUE"></countryCode></dataLang><idCitation><resTitle Sync="TRUE">ORPI_LTAs</resTitle><presForm><PresFormCd Sync="TRUE" value="005"></PresFormCd></presForm></idCitation><spatRpType><SpatRepTypCd Sync="TRUE" value="001"></SpatRepTypCd></spatRpType><dataExt><geoEle><GeoBndBox esriExtentType="native"><westBL Sync="TRUE">303009.52015</westBL><eastBL Sync="TRUE">347970.49088</eastBL><northBL Sync="TRUE">3564578.191184</northBL><southBL Sync="TRUE">3521146.818035</southBL><exTypeCode Sync="TRUE">1</exTypeCode></GeoBndBox></geoEle></dataExt><geoBox esriExtentType="decdegrees"><westBL Sync="TRUE">-113.089901</westBL><eastBL Sync="TRUE">-112.606242</eastBL><northBL Sync="TRUE">32.207513</northBL><southBL Sync="TRUE">31.80896</southBL><exTypeCode Sync="TRUE">1</exTypeCode></geoBox></dataIdInfo><mdLang><languageCode Sync="TRUE" value="eng"></languageCode><countryCode value="USA" Sync="TRUE"></countryCode></mdLang><mdStanName Sync="TRUE">ISO 19115 Geographic Information - Metadata</mdStanName><mdStanVer Sync="TRUE">DIS_ESRI1.0</mdStanVer><mdChar><CharSetCd Sync="TRUE" value="006"></CharSetCd></mdChar><mdHrLv><ScopeCd Sync="TRUE" value="005"></ScopeCd></mdHrLv><mdHrLvName Sync="TRUE">dataset</mdHrLvName><distInfo><distributor><distorTran><onLineSrc><orDesc Sync="TRUE">002</orDesc><linkage Sync="TRUE">file://\\inporpis1\resources\Programs\LandTypeAssociations\Data\Spatial\GIS_Final\LTAs_GISdataset\ltas_June07c.shp</linkage><protocol Sync="TRUE">Local Area Network</protocol></onLineSrc><transSize Sync="TRUE">0.000</transSize></distorTran><distorFormat><formatName Sync="TRUE">Shapefile</formatName></distorFormat></distributor><distFormat><formatName Sync="TRUE">Shapefile</formatName></distFormat><distTranOps><transSize Sync="TRUE">0.000</transSize></distTranOps></distInfo><refSysInfo><RefSystem><refSysID><identCode Sync="TRUE" code="26912">NAD_1983_UTM_Zone_12N</identCode><idCodeSpace Sync="TRUE">EPSG</idCodeSpace><idVersion Sync="TRUE">6.11(3.0.1)</idVersion></refSysID></RefSystem></refSysInfo><spatRepInfo><VectSpatRep><geometObjs Name="ORPI_LTAs"><geoObjTyp><GeoObjTypCd value="002" Sync="TRUE"></GeoObjTypCd></geoObjTyp><geoObjCnt Sync="TRUE">0</geoObjCnt></geometObjs><topLvl><TopoLevCd value="001" Sync="TRUE"></TopoLevCd></topLvl></VectSpatRep></spatRepInfo></metadata>
