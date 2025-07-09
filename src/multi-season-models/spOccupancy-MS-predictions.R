@@ -72,7 +72,7 @@ if (ncol(psi_rasters_df) == 2) {
 }
 psi_rasters_df <- psi_rasters_df %>%
   dplyr::filter(nNAs == 0) %>%
-  select(-nNAs)
+  dplyr::select(-nNAs)
 
 # Select years for prediction (will usually select first and last year of study)
 pred_years <- YEARS[c(1, length(YEARS))]
@@ -143,6 +143,17 @@ if ("ppt10_z" %in% cov_order) {
     X.0[, , which(cov_order == "ppt10_z")] <- 0
   }
 }
+if ("ppt6_z" %in% cov_order) {
+  if (ANN_PREDS == "observed") {
+    ppt6_pred <- matrix(rep(data_list$occ.covs$ppt6_z[1, which(YEARS %in% pred_years)],
+                             nrow(psi_rasters_df)),
+                         nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                         byrow = TRUE)
+    X.0[, , which(cov_order == "ppt6_z")] <- ppt6_pred
+  } else {
+    X.0[, , which(cov_order == "ppt6_z")] <- 0
+  }
+}
 if ("monsoon_vpd_z" %in% cov_order) {
   if (ANN_PREDS == "observed") {
     monsoon_vpd_pred <- matrix(rep(data_list$occ.covs$monsoon_vpd_z[1, which(YEARS %in% pred_years)],
@@ -163,6 +174,17 @@ if ("vpd10_z" %in% cov_order) {
     X.0[, , which(cov_order == "vpd10_z")] <- vpd10_pred
   } else {
     X.0[, , which(cov_order == "vpd10_z")] <- 0
+  }
+}
+if ("vpd6_z" %in% cov_order) {
+  if (ANN_PREDS == "observed") {
+    vpd6_pred <- matrix(rep(data_list$occ.covs$vpd6_z[1, which(YEARS %in% pred_years)],
+                             nrow(psi_rasters_df)),
+                         nrow = nrow(psi_rasters_df), ncol = length(pred_years),
+                         byrow = TRUE)
+    X.0[, , which(cov_order == "vpd6_z")] <- vpd6_pred
+  } else {
+    X.0[, , which(cov_order == "vpd6_z")] <- 0
   }
 }
 if ("deficit10_z" %in% cov_order) {
@@ -316,11 +338,11 @@ names(preds_sd_lastyr) <- "sd_lastyr"
 
 # Use tidyterra to create plots with the same color scale in both years
 minmax_mn <- plot_dat %>%
-  select(contains("mean_psi")) %>%
+  dplyr::select(contains("mean_psi")) %>%
   as.matrix() %>%  
   range
 minmax_sd <- plot_dat %>%
-  select(contains("sd_psi")) %>%
+  dplyr::select(contains("sd_psi")) %>%
   as.matrix() %>%
   range
 

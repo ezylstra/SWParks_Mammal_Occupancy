@@ -321,8 +321,7 @@ if (PARK == "SAGW") {
     summarize(deficit = sum(Deficit.in), .groups = "keep") %>%
     group_by(Year) %>%
     summarize(deficit = mean(deficit)) %>%
-    data.frame() %>%
-    mutate(deficit = ifelse(Year==2023, deficit*10, deficit))  # 2023 is ridiculously low, by factor of 10?
+    data.frame()   # 2023 is ridiculously low, by factor of 10?
   deficit10 <- matrix(deficit$deficit, 
                     nrow = dim(dh)[1],
                     ncol = dim(dh)[2],
@@ -349,8 +348,7 @@ if (PARK == "SAGW") {
     summarize(aet = sum(AET.in), .groups = "keep") %>%
     group_by(Year) %>%
     summarize(aet = mean(aet)) %>%
-    data.frame() %>%
-    mutate(deficit = ifelse(Year==2023, deficit*10, deficit))  # 2023 is ridiculously low, by factor of 10?
+    data.frame()  # 2023 is ridiculously low, by factor of 10?
   aet10 <- matrix(aet$aet, 
                       nrow = dim(dh)[1],
                       ncol = dim(dh)[2],
@@ -455,6 +453,40 @@ park_b <- as(park_b, "Spatial")
     vpd10_mn <- mean(vpd10)
     vpd10_sd <- sd(vpd10)
     vpd10_z <- (vpd10 - vpd10_mn) / vpd10_sd 
+    
+# Extract and compile 6-month vapor pressure deficit data (6-months prior to survey
+# season in each park) 
+    # if (PARK == "ORPI") {
+    #   vpd10_files <- weather_files[str_detect(weather_files, "ORPI_MayFeb_vpd")]
+    #   vpd10_files <- vpd10_files[str_sub(vpd10_files, -8, -5) %in% as.character(YEARS)]
+    # }
+    if (PARK == "SAGW") {
+      vpd6_files <- weather_files[str_detect(weather_files, "SAGW_JulDec_vpd")]
+      vpd6_files <- vpd6_files[str_sub(vpd6_files, -8, -5) %in% as.character(YEARS - 1)]    
+    }
+    
+    # if (PARK == "CHIR") {
+    #   vpd10_files <- weather_files[str_detect(weather_files, "CHIR_JulApr_vpd")]
+    #   vpd10_files <- vpd10_files[str_sub(vpd10_files, -8, -5) %in% as.character(YEARS - 1)]    
+    # }
+    
+    
+    # Load each raster and compute the mean value across the park in that year
+    vpd6 <- rep(NA, length(vpd6_files))
+    for (i in 1:length(vpd6_files)) {
+      vpd6_raster <- rast(vpd6_files[i])
+      vpd6[i] <- exact_extract(vpd6_raster, park_b, "mean")
+    }
+    
+    vpd6 <- matrix(vpd6, 
+                    nrow = dim(dh)[1],
+                    ncol = dim(dh)[2],
+                    byrow = TRUE)
+    # Standardize
+    vpd6_mn <- mean(vpd6)
+    vpd6_sd <- sd(vpd6)
+    vpd6_z <- (vpd6 - vpd6_mn) / vpd6_sd 
+    
 
 # Extract and compile monsoon precipitation data
     monsoon_files <- weather_files[str_detect(weather_files, "monsoon_ppt")]
@@ -513,6 +545,38 @@ park_b <- as(park_b, "Spatial")
     ppt10_sd <- sd(ppt10)
     ppt10_z <- (ppt10 - ppt10_mn) / ppt10_sd 
     
+  # Extract and compile 6-month precipitation data (6-months prior to survey
+    # season in each park) 
+    # if (PARK == "ORPI") {
+    #   ppt10_files <- weather_files[str_detect(weather_files, "ORPI_MayFeb_ppt")]
+    #   ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS)]
+    # }
+    if (PARK == "SAGW") {
+      ppt6_files <- weather_files[str_detect(weather_files, "SAGW_JulDec_ppt")]
+      ppt6_files <- ppt6_files[str_sub(ppt6_files, -8, -5) %in% as.character(YEARS - 1)]    
+    }
+    
+    # if (PARK == "CHIR") {
+    #   ppt10_files <- weather_files[str_detect(weather_files, "CHIR_JulApr_ppt")]
+    #   ppt10_files <- ppt10_files[str_sub(ppt10_files, -8, -5) %in% as.character(YEARS - 1)]    
+    # }
+    # 
+    
+    # Load each raster and compute the mean value across the park in that year
+    ppt6 <- rep(NA, length(ppt6_files))
+    for (i in 1:length(ppt6_files)) {
+      ppt6_raster <- rast(ppt6_files[i])
+      ppt6[i] <- exact_extract(ppt6_raster, park_b, "mean")
+    }
+    
+    ppt6 <- matrix(ppt6, 
+                    nrow = dim(dh)[1],
+                    ncol = dim(dh)[2],
+                    byrow = TRUE)
+    # Standardize
+    ppt6_mn <- mean(ppt6)
+    ppt6_sd <- sd(ppt6)
+    ppt6_z <- (ppt6 - ppt6_mn) / ppt6_sd 
     
     
 #------------------------------------------------------------------------------#
@@ -629,8 +693,12 @@ if (PARK == "SAGW") {
                      aet10_z = aet10_z,
                      ppt10 = ppt10,
                      ppt10_z = ppt10_z,
+                     ppt6 = ppt6,
+                     ppt6_z = ppt6_z,                     
                      vpd10 = vpd10, 
                      vpd10_z = vpd10_z,
+                     vpd6 = vpd6, 
+                     vpd6_z = vpd6_z,
                      savi = savi,
                      savi_z = savi_z,
                      visits = visits,

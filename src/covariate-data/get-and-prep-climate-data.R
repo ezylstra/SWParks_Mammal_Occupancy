@@ -301,6 +301,37 @@ for (yr in pr_yrs) {
     assign(new_name, JulApr_ppt)  
   }    
 
+  
+  # Create rasters with cumulative precipitation during 6 months prior to sampling. 
+  # SAGW only for now
+  
+  # For SAGW, want precip for Jul-Dec (sampling Jan-Feb)
+  # Raster/filenames will be: SAGW_JulDec_ppt_YEAR
+  
+  # Remove last year from list if we don't have data through Dec 31
+  yrs <- pr_yrs
+  if (last_day < lubridate::yday(paste0(max(yrs), "-12-31"))) {
+    yrs <- yrs[-length(yrs)]
+  }
+  
+  for (yr in yrs) {
+    
+    new_name <- paste0("SAGW_JulDec_ppt_", yr)
+    new_name_full <- paste0(weather_derived_folder, new_name, ".tif")
+    if (replace == FALSE & file.exists(new_name_full)) {next}
+    
+    JulDec_ppt <- get(paste0("pr", yr))
+    JulDec_ppt <- terra::crop(x = JulDec_ppt, 
+                              y = subset(parks, parks$UNIT_CODE == "SAGW"),
+                              snap = "out")
+    startd  <- lubridate::yday(paste0(yr, "-07-01"))
+    endd <- lubridate::yday(paste0(yr, "-12-31"))
+    JulDec_ppt <- JulDec_ppt[[startd:endd]]
+    JulDec_ppt <- app(JulDec_ppt, fun = sum)
+    assign(new_name, JulDec_ppt)
+  } 
+  
+  
 #------------------------------------------------------------------------------#
 # Derive vapor pressure deficit covariates
 #------------------------------------------------------------------------------#
@@ -496,15 +527,42 @@ for (yr in pr_yrs) {
     assign(new_name, JulApr_vpd)  
   }   
   
+  # Create rasters with cumulative vpd during 6 months prior to sampling.
+  # SAGW only for now
   
+  # For SAGW, want vpd for Jul-Dec (sampling Jan-Feb)
+  # Raster/filenames will be: SAGW_MarDec_vpd_YEAR
+  
+  # Remove last year from list if we don't have data through Dec 31
+  yrs <- vpd_yrs
+  if (last_day < lubridate::yday(paste0(max(yrs), "-12-31"))) {
+    yrs <- yrs[-length(yrs)]
+  }
+  
+  for (yr in yrs) {
+    
+    new_name <- paste0("SAGW_JulDec_vpd_", yr)
+    new_name_full <- paste0(weather_derived_folder, new_name, ".tif")
+    if (replace == FALSE & file.exists(new_name_full)) {next}
+    
+    JulDec_vpd <- get(paste0("vpd", yr))
+    JulDec_vpd <- terra::crop(x = JulDec_vpd, 
+                              y = subset(parks, parks$UNIT_CODE == "SAGW"),
+                              snap = "out")
+    startd  <- lubridate::yday(paste0(yr, "-07-01"))
+    endd <- lubridate::yday(paste0(yr, "-12-31"))
+    JulDec_vpd <- JulDec_vpd[[startd:endd]]
+    JulDec_vpd <- app(JulDec_vpd, fun = sum)
+    assign(new_name, JulDec_vpd)
+  } 
 #------------------------------------------------------------------------------#
 # Save rasters to file
 #------------------------------------------------------------------------------#  
   
 weather_raster_names <- c("monsoon_ppt_", "winter_ppt_", "SAGW_MarDec_ppt_",
-                          "ORPI_MayFeb_ppt_", "CHIR_JulApr_ppt_", 
+                          "ORPI_MayFeb_ppt_", "CHIR_JulApr_ppt_", "SAGW_JulDec_ppt_",
                           "monsoon_vpd_", "winter_vpd_", "SAGW_MarDec_vpd_",
-                          "ORPI_MayFeb_vpd_", "CHIR_JulApr_vpd_")
+                          "ORPI_MayFeb_vpd_", "CHIR_JulApr_vpd_", "SAGW_JulDec_vpd_")
 # Create list of all new rasters
 weather_rasters <- ls()[grep(paste(weather_raster_names, collapse = "|"), ls())]
 
