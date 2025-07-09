@@ -11,6 +11,9 @@ library(terra)
 library(spOccupancy)
 library(tidyterra)
 library(RColorBrewer)
+library(ggspatial)
+library(raster)
+library(exactextractr)
 
 #------------------------------------------------------------------------------#
 # Load detection data and functions
@@ -27,10 +30,10 @@ source("src/functions.R")
 #------------------------------------------------------------------------------#
 
 # Select years
-YEARS <- 2017:2023
+YEARS <- 2017:2025
 
 # Logical indicating whether to include lat/longs on maps
-LATLONG <- TRUE
+LATLONG <- FALSE
 
 # Create custom NPS theme
 windowsFonts("Frutiger LT Std 55 Roman" = windowsFont("Frutiger LT Std 55 Roman"))
@@ -45,17 +48,39 @@ theme_NPS <- ggplot2::theme_classic() +
   theme(plot.subtitle = element_text(size = 10, color = "black", hjust = 0.5)) +
   theme(text = element_text(family = "Frutiger LT Std 55 Roman", face = "plain"))
 
+# Create custom color ramp from Paul Tol's sunset color ramp
+# (this way 4 is the same color on all maps)
+scale_color_count <- function(...){
+  ggplot2:::manual_scale('colour', 
+                         values = setNames(c("#364B9A", "#4A7BB7", "#6EA6CD", "#98CAE1", "#C2E4EF", "#EAECCC", "#FEDA8B", 
+                                             "#FDB366","#F67E4B", "#DD3D2D", "#A50026"),
+                                           c( "0","1","2", "3", "4","5", "6", "7", "8", "9", "10")), 
+                         ...)
+}
+
+# Create custom symbols
+scale_shape_count <- function(...){
+  ggplot2:::manual_scale('shape', 
+                         values = setNames(c(1, 15, 0, 16, 18, 2, 3, 10, 17, 6, 8, 11),
+                                           c("0", "1","2", "3", "4","5", "6", "7", "8", "9", "10")), 
+                         ...)
+}
+
+
 # Create longer park name
 park <- ifelse(PARK == "CHIR", "Chiricahua NM",
                ifelse(PARK == "SAGW", "Saguaro NP", "Organ Pipe Cactus NM"))
 
 # Figure parameters
-file_extension <- ".pdf"
+file_extension1 <- ".pdf"
+file_extension2 <- ".png"
 device <- cairo_pdf
 dpi <- 300
 width <- 6
 height <- 4
 units <- "in"
+
+
 
 #------------------------------------------------------------------------------#
 # Summarize detection data
@@ -82,11 +107,17 @@ common_spp <- basename(spp_rds) %>% str_sub(16, 19)
 # Filtering out non-natives or unknowns from species list
 species <- species %>%
   filter(Nativeness == "Native" & !is.na(Nativeness)) %>%
-  select(Common_name, Species_code) %>%
+  select(Common_name, Species, Species_code) %>%
   mutate(modeled = 1 * Species_code %in% common_spp,
          rare = ifelse(modeled == 0 & Species_code != "OTVA", 1, 0))
 # Labeling all unmodeled species as rare except for rock squirrels, that
 # are relatively common but likely had few detections because of their size
+
+# Update common name for PETA (javelina instead of collared peccary)
+# and URCI (gray fox instead of common gray fox)
+species <- species %>%
+  mutate(Common_name = ifelse(Species_code=="PETA","javelina", Common_name)) %>%
+  mutate(Common_name = ifelse(Species_code=="URCI","gray fox", Common_name))
 
 # Filtering detection data (but note that we're not filtering by date so all
 # detections of rare species are included)
@@ -114,7 +145,11 @@ dets <- dat_simple %>%
   summarize(nspp = length(Species_code),
             nspp_modeled = sum(modeled),
             nspp_rare = sum(rare)) %>%
-  left_join(locs_simple, by = "loc") %>%
+  right_join(locs_simple, by = "loc") %>%
+  mutate(nspp = ifelse(is.na(nspp), 0, nspp)) %>%
+  mutate(nspp_modeled = ifelse(is.na(nspp_modeled), 0, nspp_modeled)) %>%
+  mutate(nspp_rare = ifelse(is.na(nspp_rare), 0, nspp_rare)) %>%
+  mutate(plot = 0) %>% # to get camera location to appear on species maps even if no observations
   data.frame()
 
 # Load park boundary
@@ -127,16 +162,36 @@ contours <- crop(contours, boundary)
 # Make dets into a SpatVector
 detsv <- vect(dets, geom = c("lon", "lat"), crs = crs(boundary))
 
-# Create figure with total number of species detected
-mn_title <- "Number of species detected"
+# Buffer park boundary (for road clipping)
+park_boundary_1km <- buffer(boundary, width=1000, singlesided=FALSE)
+
+# Load and clip trails layer to park boundary
+park_trails <- vect("data/covariates/shapefiles/trails.shp")
+# clip to current park
+park_trails <- crop(park_trails, boundary)
+
+# Load roads shapefile (within 3km) and clip to within 1km
+park_roads_file <- ifelse(PARK=="SAGW", "data/covariates/shapefiles/roads_sagw_v2.shp", ifelse(PARK=="CHIR", "data/covariates/shapefiles/roads_chir_nps_usfs.shp", "data/covariates/shapefiles/roads_orpi_nps.shp"))
+park_roads <- vect(park_roads_file)
+#park_roads <- if(PARK=="SAGW") vect("data/covariates/shapefiles/roads_sagw_v2.shp") else vect(paste0("data/covariates/shapefiles/roads_",PARK,"_tigris.shp", sep=""))
+park_roads_1km <- crop(park_roads, park_boundary_1km)
+
+# Create figure with total number of species observed
+mn_title <- "Number of species observed"
 subtitle <- paste0(park, ", ", YEARS[1], "-", YEARS[length(YEARS)])
 plot_nspp <- ggplot() + 
-  geom_spatvector(data = contours, color = "gray65", fill = NA, linewidth = 0.2) +
-  geom_spatvector(data = boundary, color = "black", fill = NA) +
-  geom_spatvector(data = detsv, aes(color = factor(nspp)), size = 2) +
-  scale_color_brewer(palette = "RdYlBu", name = "", direction = -1) +
+  #geom_spatvector(data = contours, color = "gray65", fill = NA, linewidth = 0.2) +
+  geom_spatvector(data = boundary, color = "darkgreen", fill = "lightgrey", lwd=1) +
+  geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+  geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+  geom_spatvector(data = detsv, aes(color = factor(nspp), shape=factor(nspp)), size = 1) +
+  scale_color_count(name = "Species") + 
+  scale_shape_count(name = "Species") +
+  #scale_color_brewer(palette = "RdYlBu", name = "Species", direction = -1) +
   labs(fill = '', title = mn_title, subtitle = subtitle) +
   theme_NPS + 
+  annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
+  annotation_scale(location = "br", style="ticks") +
   theme(axis.title = element_blank(),
         axis.line = element_blank())
 if (LATLONG) {
@@ -151,25 +206,41 @@ if (LATLONG) {
 ggsave(plot_nspp, 
        file = paste0("output/NPS-figures/multi-season/", PARK, "-", 
                      YEARS[1], "-", YEARS[length(YEARS)], 
-                     "-nspp-detected.pdf"),
+                     "-nspp-detected", file_extension1),
        device = device, 
        dpi = dpi, 
        width = width, 
        height = height, 
        units = units)
+ggsave(plot_nspp, 
+       file = paste0("output/NPS-figures/multi-season/", PARK, "-", 
+                     YEARS[1], "-", YEARS[length(YEARS)], 
+                     "-nspp-detected", file_extension2),
+       dpi = dpi, 
+       width = width, 
+       height = height, 
+       units = units)
 
-# Create figure with total number of rare species detected
-mn_title <- "Number of rare species detected"
+# Create figure with total number of rare (uncommon) species observed
+mn_title <- "Number of uncommon species observed"
 subtitle <- paste0(park, ", ", YEARS[1], "-", YEARS[length(YEARS)])
 footnote <- paste(species$Common_name[species$rare == 1], collapse = ", ")
 footnote <- paste0("Species included: ", footnote)
 plot_nspp_rare <- ggplot() + 
-  geom_spatvector(data = contours, color = "gray65", fill = NA, linewidth = 0.2) +
-  geom_spatvector(data = boundary, color = "black", fill = NA) +
-  geom_spatvector(data = detsv[detsv$nspp_rare > 0, ], 
-                  aes(color = factor(nspp_rare)), size = 2) +
-  scale_color_brewer(palette = "RdYlBu", name = "", direction = -1) +
+  #geom_spatvector(data = contours, color = "gray65", fill = NA, linewidth = 0.2) +
+  geom_spatvector(data = boundary, color = "darkgreen", fill = "lightgrey", lwd=1) +
+  geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+  geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+  #geom_spatvector(data = detsv[detsv$nspp_rare == 0, ], size = 0.5, color="white") +
+  #geom_spatvector(data = detsv[detsv$nspp_rare > 0, ], 
+  #                aes(color = factor(nspp_rare)), size = 1) +
+  geom_spatvector(data = detsv, aes(color = factor(nspp_rare), shape=factor(nspp_rare)), size = 1) +
+  scale_color_count(name = "Species") + 
+  scale_shape_count(name = "Species") +
+  #scale_color_brewer(palette = "RdYlBu", name = "Species", direction = -1) +
   labs(title = mn_title, subtitle = subtitle, caption = str_wrap(footnote, 80)) +
+  annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
+  annotation_scale(location = "br", style="ticks") +
   theme_NPS + 
   theme(axis.title = element_blank(),
         axis.line = element_blank(),
@@ -186,13 +257,162 @@ if (LATLONG) {
 ggsave(plot_nspp_rare, 
        file = paste0("output/NPS-figures/multi-season/", PARK, "-", 
                      YEARS[1], "-", YEARS[length(YEARS)], 
-                     "-nspp-rare-detected.pdf"),
+                     "-nspp-uncommmon-detected", file_extension1),
+       device = device, 
+       dpi = dpi, 
+       width = width, 
+       height = height, 
+       units = units)
+ggsave(plot_nspp_rare, 
+       file = paste0("output/NPS-figures/multi-season/", PARK, "-", 
+                     YEARS[1], "-", YEARS[length(YEARS)], 
+                     "-nspp-rare-detected", file_extension2),
+       dpi = dpi, 
+       width = width, 
+       height = height, 
+       units = units)
+
+#------------------------------------------------------------------------------#
+# Create detection maps for individual common (modeled) species 
+#------------------------------------------------------------------------------#
+modeled_species <- species %>% filter(modeled==1) %>% dplyr::select(Species_code) %>% pull
+# Calculate the number of species detected at each camera location
+obs_modeled <- dat_simple %>%
+  left_join(species[, c("Species_code", "modeled", "rare")], 
+            by = "Species_code") %>%
+  group_by(Species_code) %>%
+  distinct(Species_code, yr, loc, modeled, rare) %>%
+  group_by(Species_code, loc, modeled, rare) %>%
+  summarize(yrs = length(yr), .groups = "keep") %>%
+  pivot_wider(., names_from = "loc", values_from = "yrs", values_fill = 0) %>%
+  pivot_longer(., cols=-c(Species_code, modeled, rare), names_to = "loc", values_to = "yrs") %>%
+  filter(modeled==1) %>%
+  left_join(locs_simple, by = "loc") %>%
+  data.frame()
+# Make dets into a SpatVector
+obs_modeled_sv <- vect(obs_modeled, geom = c("lon", "lat"), crs = crs(boundary))
+
+# Create figure with total years of species observations
+for (i in unique(modeled_species)){
+  spp_common <- species$Common_name[species$Species_code==i]
+  mn_title <- paste("Number of years with", spp_common, "observations")
+  subtitle <- paste0(park, ", ", YEARS[1], "-", YEARS[length(YEARS)])
+  plot_nyrs <- ggplot() + 
+    #geom_spatvector(data = contours, color = "gray65", fill = NA, linewidth = 0.2) +
+    geom_spatvector(data = boundary, color = "darkgreen", fill = "lightgrey", lwd=1) +
+    geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+    geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    geom_spatvector(data = obs_modeled_sv[obs_modeled_sv$Species_code==i], 
+                    aes(color = factor(yrs), shape = factor(yrs)), size = 1) +
+    #scale_color_brewer(palette = "RdYlBu", name = "Years", direction = -1) +
+    scale_color_count(name = "Years") + 
+    scale_shape_count(name = "Years") +
+    labs(fill = '', title = mn_title, subtitle = subtitle) +
+    theme_NPS + 
+    annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
+    annotation_scale(location = "br", style="ticks") +
+    theme(axis.title = element_blank(),
+          axis.line = element_blank())
+  if (LATLONG) {
+    plot_nyrs <- plot_nyrs +
+      theme(panel.border = element_rect(color = 'black', fill = NA))
+  } else {
+    plot_nyrs <- plot_nyrs + 
+      theme(axis.text = element_blank(),
+            axis.ticks = element_blank())
+    print(plot_nyrs)
+  }
+  
+  ggsave(plot_nyrs, 
+         file = paste0("output/NPS-figures/multi-season/", PARK, "-", spp_common, "-",
+                       YEARS[1], "-", YEARS[length(YEARS)], 
+                       "-nyr-obs", file_extension1),
+         device = device, 
+         dpi = dpi, 
+         width = width, 
+         height = height, 
+         units = units)
+  
+  ggsave(plot_nyrs, 
+         file = paste0("output/NPS-figures/multi-season/", PARK, "-", spp_common, "-",
+                       YEARS[1], "-", YEARS[length(YEARS)], 
+                       "-nyr-obs", file_extension2),
+         dpi = dpi, 
+         width = width, 
+         height = height, 
+         units = units)
+}
+
+#------------------------------------------------------------------------------#
+# Create detection maps for individual rare species 
+#------------------------------------------------------------------------------#
+rare_species <- species %>% filter(rare==1) %>% dplyr::select(Species_code) %>% pull
+# Calculate the number of species detected at each camera location
+obs_rare <- dat_simple %>%
+  left_join(species[, c("Species_code", "modeled", "rare")], 
+            by = "Species_code") %>%
+  group_by(Species_code) %>%
+  distinct(Species_code, yr, loc, modeled, rare) %>%
+  group_by(Species_code, loc, modeled, rare) %>%
+  summarize(yrs = length(yr), .groups = "keep") %>%
+  pivot_wider(., names_from = "loc", values_from = "yrs", values_fill = 0) %>%
+  pivot_longer(., cols=-c(Species_code, modeled, rare), names_to = "loc", values_to = "yrs") %>%
+  filter(rare==1) %>%
+  left_join(locs_simple, by = "loc") %>%
+  data.frame()
+# Make dets into a SpatVector
+obs_rare_sv <- vect(obs_rare, geom = c("lon", "lat"), crs = crs(boundary))
+
+# Create figure with total years of species observations
+for (i in unique(rare_species)){
+spp_common <- species$Common_name[species$Species_code==i]
+mn_title <- paste("Number of years with", spp_common, "observations")
+subtitle <- paste0(park, ", ", YEARS[1], "-", YEARS[length(YEARS)])
+plot_nyrs <- ggplot() + 
+  #geom_spatvector(data = contours, color = "gray65", fill = NA, linewidth = 0.2) +
+  geom_spatvector(data = boundary, color = "darkgreen", fill = "lightgrey", lwd=1) +
+  geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+  geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+  geom_spatvector(data = obs_rare_sv[obs_rare_sv$Species_code==i], 
+                  aes(color = factor(yrs), shape = factor(yrs)), size = 1) +
+  #scale_color_brewer(palette = "RdYlBu", name = "Years", direction = -1) +
+  scale_color_count(name = "Years") + 
+  scale_shape_count(name = "Years") +
+  labs(fill = '', title = mn_title, subtitle = subtitle) +
+  theme_NPS + 
+  annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
+  annotation_scale(location = "br", style="ticks") +
+  theme(axis.title = element_blank(),
+        axis.line = element_blank())
+if (LATLONG) {
+  plot_nyrs <- plot_nyrs +
+    theme(panel.border = element_rect(color = 'black', fill = NA))
+} else {
+  plot_nyrs <- plot_nyrs + 
+    theme(axis.text = element_blank(),
+          axis.ticks = element_blank())
+  print(plot_nyrs)
+}
+
+ggsave(plot_nyrs, 
+       file = paste0("output/NPS-figures/multi-season/", PARK, "-", spp_common, "-",
+                     YEARS[1], "-", YEARS[length(YEARS)], 
+                     "-nyr-obs", file_extension1),
        device = device, 
        dpi = dpi, 
        width = width, 
        height = height, 
        units = units)
 
+ggsave(plot_nyrs, 
+       file = paste0("output/NPS-figures/multi-season/", PARK, "-", spp_common, "-",
+                     YEARS[1], "-", YEARS[length(YEARS)], 
+                     "-nyr-obs", file_extension2),
+        dpi = dpi, 
+       width = width, 
+       height = height, 
+       units = units)
+}
 #------------------------------------------------------------------------------#
 # Load occurrence probabilities for common species and summarize
 #------------------------------------------------------------------------------#
@@ -225,8 +445,10 @@ for (i in 1:length(spp_rds)) {
     psi_spatcovs <- character(0)
   } else {
     psi_covs <- psi_covs_z %>% str_remove_all(pattern = "_z")
-    psi_spatcovs_z <- psi_covs_z[!psi_covs_z %in% c("years_z", "visits_z", "traffic_z")]
-    psi_spatcovs <- psi_covs[!psi_covs %in% c("years", "visits", "traffic")]  
+    psi_spatcovs_z <- psi_covs_z[!psi_covs_z %in% c("years_z", "visits_z", "traffic_z", "monsoon_ppt_z", "ppt10_z", "ppt6_z",
+                                                    "monsoon_vpd_z","vpd10_z", "vpd6_z", "aet10_z","deficit10_z", "savi_z")]
+    psi_spatcovs <- psi_covs[!psi_covs %in% c("years", "visits", "traffic", "monsoon", "ppt10", "ppt6",
+                                              "monsoon_vpd","vpd10", "vpd6", "aet10","deficit10", "savi")]  
   }
   p_covs_z <- create_cov_list(best_p_model)
   if (length(p_covs_z) == 1 & any(p_covs_z == "1")) {
@@ -255,7 +477,8 @@ for (i in 1:length(spp_rds)) {
     # last year
     assign(paste0("occrast_", SPECIES), preds_mn_lastyr)
   } else {
-    nonspatial <- c("years", "visits", "traffic")
+    nonspatial <- c("years", "visits", "traffic", "monsoon", "ppt10", "ppt6",
+                    "monsoon_vpd","vpd10", "vpd6", "aet10","deficit10", "savi")
     beta_samples <- as.matrix(best$beta.samples)
     # If there are only non-spatial covariates in the model, calculate mean 
     # predicted occurrence probability in the last year.
@@ -296,10 +519,12 @@ footnote <- paste(species$Common_name[species$modeled == 1], collapse = ", ")
 footnote <- paste0("Species included: ", footnote)
 plot_spprich <- ggplot() + 
   geom_spatraster(data = occrast_common, mapping = aes(fill = sum)) + 
-  scale_fill_viridis_c(na.value = 'transparent', name = "") +
+  scale_fill_viridis_c(na.value = 'transparent', name = "Species") +
   labs(title = mn_title, subtitle = subtitle, 
-       caption = str_wrap(footnote, 80)) +
+       caption = str_wrap(footnote, 120)) +
   theme_NPS + 
+  annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
+  annotation_scale(location = "br", style="ticks") +
   theme(axis.title = element_blank(),
         axis.line = element_blank(),
         plot.caption = element_text(hjust = 0, size = 7))
@@ -314,8 +539,16 @@ if (LATLONG) {
 
 ggsave(plot_spprich, 
        file = paste0("output/NPS-figures/multi-season/", PARK, "-", 
-                     YEARS[length(YEARS)], "-spprichness-common.pdf"),
+                     YEARS[length(YEARS)], "-spprichness-common",file_extension1),
        device = device, 
+       dpi = dpi, 
+       width = width, 
+       height = height, 
+       units = units)
+
+ggsave(plot_spprich, 
+       file = paste0("output/NPS-figures/multi-season/", PARK, "-", 
+                     YEARS[length(YEARS)], "-spprichness-common",file_extension2),
        dpi = dpi, 
        width = width, 
        height = height, 

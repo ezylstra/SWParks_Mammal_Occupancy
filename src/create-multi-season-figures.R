@@ -25,27 +25,27 @@ SPECIES <- "SYAU"
 # Logical indicating whether to create maps with mean occurrence probabilities (with roads/trails)
 MAP <- TRUE
 # Logical indicating whether to create maps with SD of occurrence probabilities (with roads/trails)
-MAP_SD <- FALSE
+MAP_SD <- TRUE
 # Logical indicating whether to create maps with mean occurrence probabilities and raw detections
-MAP_DETECT <- TRUE  # if TRUE, MAP must also be true
+MAP_DETECT <- FALSE  # if TRUE, MAP must also be true
 # Logical indicating whether to create a 4-panel figure with mean and SD
 # of occurrence probabilities in first and last year in addition to the single
 # panel figures for each parameter. (Only relevant if MAP_SD == TRUE)
-FOUR_PANEL <- FALSE
+FOUR_PANEL <- TRUE
 # If creating maps, indicate whether to include lat/long axes labels
 LATLONG <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the occurrence part of the model
-MARG_OCC <- TRUE
+MARG_OCC <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the detection part of the model
-MARG_DET <- TRUE
+MARG_DET <- FALSE
 
 # Logical indicating whether to create a figure with naive/estimated occurrence
 # over time (including trend, if relevant)
-OCC_TIME <- TRUE
+OCC_TIME <- FALSE
 
 # Parameters, for single-panel figures
 file_extension1 <- ".png"   # can update to jpg
@@ -188,6 +188,12 @@ scale_shape_detect <- function(...){
 # Create longer park name for use in plots
 park <- ifelse(PARK == "CHIR", "Chiricahua NM",
                ifelse(PARK == "SAGW", "Saguaro NP (TMD)", "Organ Pipe Cactus NM"))
+
+# Update common name for PETA (javelina instead of collared peccary)
+# and URCI (gray fox instead of common gray fox)
+species <- species %>%
+  mutate(Common_name = ifelse(Species_code=="PETA","javelina", Common_name)) %>%
+  mutate(Common_name = ifelse(Species_code=="URCI","gray fox", Common_name))
 
 #------------------------------------------------------------------------------#
 # Annual occurrence estimates (and trends if "years" is in the model)
@@ -423,9 +429,12 @@ if(MAP | MAP_SD | MAP_DETECT) {
   # clip to current park
   park_trails <- crop(park_trails, park_boundary)
   
-  # Load roads shapefile (within 3km)
-  park_roads <- if(PARK=="SAGW") vect("data/covariates/shapefiles/roads_sagw_v2.shp") else vect(paste0("data/covariates/shapefiles/roads_",PARK,"_tigris.shp", sep=""))
+  # Load roads shapefile (within 3km) and clip to within 1km
+  park_roads_file <- ifelse(PARK=="SAGW", "data/covariates/shapefiles/roads_sagw_v2.shp", ifelse(PARK=="CHIR", "data/covariates/shapefiles/roads_chir_nps_usfs.shp", "data/covariates/shapefiles/roads_orpi_nps.shp"))
+  park_roads <- vect(park_roads_file)
+  #park_roads <- if(PARK=="SAGW") vect("data/covariates/shapefiles/roads_sagw_v2.shp") else vect(paste0("data/covariates/shapefiles/roads_",PARK,"_tigris.shp", sep=""))
   park_roads_1km <- crop(park_roads, park_boundary_1km)
+  
   
   # If there are time-varying covariates (other than year/trend) in the 
   # occurrence part of the model, identify whether we want predictions under 
@@ -461,8 +470,8 @@ if(MAP | MAP_SD | MAP_DETECT) {
     theme_NPS + 
     geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
     geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
-    geom_spatvector(data=park_roads, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
-    geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    geom_spatvector(data=park_roads_1km, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+    geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
     annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
     annotation_scale(location = "br", style="ticks") +
     theme(axis.title = element_blank(),
@@ -474,8 +483,8 @@ if(MAP | MAP_SD | MAP_DETECT) {
     theme_NPS + 
     geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
     geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
-    geom_spatvector(data=park_roads, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
-    geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    geom_spatvector(data=park_roads_1km, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+    geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
     annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
     annotation_scale(location = "br", style="ticks") +
     theme(axis.title = element_blank(),
@@ -487,8 +496,8 @@ if(MAP | MAP_SD | MAP_DETECT) {
     theme_NPS + 
     geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
     geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
-    geom_spatvector(data=park_roads, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
-    geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    geom_spatvector(data=park_roads_1km, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+    geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
     annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
     annotation_scale(location = "br", style="ticks") +
     theme(axis.title = element_blank(),
@@ -500,8 +509,8 @@ if(MAP | MAP_SD | MAP_DETECT) {
     theme_NPS + 
     geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
     geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
-    geom_spatvector(data=park_roads, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
-    geom_spatvector(data=park_roads, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+    geom_spatvector(data=park_roads_1km, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+    geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
     annotation_north_arrow(location = "bl", which_north = "true", style = north_arrow_minimal()) +
     annotation_scale(location = "br", style="ticks") +
     theme(axis.title = element_blank(),
@@ -764,5 +773,5 @@ if(MAP | MAP_SD | MAP_DETECT) {
     }
 }
 
-
+estimates %>% dplyr::select(Parameter, Covariate, Mean, SD, `95% CI`, Rhat, ESS, f)
 
