@@ -147,11 +147,14 @@ OCC_MODELS <- list("years",
                    "traffic", 
                    "monsoon_ppt", 
                    "ppt10",
+                   #"ppt6",
                    "monsoon_vpd",
                    "vpd10",
+                   #"vpd6",
                    "aet10",
                    "deficit10", 
                    "savi")
+
 SITE_RE_OCC <- "unstructured"
 TIME_RE_OCC <- "unstructured" 
 SITE_RE_DET <- "none"
@@ -162,7 +165,7 @@ source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
 message("Check candidate models:", sep = "\n")
 model_specs
 
-  # Set MCMC parameters (number of samples will depend on whether temporal random 
+# Set MCMC parameters (number of samples will depend on whether temporal random 
 # effects are included in models or not). Note that instead of specifying the 
 # total number of samples (like we did for single-season models), we'll split 
 # the samples into a set of N_BATCH batches, each comprised of BATCH_LENGTH 
@@ -192,7 +195,8 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
 # View summary table, ranked by WAIC
 View(model_stats %>% arrange(waic))
 
-# Select the annual covariate (years, visits, traffic, monsoon_ppt, or ppt10) 
+# Select the annual covariate (years, visits, traffic, monsoon_ppt, ppt10, ppt6, monsoon_vpd, 
+# vpd10, vpd6, deficit10, aet10, savi) 
 # that should be included in the next set of candidate models. Typically, we'll
 # select the covariate included in the model with the lowest WAIC. If none are 
 # better than the null model, set BEST_ANNUAL <- NA, as random effects will 
@@ -214,7 +218,7 @@ f_dets
   # DET_NULL <- TRUE
   # rm(DET_MODELS)
 # To use a model with a subset of those covariates, like day2 and effort:
-  DET_MODELS <- list(c("effort", "camera"))
+  DET_MODELS <- list(c("camera", "effort"))
 # To use the same model, we can leave DET_MODELS as is.
 
 #------------------------------------------------------------------------------#
@@ -241,47 +245,46 @@ f_dets
     filter(abs(corr) >= 0.7)
   
   # visualize veg vs. elev,  slope, and aspect
-  spatial_covs %>%
-    mutate(VegClass = ifelse(vegclasses==1,"Low Gradient Desert", ifelse(vegclasses==2,"Low Hillslope and Mountain Foothills","Medium to High gradient "))) %>%
-    ggplot(., aes(x=VegClass, y=elev)) +
-    geom_boxplot() +
-    theme_classic()
+  # spatial_covs %>%
+  #   mutate(VegClass = ifelse(vegclasses==1,"Low Gradient Desert", ifelse(vegclasses==2,"Low Hillslope and Mountain Foothills","Medium to High gradient "))) %>%
+  #   ggplot(., aes(x=VegClass, y=elev)) +
+  #   geom_boxplot() +
+  #   theme_classic()
+  # 
+  # spatial_covs %>%
+  #   mutate(VegClass = ifelse(vegclasses==1,"Low Gradient Desert", ifelse(vegclasses==2,"Low Hillslope and Mountain Foothills","Medium to High gradient "))) %>%
+  #   ggplot(., aes(x=VegClass, y=slope)) +
+  #   geom_boxplot() +
+  #   theme_classic()
+  # 
+  # spatial_covs %>%
+  #   mutate(VegClass = ifelse(vegclasses==1,"Low Gradient Desert", ifelse(vegclasses==2,"Low Hillslope and Mountain Foothills","Medium to High gradient "))) %>%
+  #   ggplot(., aes(x=VegClass, y=north)) +
+  #   geom_boxplot() +
+  #   theme_classic()
+  # 
+  # spatial_covs %>%
+  #   mutate(VegClass = ifelse(vegclasses==1,"Low Gradient Desert", ifelse(vegclasses==2,"Low Hillslope and Mountain Foothills","Medium to High gradient "))) %>%
+  #   ggplot(., aes(x=VegClass, y=east)) +
+  #   geom_boxplot() +
+  #   theme_classic()
+  # 
+  # # At SAGW, slope and elevation are quite different in VegClass 1 (Low Gradient Desert) compared to the other two
+  # # don't have a formal correlation but seems troublesome
+  # # here's a hack attempt at a point biserial correlation (continuous vs. binary) to look at vegclass1 vs other, so not ideal but what I can do
+  # 
+  # veg_corr <- spatial_covs %>% mutate(VegClass = ifelse(vegclasses==1,1,0))
+  # cor.test(veg_corr$elev,veg_corr$VegClass)
+  # cor.test(veg_corr$slope,veg_corr$VegClass)
+  # cor.test(veg_corr$east,veg_corr$VegClass)
+  # cor.test(veg_corr$north,veg_corr$VegClass)
+  # cor.test(veg_corr$wash,veg_corr$VegClass)
+  # cor.test(veg_corr$roads,veg_corr$VegClass)
+  # cor.test(veg_corr$boundary,veg_corr$VegClass)
+  # cor.test(veg_corr$trail,veg_corr$VegClass)
+  # cor.test(veg_corr$pois,veg_corr$VegClass)
   
-  spatial_covs %>%
-    mutate(VegClass = ifelse(vegclasses==1,"Low Gradient Desert", ifelse(vegclasses==2,"Low Hillslope and Mountain Foothills","Medium to High gradient "))) %>%
-    ggplot(., aes(x=VegClass, y=slope)) +
-    geom_boxplot() +
-    theme_classic()
-  
-  spatial_covs %>%
-    mutate(VegClass = ifelse(vegclasses==1,"Low Gradient Desert", ifelse(vegclasses==2,"Low Hillslope and Mountain Foothills","Medium to High gradient "))) %>%
-    ggplot(., aes(x=VegClass, y=north)) +
-    geom_boxplot() +
-    theme_classic()
-  
-  spatial_covs %>%
-    mutate(VegClass = ifelse(vegclasses==1,"Low Gradient Desert", ifelse(vegclasses==2,"Low Hillslope and Mountain Foothills","Medium to High gradient "))) %>%
-    ggplot(., aes(x=VegClass, y=east)) +
-    geom_boxplot() +
-    theme_classic()
-  
-  # At SAGW, slope and elevation are quite different in VegClass 1 (Low Gradient Desert) compared to the other two
-  # don't have a formal correlation but seems troublesome
-  # here's a hack attempt at a point biserial correlation (continuous vs. binary) to look at vegclass1 vs other, so not ideal but what I can do
-  
-  veg_corr <- spatial_covs %>% mutate(VegClass = ifelse(vegclasses==1,1,0))
-  cor.test(veg_corr$elev,veg_corr$VegClass)
-  cor.test(veg_corr$slope,veg_corr$VegClass)
-  cor.test(veg_corr$east,veg_corr$VegClass)
-  cor.test(veg_corr$north,veg_corr$VegClass)
-  cor.test(veg_corr$wash,veg_corr$VegClass)
-  cor.test(veg_corr$roads,veg_corr$VegClass)
-  cor.test(veg_corr$boundary,veg_corr$VegClass)
-  cor.test(veg_corr$trail,veg_corr$VegClass)
-  cor.test(veg_corr$pois,veg_corr$VegClass)
-  
-  # Cheryl's updated combos - removing veg + elev/aspect since correlated 
-  # using roads, boundary, and roadboundary
+  # Cheryl's updated combos - treating veg/lta as a topographic covariate
   scov_combos <- list(c("aspect", "wash", "burn", "roads"),
                       c("elev", "wash", "burn", "roads"),
                       c("slope", "wash", "burn", "roads"),
@@ -306,25 +309,6 @@ f_dets
   # c("elev", "wash", "burn", "trailpoi"),
   # c("slope", "wash", "burn", "trailpoi"),
   # c("veg", "wash", "burn", "trailpoi"))
-  
-# scov_combos <- list(c("aspect", "veg", "wash", "burn", "roads"),
-#                     c("elev", "veg", "wash", "burn", "roads"),
-#                     c("slope", "veg", "wash", "burn", "roads"),
-#                     c("aspect", "veg", "wash", "burn", "boundary"),
-#                     #c("elev", "veg", "wash", "burn", "boundary"),
-#                     c("slope", "veg", "wash", "burn", "boundary"),
-#                     c("aspect", "veg", "wash", "burn", "trail"),
-#                     c("elev", "veg", "wash", "burn", "trail"),
-#                     c("slope", "veg", "wash", "burn", "trail"),
-#                     c("aspect", "veg", "wash", "burn", "pois"),
-#                     c("elev", "veg", "wash", "burn", "pois"),
-#                     c("slope", "veg", "wash", "burn", "pois"),
-#                     c("aspect", "veg", "wash", "burn", "roadbound"),
-#                     #c("elev", "veg", "wash", "burn", "roadbound"),
-#                     c("slope", "veg", "wash", "burn", "roadbound"),
-#                     c("aspect", "veg", "wash", "burn", "trailpoi"),
-#                     c("elev", "veg", "wash", "burn", "trailpoi"),
-#                     c("slope", "veg", "wash", "burn", "trailpoi"))
 OCC_MODELS <- lapply(scov_combos, function(x) c(x, BEST_ANNUAL))
 OCC_NULL <- FALSE
 
@@ -395,39 +379,37 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 # power from the model for occurrence.
 
   # Identify new set(s) of spatial covariates to explore:
-  #scov_new <- list(c("slope", "boundary"), c("boundary", "north"))
+  #scov_new <- list(c("elev", "burn"))
   #OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
-  OCC_MODELS <- list(c("slope", "boundary"), c("slope", "boundary", "aet10"), 
-                     c("elev"), c("elev", "aet10"), 
-                     c("slope"), c("slope", "aet10"), 
-                     c("boundary"), c("boundary", "aet10"), 
-                     c("boundary", "north"), c("boundary", "north", "aet10"))
+  OCC_MODELS <- list(c("boundary", "slope"), c("boundary", "slope", "aet10"),
+                     c("boundary", "north"), c("boundary", "north", "aet10"),
+                     c("elev"), c("elev", "aet10"))
   # If needed, refine the detection model
   # DET_MODELS <- list(c("burn", "effort"))
   source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
   message("Check candidate models:", sep = "\n")
   model_specs
-
+  
   # Run model(s)
   source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
   View(model_stats %>% arrange(waic))
 
   # Specify STAT as either: waic or model_no
-  STAT <- "model_no"
+  STAT <- "waic"   
   if (STAT == "model_no") {
     # If STAT == "model_no", specify model of interest by model number in table
-    best_index <- 9
+    best_index <- 4  
   } else {
     min_stat <- min(model_stats[,STAT])
-    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
+    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
   }
-  # Look at model output and f values
+  # Look at model output and f values 
   summary(out_list[[best_index]])
   samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
                  out_list[[best_index]]$alpha.samples[, -1])
   (f <- apply(samps, 2, function(x) ifelse(mean(x) > 0, sum(x > 0) / length(x),
-                                           sum(x < 0) / length(x))))
-
+                                           sum(x < 0) / length(x))))  
+  
   # If there's a need to explore additional models and add more samples, re-run 
   # after specifying scov_new again or changing MCMC parameters, otherwise...
   
@@ -476,8 +458,8 @@ if (ppc.rep < 0.1 | ppc.site > 0.9) {
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
 # And for occurrence, extract names of spatial covariates
-nonspat_z <- c("years_z", "visits_z", "traffic_z", "monsoon_ppt_z", "ppt10_z",
-               "monsoon_vpd_z","vpd10_z","aet10_z","deficit10_z", "savi_z")
+nonspat_z <- c("years_z", "visits_z", "traffic_z", "monsoon_ppt_z", "ppt10_z", "ppt6_z",
+               "monsoon_vpd_z","vpd10_z", "vpd6_z", "aet10_z","deficit10_z", "savi_z")
 nonspat <- str_remove(nonspat_z, "_z")
 psi_covs_z <- create_cov_list(best_psi_model)
 if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
@@ -525,8 +507,8 @@ saveRDS(model_list, file = model_filename)
 # below, we will make predictions using estimated effects for the first and last 
 # year.
 if (any(str_detect(string = psi_covs, 
-                   pattern = paste(c("visits", "traffic", "monsoon_ppt", "ppt10", 
-                                     "monsoon_vpd", "vpd10", "aet10", "deficit10", "savi"),
+                   pattern = paste(c("visits", "traffic", "monsoon_ppt", "ppt10", "ppt6",
+                                     "monsoon_vpd", "vpd10", "vpd6", "aet10", "deficit10", "savi"),
                                    collapse = "|")))) {
   ANN_PREDS <- "observed"
 }  
@@ -576,10 +558,6 @@ if (length(psi_spatcovs) > 0) {
   #        height = 4,
   #        units = "in",
   #        dpi = 600)
-  plot_preds_mn_firstyr
-  
-  plot_preds_mn_lastyr
-  
 }
 
 #------------------------------------------------------------------------------#
@@ -754,4 +732,3 @@ if (p_n_cont == 0 & length(p_covs) == 0) {
                                upper_ci = 0.975)
   print(overall_det)
 }  
-
