@@ -78,11 +78,11 @@ exclude <- c("Harris's antelope squirrel", "Merriam's kangaroo rat",
 
 species <- species_list %>%
   filter(!Common_Name %in% exclude) %>%
-  rename(Species_code = Accepted_Code,
+  dplyr::rename(Species_code = Accepted_Code,
          Species = Scientific_Name,
          Common_name = Common_Name, 
          Nativeness = Nativity) %>%
-  select(Species_code, Species, Common_name, TSN, Family, Nativeness, Protected)
+  dplyr::select(Species_code, Species, Common_name, TSN, Family, Nativeness, Protected)
 
 #------------------------------------------------------------------------------#
 # Format events data
@@ -97,13 +97,13 @@ count(events, events[, grep("Flag", colnames(events))])
 # Remove any events that have one or more Flags = R (Reject)
 events <- events %>%
   mutate(across(ends_with("Flag"), function(x) ifelse(x == "R", 1, 0))) %>%
-  mutate(reject_sum = rowSums(select(., ends_with("Flag")))) %>%
+  mutate(reject_sum = rowSums(dplyr::select(., ends_with("Flag")))) %>%
   filter(reject_sum == 0)
 
 # Only keep necessary columns and remove any events that aren't associated with 
 # the focal park:
 events <- events %>%
-  select(-c(StdLocName, CrewRetrieveID, CrewDeployID)) %>%
+  dplyr::select(-c(StdLocName, CrewRetrieveID, CrewDeployID)) %>%
   filter(UnitCode == PARK)
 
 # Convert deployment, retrieval, active dates to date objects, and check that 
@@ -119,7 +119,7 @@ if(sum(events$actst_check) > 0 | sum(events$actend_check) > 0) {
   stop("One or more active dates fall outside of deployment window.\n")
 }
 # If no issues, remove checks columns:
-events <- select(events, -c(DeployDate, RetrievalDate, ActiveStart, ActiveEnd, 
+events <- dplyr::select(events, -c(DeployDate, RetrievalDate, ActiveStart, ActiveEnd, 
                             actst_check, actend_check))
 
   #-- Fix known issues in events dataset --------------------------------------#
@@ -182,7 +182,7 @@ events <- events %>% mutate(lens = ifelse(LensType=="sensitive",1,0))
 
 # Look at events when camera was operational for < 15 days
 # events %>% filter(operational < 15) %>%
-#   select(d_date, active_start, r_date, active_end, LocationName, BatteryStatus,
+#   dplyr::select(d_date, active_start, r_date, active_end, LocationName, BatteryStatus,
 #          TotalPics, operational) %>%
 #   arrange(d_date)
 
@@ -216,7 +216,7 @@ count(dat, dat[, grep("Flag", colnames(dat))])
 # Remove any detections that have one or more Flags = R (Reject)
 dat <- dat %>%
   mutate(across(ends_with("Flag"), function(x) ifelse(x == "R", 1, 0))) %>%
-  mutate(reject_sum = rowSums(select(., ends_with("Flag")))) %>%
+  mutate(reject_sum = rowSums(dplyr::select(., ends_with("Flag")))) %>%
   filter(reject_sum == 0)
 
 # Exclude photo observations of mammals that aren't in our species list
@@ -226,8 +226,8 @@ dat <- filter(dat, Accepted_Code %in% species$Species_code)
 # Accepted_Code) and remove information that isn't associated with the focal 
 # park:
 dat <- dat %>%
-  select(UnitCode, LocationName, ImageDate, Accepted_Code) %>%
-  rename(Species_code = Accepted_Code) %>%
+  dplyr::select(UnitCode, LocationName, ImageDate, Accepted_Code) %>%
+  dplyr::rename(Species_code = Accepted_Code) %>%
   filter(UnitCode == PARK)
 
 # Create new date-, time-related columns
@@ -238,7 +238,7 @@ dat <- dat %>%
          mon = month(datetime),
          yday = yday(datetime),
          time24 = hour(datetime) + minute(datetime) / 60 + second(datetime) / 3600) %>%
-  select(-ImageDate)
+  dplyr::select(-ImageDate)
 
 # Finally, as an extra check, remove detections that occur outside active dates
 # (might be able to remove this eventually). Note that the events data now 
@@ -251,7 +251,7 @@ if (PARK == "ORPI") {
                          "active_start", "active_end", "d_yr")],
               by = c("UnitCode", "LocationName", "yr" = "d_yr")) %>%
     filter(obsdate >= active_start & obsdate <= active_end) %>%
-    select(-c(active_start, active_end))
+    dplyr::select(-c(active_start, active_end))
 }
   
 #------------------------------------------------------------------------------#
@@ -302,8 +302,8 @@ if (centroid_save) {
 coords <- st_coordinates(centroids_sf)
 locs <- as.data.frame(centroids_sf) %>%
   cbind(coords) %>%
-  select(-geometry) %>%
-  rename(longitude = X,
+  dplyr::select(-geometry) %>%
+  dplyr::rename(longitude = X,
          latitude = Y) %>%
   relocate(loc, .before = "UnitCode") %>%
   arrange(loc)
@@ -380,12 +380,12 @@ summary(dat$locday %in% eventvec)
 
 # Remove locday column from dat and rename UnitCode to Park
 dat <- dat %>% 
-  select(-locday) %>% 
-  rename(Park = UnitCode)
+  dplyr::select(-locday) %>% 
+  dplyr::rename(Park = UnitCode)
 
 # Rename UnitCode in other dataframes
-events <- rename(events, Park = UnitCode)
-locs <- rename(locs, Park = UnitCode)
+events <- dplyr::rename(events, Park = UnitCode)
+locs <- dplyr::rename(locs, Park = UnitCode)
 
 #------------------------------------------------------------------------------#
 # Remove objects that are no longer needed
