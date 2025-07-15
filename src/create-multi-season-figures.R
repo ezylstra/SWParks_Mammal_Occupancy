@@ -20,7 +20,7 @@ library(ggspatial)
 # Park, year, and species
 PARK <- "SAGW"
 YEARS <- 2017:2025
-SPECIES <- "SYAU"
+SPECIES <- "LYRU"
 
 # Logical indicating whether to create maps with mean occurrence probabilities (with roads/trails)
 MAP <- TRUE
@@ -203,6 +203,12 @@ species <- species %>%
 # in the model). If raw_occ = TRUE, naive occurrence estimates (proportion of 
 # sites with a detection) will be included (open circles)
 
+# Identify continuous covariates in occurrence part of the best model
+# Excluding years (trend) since that was covered in section above. 
+psi_continuous <- psi_covs_z[!psi_covs_z %in% c("vegclass2", "vegclass3", "years_z")]
+psi_cont_unique <- unique(psi_continuous)
+psi_n_cont <- length(psi_cont_unique)
+
 if (OCC_TIME) { 
   
   # Load general information about covariates
@@ -249,6 +255,8 @@ apply(best$beta.star.samples[,yrREcols], 2, mean)
 # expected based only on fixed effects in the model. Negative values indicate
 # values were lower than expected. 
 
+
+
 #------------------------------------------------------------------------------#
 # Marginal effects of covariates in the occurrence part of the model
 # (Creates figures for all continuous covariates)
@@ -257,12 +265,6 @@ if (MARG_OCC) {
   
   # Load general information about covariates
   covariates <- read.csv("data/covariates/covariates-MS.csv")
-  
-  # Identify continuous covariates in occurrence part of the best model
-  # Excluding years (trend) since that was covered in section above. 
-  psi_continuous <- psi_covs_z[!psi_covs_z %in% c("vegclass2", "vegclass3", "years_z")]
-  psi_cont_unique <- unique(psi_continuous)
-  psi_n_cont <- length(psi_cont_unique)
   
   # If there are any continuous covariates, create a figure for each:
   if (psi_n_cont > 0) {
@@ -324,16 +326,18 @@ if (psi_n_cont == 0 & length(psi_covs) == 0) {
 # Marginal effects of covariates in the detection part of the model
 # (Creates figures for all continuous covariates)
 #------------------------------------------------------------------------------#  
+
+# Identify continuous covariates in detection part of the best model
+p_continuous <- p_covs_z[!p_covs_z %in% c("vegclass2", "vegclass3", 
+                                          "camera", "lens")]
+p_cont_unique <- unique(p_continuous)
+p_n_cont <- length(p_cont_unique)
+
+
 if (MARG_DET) { 
   
   # Load general information about covariates
   covariates <- read.csv("data/covariates/covariates-MS.csv")
-  
-  # Identify continuous covariates in detection part of the best model
-  p_continuous <- p_covs_z[!p_covs_z %in% c("vegclass2", "vegclass3", 
-                                            "camera", "lens")]
-  p_cont_unique <- unique(p_continuous)
-  p_n_cont <- length(p_cont_unique)
   
   # If there are any continuous covariates, create a figure for each:
   if (p_n_cont > 0) {
@@ -627,13 +631,18 @@ if(MAP | MAP_SD | MAP_DETECT) {
       guides(fill = ""))
     
     plot_preds_mn_fy <- ggplot() + 
-      geom_spatraster(data = preds_mn_firstyr, mapping = aes(fill = mean_firstyr)) + 
-      col_scale_mn +
+      geom_spatraster(data = preds_mn_firstyr, mapping = aes(fill = mean_firstyr)) +
+      scale_fill_viridis_c(na.value = 'transparent', limits=c(min_mn, max_mn)) +
+      geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
+      geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+      geom_spatvector(data=park_roads_1km, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+      geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+      #col_scale_mn +
       theme_NPS + 
       ggtitle(paste0("Mean, ", min(YEARS))) +
-      theme(plot.title = element_text(hjust = 0.5, vjust = 3, size = 8),
+      theme(plot.title = element_text(hjust = 0.5, vjust = 3, size = 12),
             legend.position = "bottom",
-            legend.key.height = unit(0.2, "cm"),
+            legend.key.height = unit(0.1, "cm"),
             legend.key.width = unit(1, 'cm'),
             axis.title = element_blank(),
             axis.line = element_blank(),
@@ -641,12 +650,17 @@ if(MAP | MAP_SD | MAP_DETECT) {
             axis.ticks = element_blank())
     plot_preds_sd_fy <- ggplot() + 
       geom_spatraster(data = preds_sd_firstyr, mapping = aes(fill = sd_firstyr)) + 
-      col_scale_sd +
+      scale_fill_viridis_c(na.value = 'transparent', limits=c(min_sd, max_sd)) +
+      geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
+      geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+      geom_spatvector(data=park_roads_1km, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+      geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+      #col_scale_sd +
       theme_NPS + 
-      ggtitle(paste0("SD, ", min(YEARS))) +
-      theme(plot.title = element_text(hjust = 0.5, vjust = 3, size = 8),
+      ggtitle(paste0("Standard deviation, ", min(YEARS))) +
+      theme(plot.title = element_text(hjust = 0.5, vjust = 3, size = 12),
             legend.position = "bottom",
-            legend.key.height = unit(0.2, "cm"),
+            legend.key.height = unit(0.1, "cm"),
             legend.key.width = unit(1, 'cm'),
             axis.title = element_blank(),
             axis.line = element_blank(),
@@ -654,12 +668,17 @@ if(MAP | MAP_SD | MAP_DETECT) {
             axis.ticks = element_blank())
     plot_preds_mn_ly <- ggplot() + 
       geom_spatraster(data = preds_mn_lastyr, mapping = aes(fill = mean_lastyr)) + 
-      col_scale_mn +
+      scale_fill_viridis_c(na.value = 'transparent', limits=c(min_mn, max_mn)) +
+      geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
+      geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+      geom_spatvector(data=park_roads_1km, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+      geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+      #col_scale_mn +
       theme_NPS + 
       ggtitle(paste0("Mean, ", max(YEARS))) +
-      theme(plot.title = element_text(hjust = 0.5, vjust = 3, size = 8),
+      theme(plot.title = element_text(hjust = 0.5, vjust = 3, size = 12),
             legend.position = "bottom",
-            legend.key.height = unit(0.2, "cm"),
+            legend.key.height = unit(0.1, "cm"),
             legend.key.width = unit(1, 'cm'),
             axis.title = element_blank(),
             axis.line = element_blank(),
@@ -667,12 +686,17 @@ if(MAP | MAP_SD | MAP_DETECT) {
             axis.ticks = element_blank())
     plot_preds_sd_ly <- ggplot() + 
       geom_spatraster(data = preds_sd_lastyr, mapping = aes(fill = sd_lastyr)) + 
-      col_scale_sd +
+      scale_fill_viridis_c(na.value = 'transparent', limits=c(min_sd, max_sd)) +
+      geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
+      geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+      geom_spatvector(data=park_roads_1km, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+      geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
+      #col_scale_sd +
       theme_NPS + 
-      ggtitle(paste0("SD, ", max(YEARS))) +
-      theme(plot.title = element_text(hjust = 0.5, vjust = 3, size = 8),
+      ggtitle(paste0("Standard deviation, ", max(YEARS))) +
+      theme(plot.title = element_text(hjust = 0.5, vjust = 3, size = 12),
             legend.position = "bottom",
-            legend.key.height = unit(0.2, "cm"),
+            legend.key.height = unit(0.1, "cm"),
             legend.key.width = unit(1, 'cm'),
             axis.title = element_blank(),
             axis.line = element_blank(),
