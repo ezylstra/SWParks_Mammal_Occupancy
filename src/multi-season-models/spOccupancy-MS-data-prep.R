@@ -11,7 +11,7 @@
 # eventually automate this.
 
 # ER Zylstra
-# Updated 2023-10-13
+# Updated 2025-07-16 by CL McIntyre
 ################################################################################
 
 #------------------------------------------------------------------------------#
@@ -215,9 +215,8 @@ years_mn <- mean(years)
 years_sd <- sd(years)
 years_z <- (years - years_mn)/years_sd
 
-# Indicator for 2022 and 2023, when different types of cameras were used 
-# (will need to revisit this covariate after 2023 season when same cameras were 
-# used - no change, same camera in 2024-2025 as in 2022-2023)
+# Indicator for 2022 and beyond, when different types of cameras were used 
+# same camera in 2022-2025
 camera <- matrix(rep(c(0, 1), 
                           times = c(sum(YEARS < 2022), sum(YEARS >= 2022))),
                       nrow = dim(dh)[1],
@@ -397,7 +396,7 @@ parks <- vect("data/covariates/shapefiles/Boundaries_3parks.shp")
 park_b <- terra::subset(parks, parks$UNIT_CODE == PARK)
 park_b <- as(park_b, "Spatial")
 
-# Extract and compile monsoon vapor pressure deficit data
+  # Extract and compile monsoon vapor pressure deficit data
   monsoon_vpd_files <- weather_files[str_detect(weather_files, "monsoon_vpd")]
   # Remove monsoon rasters associated with periods outside the years of interest
   # (monsoon vpd in year x could explain occupancy in year x + 1 since 
@@ -438,7 +437,7 @@ park_b <- as(park_b, "Spatial")
   }
 
  
-      # Load each raster and compute the mean value across the park in that year
+# Load each raster and compute the mean value across the park in that year
     vpd10 <- rep(NA, length(vpd10_files))
     for (i in 1:length(vpd10_files)) {
       vpd10_raster <- rast(vpd10_files[i])
@@ -605,7 +604,7 @@ spatial_covs <- cbind(spatial_covs,
 
 # Identify continuous covariates that we want to standardize
 covs_cont <- names(spatial_covs)
-covs_cont <- str_subset(covs_cont, "loc|long|lat|vegclass", negate = TRUE)
+covs_cont <- str_subset(covs_cont, "loc|long|lat|vegclass|rocksizeclass|rockpctclass", negate = TRUE)
 
 # Scale continuous covariates by mean, SD
 for (i in covs_cont) {
@@ -687,6 +686,10 @@ if (PARK == "SAGW") {
                      wash_z = spatial_covs$wash_z,
                      vegclass2 = spatial_covs$vegclass2,
                      vegclass3 = spatial_covs$vegclass3,
+                     rocksizeclass2 = spatial_covs$rocksizeclass2,
+                     rocksizeclass3 = spatial_covs$rocksizeclass3,
+                     rockpctclass2 = spatial_covs$rockpctclass2,
+                     rockpctclass3 = spatial_covs$rockpctclass3, 
                      deficit10 = deficit10,
                      deficit10_z = deficit10_z,
                      aet10 = aet10,

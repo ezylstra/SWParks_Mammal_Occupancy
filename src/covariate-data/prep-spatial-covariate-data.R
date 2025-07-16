@@ -10,6 +10,7 @@ library(dplyr)
 library(stringr)
 library(terra)
 library(raster)
+library(tidyterra)
 
 # Note: Many parts of this script are commented out to avoid accidentally 
 # starting functions that take a long time to run and/or to avoid 
@@ -589,7 +590,7 @@ veg3 <- terra::project(veg3, crs(elev_sagw))
 veg3 <- as.factor(veg3)
 
 # See how the camera locations relate to the veg classes:  
-locs <- vect("data/mammals/PROTECTED_CameraLocations_Centroids.shp")
+locs <- vect("data/mammals/PROTECTED_CameraLocations_Centroids_SAGW.shp")
 
 plot(veg3)
 plot(parks, add = T)
@@ -633,6 +634,105 @@ veg3 <- as.numeric(veg3)
   # 4 = Developed
 
 #------------------------------------------------------------------------------#
+# Soil surface rock fragments (SAGW only)
+#------------------------------------------------------------------------------#
+
+# Read in original shapefile
+soil <- vect("data/covariates/shapefiles/SAGW_ssurgo.shp")
+
+# Reproject 
+soil <- terra::project(soil, crs(elev_sagw))
+
+# Aggregate polygons into 3-class surface rock fragment size,
+# get rid of variables we don't need, and 
+# create class numbers
+soil_rocksize <- terra::aggregate(soil, by = "SurFragSze") %>%
+  mutate(RockSzeClass = SurFragSze) %>%
+  mutate(RockSzeClassNo = ifelse(RockSzeClass=="none", 1, ifelse(RockSzeClass=="Gravel",2, ifelse(RockSzeClass=="Cobble",3,1)))) %>%
+  dplyr::select(RockSzeClass, RockSzeClassNo)
+plot(soil_rocksize, "RockSzeClass", border = NULL, main = NULL)
+plot(soil_rocksize, "RockSzeClassNo", border = NULL, main = NULL)
+
+# Rasterize
+soil_rocksize_raster <- terra::rasterize(soil_rocksize, elev_sagw, field = "RockSzeClassNo")
+soil_rocksize_raster <- terra::crop(soil_rocksize_raster, 
+                           subset(parks, parks$UNIT_CODE == "SAGW"),
+                           snap = "out")
+
+# See how the camera locations relate to the surface rock fragment classes:  
+locs <- vect("data/mammals/PROTECTED_CameraLocations_Centroids_SAGW.shp")
+
+plot(soil_rocksize_raster)
+plot(parks, add = T)
+plot(locs, add = T)
+
+# Veg classes at each camera location (using original classes)
+camera_soil_rocksize <- cbind(as.data.frame(locs), 
+                              RockSzeClass = terra::extract(soil_rocksize, locs)[, c("RockSzeClass")])
+count(camera_soil_rocksize, RockSzeClass)
+# 9 in cobble
+# 47 in gravel
+# 5 in none
+
+
+# Convert to factor
+soil_rocksize2 <- as.factor(soil_rocksize_raster)
+
+# Write to file
+soil_rocksize2 <- as.numeric(soil_rocksize2)
+# writeRaster(soil_rocksize2, paste0(sagw_folder, "soil_rocksizes_sagw.tif"), overwrite = TRUE)
+# This is a 3-class categorical raster with:
+# 1 = none
+# 2 = gravel
+# 3 = cobble
+
+
+# Aggregate polygons into 3-class surface rock fragment percentage (category),
+# get rid of variables we don't need, and 
+# create class numbers
+soil_rockpct <- terra::aggregate(soil, by = "SurFragCls") %>%
+  mutate(RockPctClass = SurFragCls) %>%
+  mutate(RockPctClassNo = ifelse(RockPctClass=="<15" | RockPctClass=="15-35", 1, ifelse(RockPctClass=="35-60",2, ifelse(RockPctClass=="60-90",3,4)))) %>%
+  dplyr::select(RockPctClass, RockPctClassNo)
+plot(soil_rockpct, "RockPctClass", border = NULL, main = NULL)
+plot(soil_rockpct, "RockPctClassNo", border = NULL, main = NULL)
+
+# Rasterize
+soil_rockpct_raster <- terra::rasterize(soil_rockpct, elev_sagw, field = "RockPctClassNo")
+soil_rockpct_raster <- terra::crop(soil_rockpct_raster, 
+                                    subset(parks, parks$UNIT_CODE == "SAGW"),
+                                    snap = "out")
+
+# See how the camera locations relate to the surface rock fragment percentage classes:  
+plot(soil_rockpct_raster)
+plot(parks, add = T)
+plot(locs, add = T)
+
+# Soil rock fragment percentage classes at each camera location (using original classes)
+camera_soil_rockpct <- cbind(as.data.frame(locs), 
+                              RockPctClass = terra::extract(soil_rockpct, locs)[, c("RockPctClass")])
+count(camera_soil_rockpct, RockPctClass)
+# 5 in <15
+# 3 in 15-35
+# 22 in 35-60
+# 31 in 60-90
+# so lump <15 and 15-35 into <35, and have 3 classes
+# tortoise suitability has <35% by volume of rock <3" diameter (gravel) = well suited
+# but if cobble or bigger (>3" diameter), then anything >15% is poorly suited (<5% = well suited)
+# tortoise suitability uses thickest layer in top 30in whereas our data are for surface
+
+# Convert to factor
+soil_rockpct2 <- as.factor(soil_rockpct_raster)
+
+# Write to file
+soil_rockpct2 <- as.numeric(soil_rockpct2)
+# writeRaster(soil_rockpct2, paste0(sagw_folder, "soil_rockpct_sagw.tif"), overwrite = TRUE)
+# This is a 3-class categorical raster with:
+# 1 = <35% by volume
+# 2 = 35-<60% by volume
+# 3 = 60-<90% by volume
+
+#------------------------------------------------------------------------------#
 # Distance to desert wash (based on veg classes, in SAGW only)
 #------------------------------------------------------------------------------#  
 
@@ -672,7 +772,7 @@ lta <- terra::project(lta, crs(elev_orpi))
 
 # Aggregate polygons into 4-class land type layer,
 # get rid of variables we don't need, and 
-# create clas snumbers
+# create class numbers
 lta4 <- terra::aggregate(lta, by = "CherylCat") %>%
   mutate(LTAclass = CherylCat) %>%
   mutate(LTAclasssNo = ifelse(LTAclass=="valley", 1, ifelse(LTAclass=="bajada",2, ifelse(LTAclass=="hills",3,4)))) %>%

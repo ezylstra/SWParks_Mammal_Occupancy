@@ -228,11 +228,12 @@ f_dets
 
 # There are 4 categories of spatial covariates (though each park only has 
 # covariates in 2 or 3 of the categories):
-  # topographic: aspect, elev, slope
+  # topographic / landform: aspect, elev, slope, veg, soil rock fragments (percent or size class)
     # (using linear rather than quadratic forms of elev & slope because SAGW 
     # doesn't span that large of a range and we often get nonsensical results 
     # with highest probabilities at extreme values)
-  # veg: vegclasses + wash (for now, only available for SAGW)
+      # veg: vegclasses + wash (for now, only available for SAGW)
+      # soil: rocksize + rockpct (for now, only available for SAGW)
   # burn: burn severity classes for 2011 fire (only available in CHIR)
   # anthropogenic: roads, boundary, trails, pois, roadbound, trailpois
 
@@ -284,23 +285,27 @@ f_dets
   # cor.test(veg_corr$trail,veg_corr$VegClass)
   # cor.test(veg_corr$pois,veg_corr$VegClass)
   
-  # Cheryl's updated combos - treating veg/lta as a topographic covariate
+  # Cheryl's updated combos - treating veg/lta/rockpct as a topographic covariate (not including rocksize for now)
   scov_combos <- list(c("aspect", "wash", "burn", "roads"),
                       c("elev", "wash", "burn", "roads"),
                       c("slope", "wash", "burn", "roads"),
                       c("veg", "wash", "burn", "roads"),
+                      c("rockpct", "wash", "burn", "roads"),
                       c("aspect",  "wash", "burn", "boundary"),
                       #c("elev", "wash", "burn", "boundary"),
                       c("slope", "wash", "burn", "boundary"),
                       c("veg", "wash", "burn", "boundary"),
+                      c("rockpct", "wash", "burn", "boundary"),
                       c("aspect",  "wash", "burn", "trail"),
                       c("elev", "wash", "burn", "trail"),
                       c("slope", "wash", "burn", "trail"),
                       c("veg", "wash", "burn", "trail"),
+                      c("rockpct", "wash", "burn", "trail"),
                       c("aspect", "wash", "burn", "pois"),
                       c("elev", "wash", "burn", "pois"),
                       c("slope", "wash", "burn", "pois"),
-                      c("veg", "wash", "burn", "pois"))
+                      c("veg", "wash", "burn", "pois"),
+                      c("rockpct", "wash", "burn", "pois"))
   # c("aspect", "wash", "burn", "roadbound"), 
   # #c("elev", "wash", "burn", "roadbound"),
   # c("slope", "wash", "burn", "roadbound"),
@@ -603,7 +608,9 @@ if (length(psi_spatcovs) > 0) {
 
 # Identify continuous covariates in occurrence part of the best model
 # Excluding years (trend) since that was covered in section above. 
-psi_continuous <- psi_covs_z[!psi_covs_z %in% c("vegclass2", "vegclass3", "years_z")]
+psi_continuous <- psi_covs_z[!psi_covs_z %in% c("vegclass2", "vegclass3", "years_z", 
+                                                "rocksizeclass2", "rocksizeclass3",
+                                                "rockpctclass2", "rockpctclass3")]
 psi_cont_unique <- unique(psi_continuous)
 psi_n_cont <- length(psi_cont_unique)
 
@@ -646,6 +653,23 @@ if (sum(str_detect(psi_covs, "veg")) > 0) {
   occprobs_veg <- vegclass_estimates(model = best, 
                                      parameter = "occ")
   print(occprobs_veg)
+}
+
+# If rock size classes were included as covariates in the model, extract
+# occurrence probabilities for each class
+if (sum(str_detect(psi_covs, "rocksize")) > 0) {
+  occprobs_rocksize <- rocksizeclass_estimates(model = best, 
+                                               parameter = "occ")
+  print(occprobs_rocksize)
+}
+
+
+# If rock percentage classes were included as covariates in the model, extract
+# occurrence probabilities for each class
+if (sum(str_detect(psi_covs, "rockpct")) > 0) {
+  occprobs_rockpct <- rockpctclass_estimates(model = best, 
+                                             parameter = "occ")
+  print(occprobs_rockpct)
 }
 
 # If there are no covariates in the model (ie, a null model), print overall 

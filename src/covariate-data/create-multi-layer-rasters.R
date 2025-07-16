@@ -29,6 +29,10 @@ library(terra)
     # mountain foothills, rocky, often north facing, cooler, wetter; 
     # 3 = Medium-high gradient, contrasting topography (hilly), often Jojoba 
     # dominant; 4 = developed (no cameras located in this vegclass)
+  # soil_rockpct [SAGW only] = soil surface rock fragment percent by volume where
+    # 1 = <35% by volume; 2 = 35-<60% by volume; 3 = 60-<90% by volume
+  # soil_rocksizes [SAGW only] = soil surface rock fragment sizes where
+    # 1 = none; 2 = gravel; 3 = cobble
   # LTAclass [ORPI only] = land type association class where 1 = valley
     # 2 = bajadas, 3 = hills, and 4 = mountains
   # burn_severity_2011 [CHIR only] = severity of 2011 burn (integer values, 0:4 
@@ -95,6 +99,28 @@ for (PARK in parks) {
     raster_list <- c(raster_list, vegclass2 = vegclass2, vegclass3 = vegclass3)
   }  
 
+  # For soil rock fragment sizes, create layers for two dummy variables (classes 2 and 3)
+  # [for now, this is just SAGW, but hopefully other parks soon]
+  if (PARK == "SAGW") {
+    rocksizeclasses <- raster_list[["soil_rocksizes"]]
+    rocksizeclass2 <- 1 * (rocksizeclasses == 2)
+    names(rocksizeclass2) <- "rocksizeclass2"
+    rocksizeclass3 <- 1 * (rocksizeclasses == 3)
+    names(rocksizeclass3) <- "rocksizeclass3"
+    raster_list <- c(raster_list, rocksizeclasses = rocksizeclasses, rocksizeclass2 = rocksizeclass2, rocksizeclass3 = rocksizeclass3)
+  } 
+  
+  # For soil rock fragment percentages, create layers for two dummy variables (classes 2 and 3)
+  # [for now, this is just SAGW, but hopefully other parks soon]
+  if (PARK == "SAGW") {
+    rockpctclasses <- raster_list[["soil_rockpct"]]
+    rockpctclass2 <- 1 * (rockpctclasses == 2)
+    names(rockpctclass2) <- "rockpctclass2"
+    rockpctclass3 <- 1 * (rockpct_rast == 3)
+    names(rockpctclass3) <- "rockpctclass3"
+    raster_list <- c(raster_list, rockpctclasses = rockpctclasses, rockpctclass2 = rockpctclass2, rockpctclass3 = rockpctclass3)
+  } 
+  
   # For land type associations, create layers for three dummy variables (classes 2, 3 and 4)
   # [this is just ORPI]
   if (PARK == "ORPI") {
@@ -121,6 +147,8 @@ for (PARK in parks) {
                     "burn_severity_2011",
                     "vegclasses", "vegclass2", "vegclass3", 
                     "ltaclasses", "ltaclass2", "ltaclass3", "ltaclass4",
+                    "rocksizeclasses", "rocksizeclass2", "rocksizeclass3",
+                    "rockpctclasses", "rockpctclass2", "rockpctclass3",
                     "wash")
   raster_order <- raster_order[raster_order %in% names(raster_list)]
   raster_list <- raster_list[raster_order]

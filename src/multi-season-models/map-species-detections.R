@@ -88,7 +88,7 @@ units <- "in"
 
 # Extract camera locations for this park
 locs_simple <- locs %>%
-  select(loc, longitude, latitude) %>%
+  dplyr::select(loc, longitude, latitude) %>%
   rename(lon = longitude,
          lat = latitude)
 
@@ -107,7 +107,7 @@ common_spp <- basename(spp_rds) %>% str_sub(16, 19)
 # Filtering out non-natives or unknowns from species list
 species <- species %>%
   filter(Nativeness == "Native" & !is.na(Nativeness)) %>%
-  select(Common_name, Species, Species_code) %>%
+  dplyr::select(Common_name, Species, Species_code) %>%
   mutate(modeled = 1 * Species_code %in% common_spp,
          rare = ifelse(modeled == 0 & Species_code != "OTVA", 1, 0))
 # Labeling all unmodeled species as rare except for rock squirrels, that
@@ -124,7 +124,7 @@ species <- species %>%
 dat_simple <- dat %>%
   filter(Park == PARK & yr %in% YEARS) %>%
   filter(Species_code %in% species$Species_code) %>%
-  select(Species_code, obsdate, yr, loc)
+  dplyr::select(Species_code, obsdate, yr, loc)
 
 # Create list of species detected in the park
 spp_detect <- dat_simple %>%
@@ -520,6 +520,10 @@ footnote <- paste0("Species included: ", footnote)
 plot_spprich <- ggplot() + 
   geom_spatraster(data = occrast_common, mapping = aes(fill = sum)) + 
   scale_fill_viridis_c(na.value = 'transparent', name = "Species") +
+  geom_spatvector(data=park_trails, color="lightgrey", lwd = 0.25, linetype = "longdash") +
+  geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
+  geom_spatvector(data=park_roads_1km, color="lightgrey", inherit.aes=FALSE, lwd = 0.5) + 
+  geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
   labs(title = mn_title, subtitle = subtitle, 
        caption = str_wrap(footnote, 120)) +
   theme_NPS + 

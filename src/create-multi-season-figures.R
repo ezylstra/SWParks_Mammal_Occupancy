@@ -205,7 +205,9 @@ species <- species %>%
 
 # Identify continuous covariates in occurrence part of the best model
 # Excluding years (trend) since that was covered in section above. 
-psi_continuous <- psi_covs_z[!psi_covs_z %in% c("vegclass2", "vegclass3", "years_z")]
+psi_continuous <- psi_covs_z[!psi_covs_z %in% c("vegclass2", "vegclass3", "years_z", 
+                                                "rocksizeclass2", "rocksizeclass3",
+                                                "rockpctclass2", "rockpctclass3")]
 psi_cont_unique <- unique(psi_continuous)
 psi_n_cont <- length(psi_cont_unique)
 
@@ -310,6 +312,23 @@ if (sum(str_detect(psi_covs, "veg")) > 0) {
   occprobs_veg <- vegclass_estimates(model = best, 
                                      parameter = "occ")
   print(occprobs_veg)
+}
+
+# If rock size classes were included as covariates in the model, extract
+# occurrence probabilities for each class
+if (sum(str_detect(psi_covs, "rocksize")) > 0) {
+  occprobs_rocksize <- rocksizeclass_estimates(model = best, 
+                                     parameter = "occ")
+  print(occprobs_rocksize)
+}
+
+
+# If rock percentage classes were included as covariates in the model, extract
+# occurrence probabilities for each class
+if (sum(str_detect(psi_covs, "rockpct")) > 0) {
+  occprobs_rockpct <- rockpctclass_estimates(model = best, 
+                                               parameter = "occ")
+  print(occprobs_rockpct)
 }
 
 # If there are no covariates in the model (ie, a null model), print overall 
