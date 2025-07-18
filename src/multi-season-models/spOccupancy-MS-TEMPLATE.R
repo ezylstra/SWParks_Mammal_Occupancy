@@ -226,7 +226,7 @@ f_dets
   # which, if any, spatial covariates should be included in occurrence models
 #------------------------------------------------------------------------------#
 
-# There are 4 categories of spatial covariates (though each park only has 
+# There are 3 categories of spatial covariates (though each park only has 
 # covariates in 2 or 3 of the categories):
   # topographic / landform: aspect, elev, slope, veg, soil rock fragments (percent or size class)
     # (using linear rather than quadratic forms of elev & slope because SAGW 
@@ -285,7 +285,7 @@ f_dets
   # cor.test(veg_corr$trail,veg_corr$VegClass)
   # cor.test(veg_corr$pois,veg_corr$VegClass)
   
-  # Cheryl's updated combos - treating veg/lta/rockpct as a topographic covariate (not including rocksize for now)
+  # Cheryl's updated combos - treating veg/lta/rockpct as a topographic covariate (choose either rocksize or rockpct)
   scov_combos <- list(c("aspect", "wash", "burn", "roads"),
                       c("elev", "wash", "burn", "roads"),
                       c("slope", "wash", "burn", "roads"),

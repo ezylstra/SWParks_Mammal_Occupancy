@@ -8,6 +8,8 @@
 # List of functions included:
   # create_cov_list()
   # vegclass_estimates()
+  # rockpctclass_estimates()
+  # rocksizeclass_estimates()
   # mean_estimate()
   # marginal_plot_occ()
   # marginal_plot_det()
@@ -209,6 +211,214 @@ vegclass_estimates <- function(model,
   
   return(vegclass_table)
 }
+
+#------------------------------------------------------------------------------#
+# rockpctclass_estimates: Create a table with occupancy or detection probabilities 
+# in each rock percentage class
+#------------------------------------------------------------------------------#
+
+# INPUTS
+# model: output from spOccupancy single-season model
+# parameter: character indicating whether to calculate occupancy or detection 
+# probabilities (note: rockpctclasses must have been included as a covariate
+# in the model formula for that parameter)
+# lower_ci: quantile for lower bound of credible interval (0.025 for 95% CI)
+# upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
+
+# RETURNS
+# rockpctclass_table: a dataframe with mean, SD, and 95% CI for occupancy/detection
+# probabilities in each rock percentage class
+
+rockpctclass_estimates <- function(model, 
+                               parameter = c("occ", "det"),
+                               lower_ci = 0.025,
+                               upper_ci = 0.975) {
+  
+  parameter <- match.arg(arg = parameter)
+  
+  # Create table to hold results
+  rockpctclass_table <- data.frame(rockpctclass = 1:3,
+                               mean_prob = NA,
+                               sd_prob = NA,
+                               ci_lower = NA,
+                               ci_upper = NA)
+  
+  if (parameter == "occ") {
+    samples <- model$beta.samples
+    submodel <- "occupancy"
+  } else {
+    samples <- model$alpha.samples
+    submodel <- "detection"
+  }
+  
+  if (sum(str_detect(colnames(samples), "rockpctclass")) == 0) {
+    stop("rockpctclasses must be included in model for ", submodel)
+  }
+  
+  # Probability of occupancy/detection in rockpctclass1 (reference level)
+  rockpctclass1 <- exp(samples[,"(Intercept)"])/(1 + exp(samples[,"(Intercept)"])) 
+  rockpctclass_table$mean_prob[1] <- mean(rockpctclass1)
+  rockpctclass_table$sd_prob[1] <- sd(rockpctclass1)
+  rockpctclass_table$ci_lower[1] <- quantile(rockpctclass1, lower_ci)
+  rockpctclass_table$ci_upper[1] <- quantile(rockpctclass1, upper_ci)
+  
+  # Probability of occupancy/detection in rockpctclass2
+  rockpctclass2 <- samples[,"(Intercept)"] + samples[,"rockpctclass2"]
+  rockpctclass2 <- exp(rockpctclass2)/(1 + exp(rockpctclass2)) 
+  rockpctclass_table$mean_prob[2] <- mean(rockpctclass2)
+  rockpctclass_table$sd_prob[2] <- sd(rockpctclass2)
+  rockpctclass_table$ci_lower[2] <- quantile(rockpctclass2, lower_ci)
+  rockpctclass_table$ci_upper[2] <- quantile(rockpctclass2, upper_ci)
+  
+  # Probability of occupancy/detectin in rockpctclass3
+  rockpctclass3 <- samples[,"(Intercept)"] + samples[,"rockpctclass3"]
+  rockpctclass3 <- exp(rockpctclass3)/(1 + exp(rockpctclass3)) 
+  rockpctclass_table$mean_prob[3] <- mean(rockpctclass3)
+  rockpctclass_table$sd_prob[3] <- sd(rockpctclass3)
+  rockpctclass_table$ci_lower[3] <- quantile(rockpctclass3, lower_ci)
+  rockpctclass_table$ci_upper[3] <- quantile(rockpctclass3, upper_ci)
+  
+  return(rockpctclass_table)
+}
+
+#------------------------------------------------------------------------------#
+# rocksizeclass_estimates: Create a table with occupancy or detection probabilities 
+# in each rock percentage class
+#------------------------------------------------------------------------------#
+
+# INPUTS
+# model: output from spOccupancy single-season model
+# parameter: character indicating whether to calculate occupancy or detection 
+# probabilities (note: rocksizeclasses must have been included as a covariate
+# in the model formula for that parameter)
+# lower_ci: quantile for lower bound of credible interval (0.025 for 95% CI)
+# upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
+
+# RETURNS
+# rocksizeclass_table: a dataframe with mean, SD, and 95% CI for occupancy/detection
+# probabilities in each rock percentage class
+
+rocksizeclass_estimates <- function(model, 
+                                   parameter = c("occ", "det"),
+                                   lower_ci = 0.025,
+                                   upper_ci = 0.975) {
+  
+  parameter <- match.arg(arg = parameter)
+  
+  # Create table to hold results
+  rocksizeclass_table <- data.frame(rocksizeclass = 1:3,
+                                   mean_prob = NA,
+                                   sd_prob = NA,
+                                   ci_lower = NA,
+                                   ci_upper = NA)
+  
+  if (parameter == "occ") {
+    samples <- model$beta.samples
+    submodel <- "occupancy"
+  } else {
+    samples <- model$alpha.samples
+    submodel <- "detection"
+  }
+  
+  if (sum(str_detect(colnames(samples), "rocksizeclass")) == 0) {
+    stop("rocksizeclasses must be included in model for ", submodel)
+  }
+  
+  # Probability of occupancy/detection in rocksizeclass1 (reference level)
+  rocksizeclass1 <- exp(samples[,"(Intercept)"])/(1 + exp(samples[,"(Intercept)"])) 
+  rocksizeclass_table$mean_prob[1] <- mean(rocksizeclass1)
+  rocksizeclass_table$sd_prob[1] <- sd(rocksizeclass1)
+  rocksizeclass_table$ci_lower[1] <- quantile(rocksizeclass1, lower_ci)
+  rocksizeclass_table$ci_upper[1] <- quantile(rocksizeclass1, upper_ci)
+  
+  # Probability of occupancy/detection in rocksizeclass2
+  rocksizeclass2 <- samples[,"(Intercept)"] + samples[,"rocksizeclass2"]
+  rocksizeclass2 <- exp(rocksizeclass2)/(1 + exp(rocksizeclass2)) 
+  rocksizeclass_table$mean_prob[2] <- mean(rocksizeclass2)
+  rocksizeclass_table$sd_prob[2] <- sd(rocksizeclass2)
+  rocksizeclass_table$ci_lower[2] <- quantile(rocksizeclass2, lower_ci)
+  rocksizeclass_table$ci_upper[2] <- quantile(rocksizeclass2, upper_ci)
+  
+  # Probability of occupancy/detectin in rocksizeclass3
+  rocksizeclass3 <- samples[,"(Intercept)"] + samples[,"rocksizeclass3"]
+  rocksizeclass3 <- exp(rocksizeclass3)/(1 + exp(rocksizeclass3)) 
+  rocksizeclass_table$mean_prob[3] <- mean(rocksizeclass3)
+  rocksizeclass_table$sd_prob[3] <- sd(rocksizeclass3)
+  rocksizeclass_table$ci_lower[3] <- quantile(rocksizeclass3, lower_ci)
+  rocksizeclass_table$ci_upper[3] <- quantile(rocksizeclass3, upper_ci)
+  
+  return(rocksizeclass_table)
+}
+
+#------------------------------------------------------------------------------#
+# vegclass_estimates: Create a table with occupancy or detection probabilities 
+# in each vegetation class
+#------------------------------------------------------------------------------#
+
+# INPUTS
+# model: output from spOccupancy single-season model
+# parameter: character indicating whether to calculate occupancy or detection 
+# probabilities (note: vegclasses must have been included as a covariate
+# in the model formula for that parameter)
+# lower_ci: quantile for lower bound of credible interval (0.025 for 95% CI)
+# upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
+
+# RETURNS
+# vegclass_table: a dataframe with mean, SD, and 95% CI for occupancy/detection
+# probabilities in each vegetation class
+
+vegclass_estimates <- function(model, 
+                               parameter = c("occ", "det"),
+                               lower_ci = 0.025,
+                               upper_ci = 0.975) {
+  
+  parameter <- match.arg(arg = parameter)
+  
+  # Create table to hold results
+  vegclass_table <- data.frame(vegclass = 1:3,
+                               mean_prob = NA,
+                               sd_prob = NA,
+                               ci_lower = NA,
+                               ci_upper = NA)
+  
+  if (parameter == "occ") {
+    samples <- model$beta.samples
+    submodel <- "occupancy"
+  } else {
+    samples <- model$alpha.samples
+    submodel <- "detection"
+  }
+  
+  if (sum(str_detect(colnames(samples), "vegclass")) == 0) {
+    stop("vegclasses must be included in model for ", submodel)
+  }
+  
+  # Probability of occupancy/detection in vegclass1 (reference level)
+  vegclass1 <- exp(samples[,"(Intercept)"])/(1 + exp(samples[,"(Intercept)"])) 
+  vegclass_table$mean_prob[1] <- mean(vegclass1)
+  vegclass_table$sd_prob[1] <- sd(vegclass1)
+  vegclass_table$ci_lower[1] <- quantile(vegclass1, lower_ci)
+  vegclass_table$ci_upper[1] <- quantile(vegclass1, upper_ci)
+  
+  # Probability of occupancy/detection in vegclass2
+  vegclass2 <- samples[,"(Intercept)"] + samples[,"vegclass2"]
+  vegclass2 <- exp(vegclass2)/(1 + exp(vegclass2)) 
+  vegclass_table$mean_prob[2] <- mean(vegclass2)
+  vegclass_table$sd_prob[2] <- sd(vegclass2)
+  vegclass_table$ci_lower[2] <- quantile(vegclass2, lower_ci)
+  vegclass_table$ci_upper[2] <- quantile(vegclass2, upper_ci)
+  
+  # Probability of occupancy/detectin in vegclass3
+  vegclass3 <- samples[,"(Intercept)"] + samples[,"vegclass3"]
+  vegclass3 <- exp(vegclass3)/(1 + exp(vegclass3)) 
+  vegclass_table$mean_prob[3] <- mean(vegclass3)
+  vegclass_table$sd_prob[3] <- sd(vegclass3)
+  vegclass_table$ci_lower[3] <- quantile(vegclass3, lower_ci)
+  vegclass_table$ci_upper[3] <- quantile(vegclass3, upper_ci)
+  
+  return(vegclass_table)
+}
+
 
 #------------------------------------------------------------------------------#
 # ltaclass_estimates: Create a table with occupancy or detection probabilities 

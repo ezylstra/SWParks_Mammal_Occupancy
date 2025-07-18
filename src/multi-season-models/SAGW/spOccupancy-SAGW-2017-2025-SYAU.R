@@ -193,15 +193,15 @@ source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
 # Note: this can take several minutes to run
 
 # View summary table, ranked by WAIC
-model_stats %>% arrange(waic)
+View(model_stats %>% arrange(waic))
 
-# Select the annual covariate (years, visits, traffic, monsoon_ppt, ppt10, monsoon_vpd, 
-# vpd10, deficit10, aet10, savi) 
+# Select the annual covariate (years, visits, traffic, monsoon_ppt, ppt10, ppt6, monsoon_vpd, 
+# vpd10, vpd6, deficit10, aet10, savi) 
 # that should be included in the next set of candidate models. Typically, we'll
 # select the covariate included in the model with the lowest WAIC. If none are 
 # better than the null model, set BEST_ANNUAL <- NA, as random effects will 
 # allow for variation in occurrence probability among years.
-BEST_ANNUAL <- vpd10
+BEST_ANNUAL <- "vpd10"
 
 # Look at parameter estimates for detection part of highest-ranking model and 
 # decide what detection model we'd like to use in the next set of candidate 
@@ -228,11 +228,12 @@ f_dets
 
 # There are 4 categories of spatial covariates (though each park only has 
 # covariates in 2 or 3 of the categories):
-  # topographic: aspect, elev, slope
+  # topographic / landform: aspect, elev, slope, veg, soil rock fragments (percent or size class)
     # (using linear rather than quadratic forms of elev & slope because SAGW 
     # doesn't span that large of a range and we often get nonsensical results 
     # with highest probabilities at extreme values)
-  # veg: vegclasses + wash (for now, only available for SAGW)
+      # veg: vegclasses + wash (for now, only available for SAGW)
+      # soil: rocksize + rockpct (for now, only available for SAGW)
   # burn: burn severity classes for 2011 fire (only available in CHIR)
   # anthropogenic: roads, boundary, trails, pois, roadbound, trailpois
 
@@ -284,31 +285,35 @@ f_dets
   # cor.test(veg_corr$trail,veg_corr$VegClass)
   # cor.test(veg_corr$pois,veg_corr$VegClass)
   
-# Cheryl's updated combos - treating veg/lta as a topographic covariate
-scov_combos <- list(c("aspect", "wash", "burn", "roads"),
-                    c("elev", "wash", "burn", "roads"),
-                    c("slope", "wash", "burn", "roads"),
-                    c("veg", "wash", "burn", "roads"),
-                    c("aspect",  "wash", "burn", "boundary"),
-                    #c("elev", "wash", "burn", "boundary"),
-                    c("slope", "wash", "burn", "boundary"),
-                    c("veg", "wash", "burn", "boundary"),
-                    c("aspect",  "wash", "burn", "trail"),
-                    c("elev", "wash", "burn", "trail"),
-                    c("slope", "wash", "burn", "trail"),
-                    c("veg", "wash", "burn", "trail"),
-                    c("aspect", "wash", "burn", "pois"),
-                    c("elev", "wash", "burn", "pois"),
-                    c("slope", "wash", "burn", "pois"),
-                    c("veg", "wash", "burn", "pois"))
-# c("aspect", "wash", "burn", "roadbound"), 
-# #c("elev", "wash", "burn", "roadbound"),
-# c("slope", "wash", "burn", "roadbound"),
-# c("veg", "wash", "burn", "roadbound"),
-# c("aspect", "wash", "burn", "trailpoi"),
-# c("elev", "wash", "burn", "trailpoi"),
-# c("slope", "wash", "burn", "trailpoi"),
-# c("veg", "wash", "burn", "trailpoi"))
+  # Cheryl's updated combos - treating veg/lta/rockpct as a topographic covariate (choose either rocksize or rockpct)
+  scov_combos <- list(c("aspect", "wash", "burn", "roads"),
+                      c("elev", "wash", "burn", "roads"),
+                      c("slope", "wash", "burn", "roads"),
+                      c("veg", "wash", "burn", "roads"),
+                      c("rockpct", "wash", "burn", "roads"),
+                      c("aspect",  "wash", "burn", "boundary"),
+                      #c("elev", "wash", "burn", "boundary"),
+                      c("slope", "wash", "burn", "boundary"),
+                      c("veg", "wash", "burn", "boundary"),
+                      c("rockpct", "wash", "burn", "boundary"),
+                      c("aspect",  "wash", "burn", "trail"),
+                      c("elev", "wash", "burn", "trail"),
+                      c("slope", "wash", "burn", "trail"),
+                      c("veg", "wash", "burn", "trail"),
+                      c("rockpct", "wash", "burn", "trail"),
+                      c("aspect", "wash", "burn", "pois"),
+                      c("elev", "wash", "burn", "pois"),
+                      c("slope", "wash", "burn", "pois"),
+                      c("veg", "wash", "burn", "pois"),
+                      c("rockpct", "wash", "burn", "pois"))
+  # c("aspect", "wash", "burn", "roadbound"), 
+  # #c("elev", "wash", "burn", "roadbound"),
+  # c("slope", "wash", "burn", "roadbound"),
+  # c("veg", "wash", "burn", "roadbound"),
+  # c("aspect", "wash", "burn", "trailpoi"),
+  # c("elev", "wash", "burn", "trailpoi"),
+  # c("slope", "wash", "burn", "trailpoi"),
+  # c("veg", "wash", "burn", "trailpoi"))
 OCC_MODELS <- lapply(scov_combos, function(x) c(x, BEST_ANNUAL))
 OCC_NULL <- FALSE
 
@@ -359,7 +364,7 @@ View(model_stats %>% arrange(waic))
 STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 10
+  best_index <- 7
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -383,32 +388,32 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
                  c("slope", "trail"), c("slope", "trail", "vpd10"),
                  c("slope"), c("slope", "vpd10"))
   OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
-  #If needed, refine the detection model
+  # If needed, refine the detection model
   # DET_MODELS <- list(c("burn", "effort"))
   source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
   message("Check candidate models:", sep = "\n")
   model_specs
-
+  
   # Run model(s)
   source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
-  View(model_stats %>% arrange(waic))
+  model_stats %>% arrange(waic)
 
   # Specify STAT as either: waic or model_no
-  STAT <- "waic"
+  STAT <- "waic"   
   if (STAT == "model_no") {
     # If STAT == "model_no", specify model of interest by model number in table
-    best_index <- 3
+    best_index <- 4  
   } else {
     min_stat <- min(model_stats[,STAT])
-    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat]
+    best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
   }
-  # Look at model output and f values
+  # Look at model output and f values 
   summary(out_list[[best_index]])
   samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
                  out_list[[best_index]]$alpha.samples[, -1])
   (f <- apply(samps, 2, function(x) ifelse(mean(x) > 0, sum(x > 0) / length(x),
-                                           sum(x < 0) / length(x))))
-
+                                           sum(x < 0) / length(x))))  
+  
   # If there's a need to explore additional models and add more samples, re-run 
   # after specifying scov_new again or changing MCMC parameters, otherwise...
   
@@ -605,7 +610,9 @@ if (length(psi_spatcovs) > 0) {
 
 # Identify continuous covariates in occurrence part of the best model
 # Excluding years (trend) since that was covered in section above. 
-psi_continuous <- psi_covs_z[!psi_covs_z %in% c("vegclass2", "vegclass3", "years_z")]
+psi_continuous <- psi_covs_z[!psi_covs_z %in% c("vegclass2", "vegclass3", "years_z", 
+                                                "rocksizeclass2", "rocksizeclass3",
+                                                "rockpctclass2", "rockpctclass3")]
 psi_cont_unique <- unique(psi_continuous)
 psi_n_cont <- length(psi_cont_unique)
 
@@ -648,6 +655,23 @@ if (sum(str_detect(psi_covs, "veg")) > 0) {
   occprobs_veg <- vegclass_estimates(model = best, 
                                      parameter = "occ")
   print(occprobs_veg)
+}
+
+# If rock size classes were included as covariates in the model, extract
+# occurrence probabilities for each class
+if (sum(str_detect(psi_covs, "rocksize")) > 0) {
+  occprobs_rocksize <- rocksizeclass_estimates(model = best, 
+                                               parameter = "occ")
+  print(occprobs_rocksize)
+}
+
+
+# If rock percentage classes were included as covariates in the model, extract
+# occurrence probabilities for each class
+if (sum(str_detect(psi_covs, "rockpct")) > 0) {
+  occprobs_rockpct <- rockpctclass_estimates(model = best, 
+                                             parameter = "occ")
+  print(occprobs_rockpct)
 }
 
 # If there are no covariates in the model (ie, a null model), print overall 

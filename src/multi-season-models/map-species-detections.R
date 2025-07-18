@@ -181,10 +181,10 @@ mn_title <- "Number of species observed"
 subtitle <- paste0(park, ", ", YEARS[1], "-", YEARS[length(YEARS)])
 plot_nspp <- ggplot() + 
   #geom_spatvector(data = contours, color = "gray65", fill = NA, linewidth = 0.2) +
-  geom_spatvector(data = boundary, color = "darkgreen", fill = "lightgrey", lwd=1) +
+  geom_spatvector(data = boundary, color = "darkgreen", fill = "grey", lwd=1) +
   geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
   geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
-  geom_spatvector(data = detsv, aes(color = factor(nspp), shape=factor(nspp)), size = 1) +
+  geom_spatvector(data = detsv, aes(color = factor(nspp), shape=factor(nspp)), size = 2) +
   scale_color_count(name = "Species") + 
   scale_shape_count(name = "Species") +
   #scale_color_brewer(palette = "RdYlBu", name = "Species", direction = -1) +
@@ -228,13 +228,13 @@ footnote <- paste(species$Common_name[species$rare == 1], collapse = ", ")
 footnote <- paste0("Species included: ", footnote)
 plot_nspp_rare <- ggplot() + 
   #geom_spatvector(data = contours, color = "gray65", fill = NA, linewidth = 0.2) +
-  geom_spatvector(data = boundary, color = "darkgreen", fill = "lightgrey", lwd=1) +
+  geom_spatvector(data = boundary, color = "darkgreen", fill = "grey", lwd=1) +
   geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
   geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
   #geom_spatvector(data = detsv[detsv$nspp_rare == 0, ], size = 0.5, color="white") +
   #geom_spatvector(data = detsv[detsv$nspp_rare > 0, ], 
   #                aes(color = factor(nspp_rare)), size = 1) +
-  geom_spatvector(data = detsv, aes(color = factor(nspp_rare), shape=factor(nspp_rare)), size = 1) +
+  geom_spatvector(data = detsv, aes(color = factor(nspp_rare), shape=factor(nspp_rare)), size = 2) +
   scale_color_count(name = "Species") + 
   scale_shape_count(name = "Species") +
   #scale_color_brewer(palette = "RdYlBu", name = "Species", direction = -1) +
@@ -299,11 +299,11 @@ for (i in unique(modeled_species)){
   subtitle <- paste0(park, ", ", YEARS[1], "-", YEARS[length(YEARS)])
   plot_nyrs <- ggplot() + 
     #geom_spatvector(data = contours, color = "gray65", fill = NA, linewidth = 0.2) +
-    geom_spatvector(data = boundary, color = "darkgreen", fill = "lightgrey", lwd=1) +
+    geom_spatvector(data = boundary, color = "darkgreen", fill = "grey", lwd=1) +
     geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
     geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
     geom_spatvector(data = obs_modeled_sv[obs_modeled_sv$Species_code==i], 
-                    aes(color = factor(yrs), shape = factor(yrs)), size = 1) +
+                    aes(color = factor(yrs), shape = factor(yrs)), size = 2) +
     #scale_color_brewer(palette = "RdYlBu", name = "Years", direction = -1) +
     scale_color_count(name = "Years") + 
     scale_shape_count(name = "Years") +
@@ -370,11 +370,11 @@ mn_title <- paste("Number of years with", spp_common, "observations")
 subtitle <- paste0(park, ", ", YEARS[1], "-", YEARS[length(YEARS)])
 plot_nyrs <- ggplot() + 
   #geom_spatvector(data = contours, color = "gray65", fill = NA, linewidth = 0.2) +
-  geom_spatvector(data = boundary, color = "darkgreen", fill = "lightgrey", lwd=1) +
+  geom_spatvector(data = boundary, color = "darkgreen", fill = "grey", lwd=1) +
   geom_spatvector(data=park_trails, color="black", lwd = 0.1, linetype = "dashed") +
   geom_spatvector(data=park_roads_1km, color="black", inherit.aes=FALSE, lwd = 0.1) + 
   geom_spatvector(data = obs_rare_sv[obs_rare_sv$Species_code==i], 
-                  aes(color = factor(yrs), shape = factor(yrs)), size = 1) +
+                  aes(color = factor(yrs), shape = factor(yrs)), size = 2) +
   #scale_color_brewer(palette = "RdYlBu", name = "Years", direction = -1) +
   scale_color_count(name = "Years") + 
   scale_shape_count(name = "Years") +
