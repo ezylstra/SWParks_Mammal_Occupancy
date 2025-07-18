@@ -31,8 +31,8 @@ dat <- read.csv(paste0("data/mammals/Detections_", PARK, ".csv"))
 #locs_ann <- vect(paste0("data/mammals/CameraLocations_Annual_",
 #                        PARK, ".shp"))
 
-locs_ann <- vect(st_as_sf(read.csv(paste0("data/mammals/CameraLocations_Annual_",
-                    PARK, ".csv")),coords = c("decimalLongitude", "decimalLatitude"), crs = 4326))
+locs_ann <- st_as_sf(read.csv(paste0("data/mammals/CameraLocations_Annual_",
+                    PARK, ".csv")),coords = c("decimalLongitude", "decimalLatitude"), crs = 4326)
 
 # names(locs_ann) <- c("UnitCode", "StdLocName", "LocationName", "DeployDate",
 #                      "StdLocName_Flag", "LocationName_Flag", "DeployDate_Flag",
@@ -260,8 +260,10 @@ if (PARK == "ORPI") {
 
 # Reproject to use the same crs as other objects used in the project 
 # (EPSG:4269; lon/lat NAD83)
-# does not work on NPS network, need to figure out how to make it work
-locs_ann <- terra::project(locs_ann, "EPSG:4269")
+# keeping as sf to do projection so functions on NPS network
+locs_ann <- st_transform(locs_ann, "EPSG:4269")
+
+locs_ann <- vect(locs_ann)
 
 # Checked for flagged data
 locs_ann_df <- as.data.frame(locs_ann)
