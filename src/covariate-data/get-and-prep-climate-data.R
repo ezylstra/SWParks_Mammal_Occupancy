@@ -6,6 +6,8 @@
 # 2022-08-25
 ################################################################################
 
+### May need to be off NPS network for scripts to work properly! ###
+
 library(downloader)
 library(terra)
 library(dplyr)
@@ -355,7 +357,7 @@ for (yr in pr_yrs) {
            rast(paste0(weather_orig_folder, "/vpd", yr, ".nc")))
   }
   
-  # Create annual rasters with cumulative vapor pressure deficit during monsoon season
+  # Create annual rasters with mean vapor pressure deficit during monsoon season
   # Raster/filenames will be: monsoon_vpd_YEAR
   
   # Remove last year from list if we don't have data through Sep 30
@@ -374,11 +376,11 @@ for (yr in pr_yrs) {
     startd  <- lubridate::yday(paste0(yr, "-06-15"))
     endd <- lubridate::yday(paste0(yr, "-09-30"))
     monsoon_vpd <- monsoon_vpd[[startd:endd]]
-    monsoon_vpd <- app(monsoon_vpd, fun = sum)
+    monsoon_vpd <- app(monsoon_vpd, fun = mean)
     assign(new_name, monsoon_vpd)
   } 
   
-  # Create annual rasters with cumulative vapor pressure deficit during winter (Oct-Mar)
+  # Create annual rasters with mean vapor pressure deficit during winter (Oct-Mar)
   # Raster/filenames will be: winter_vpd_YEARYEAR
   
   # Remove last year from list if we don't have data through Mar 30
@@ -410,13 +412,13 @@ for (yr in pr_yrs) {
     
     # Merge rasters from two calendar years
     winter_vpd <- c(winter1_vpd, winter2_vpd)
-    winter_vpd <- app(winter_vpd, fun = sum)
+    winter_vpd <- app(winter_vpd, fun = mean)
     assign(new_name, winter_vpd) 
   }
   
-  # Create rasters with cumulative vpd during 10 months prior to sampling. 
+  # Create rasters with mean vpd during 10 months prior to sampling. 
   
-  # For SAGW, want precip for Mar-Dec (sampling Jan-Feb)
+  # For SAGW, want vpd for Mar-Dec (sampling Jan-Feb)
   # Raster/filenames will be: SAGW_MarDec_vpd_YEAR
   
   # Remove last year from list if we don't have data through Dec 31
@@ -438,11 +440,11 @@ for (yr in pr_yrs) {
     startd  <- lubridate::yday(paste0(yr, "-03-01"))
     endd <- lubridate::yday(paste0(yr, "-12-31"))
     MarDec_vpd <- MarDec_vpd[[startd:endd]]
-    MarDec_vpd <- app(MarDec_vpd, fun = sum)
+    MarDec_vpd <- app(MarDec_vpd, fun = mean)
     assign(new_name, MarDec_vpd)
   } 
   
-  # For ORPI, want vpd for May-Feb (sampling Mar-Apr)
+  # For ORPI, want mean vpd for May-Feb (sampling Mar-Apr)
   # Raster/filenames will be: ORPI_MayFeb_vpd_YEARYEAR
   
   # Remove last year from list if we don't have data through end of Feb
@@ -480,11 +482,11 @@ for (yr in pr_yrs) {
     
     # Merge rasters from two calendar years
     MayFeb_vpd <- c(vpd1, vpd2)
-    MayFeb_vpd <- app(MayFeb_vpd, fun = sum)
+    MayFeb_vpd <- app(MayFeb_vpd, fun = mean)
     assign(new_name, MayFeb_vpd)  
   }  
   
-  # For CHIR, want vpd for Jul-Apr (sampling May-Jun from 2021 on)
+  # For CHIR, want mean vpd for Jul-Apr (sampling May-Jun from 2021 on)
   # Raster/filenames will be: CHIR_JulApr_vpd_YEARYEAR
   
   # Remove years prior to 2020
@@ -523,11 +525,11 @@ for (yr in pr_yrs) {
     
     # Merge rasters from two calendar years
     JulApr_vpd <- c(vpd1, vpd2)
-    JulApr_vpd <- app(JulApr_vpd, fun = sum)
+    JulApr_vpd <- app(JulApr_vpd, fun = mean)
     assign(new_name, JulApr_vpd)  
   }   
   
-  # Create rasters with cumulative vpd during 6 months prior to sampling.
+  # Create rasters with mean vpd during 6 months prior to sampling.
   # SAGW only for now
   
   # For SAGW, want vpd for Jul-Dec (sampling Jan-Feb)
@@ -552,9 +554,10 @@ for (yr in pr_yrs) {
     startd  <- lubridate::yday(paste0(yr, "-07-01"))
     endd <- lubridate::yday(paste0(yr, "-12-31"))
     JulDec_vpd <- JulDec_vpd[[startd:endd]]
-    JulDec_vpd <- app(JulDec_vpd, fun = sum)
+    JulDec_vpd <- app(JulDec_vpd, fun = mean)
     assign(new_name, JulDec_vpd)
   } 
+
 #------------------------------------------------------------------------------#
 # Save rasters to file
 #------------------------------------------------------------------------------#  
