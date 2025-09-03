@@ -61,7 +61,7 @@ scale_color_count <- function(...){
 # Create custom symbols
 scale_shape_count <- function(...){
   ggplot2:::manual_scale('shape', 
-                         values = setNames(c(1, 15, 0, 16, 18, 2, 3, 10, 17, 6, 8, 11),
+                         values = setNames(c(1, 2, 0, 5, 18, 4, 3, 15, 17, 16, 8, 11),
                                            c("0", "1","2", "3", "4","5", "6", "7", "8", "9", "10")), 
                          ...)
 }
