@@ -1,41 +1,43 @@
-parameter,park,temporal_variation,short_name,formula,axis_label
-either,all,none,boundary,boundary_z,Distance to nearest unprotected park boundary (m)
-either,all,none,aspect,east_z + north_z,NA
-either,all,none,east,east_z,Eastness
-either,all,none,north,north_z,Northness
-either,all,none,elev,elev_z,Elevation (m)
-either,all,none,elev2,elev_z + I(elev_z^2),Elevation (m)
-either,all,none,pois,pois_z,Distance to nearest point of interest (m)
-either,all,none,roads,roads_z,Distance to nearest road (m)
-either,all,none,slope,slope_z,Slope (degrees)
-either,all,none,slope2,slope_z + I(slope_z^2),Slope (degrees)
-either,all,none,trail,trail_z,Distance to nearest trail (m)
-either,all,none,roadbound,roadbound_z,Distance to nearest road or unprotected boundary (m)
-either,all,none,trailpoi,trailpoi_z,Distance to nearest trail or point of interest (m)
-either,CHIR,none,burn,burn_severity_2011_z,Burn severity
-either,SAGW,none,wash,wash_z,Distance to nearest wash (m)
-either,SAGW,none,veg,vegclass2 + vegclass3,NA
-either,SAGW,none,rocksize,rocksizeclass2 + rocksizeclass3,NA
-either,SAGW,none,rockpct,rockpctclass2 + rockpctclass3,NA
-either,all,none,site,site,Index for site (for random effects)
-either,all,annual,years,years_z,Year
-either,SAGW,annual,visits,visits_z,Number of visitors
-either,SAGW,annual,traffic,traffic_z,Average traffic volume (no. cars)
-either,all,annual,monsoon_vpd,monsoon_vpd_z,Average vapor pressure deficit during previous monsoon (mm)
-either,SAGW,annual,vpd10,vpd10_z,Average vapor pressure deficit during previous 10 months (Mar-Dec; mm)
-either,ORPI,annual,vpd10,vpd10_z,Average vapor pressure deficit during previous 10 months (May-Feb; mm)
-either,SAGW,annual,vpd6,vpd6_z,Average vapor pressure deficit during previous 6 months (Jul-Dec; mm)
-either,all,annual,monsoon_ppt,monsoon_ppt_z,Precipitation during previous monsoon (mm)
-either,SAGW,annual,ppt10,ppt10_z,Precipitation during previous 10 months (Mar-Dec; mm)
-either,ORPI,annual,ppt10,ppt10_z,Precipitation during previous 10 months (May-Feb; mm)
-either,SAGW,annual,ppt6,ppt6_z,Precipitation during previous 6 months (Jul-Dec; mm)
-either,SAGW,annual,deficit10,deficit10_z,Water balance deficit (cumulative) during previous 10 months (Mar-Dec; in)
-either,SAGW,annual,aet10,aet10_z,Water balance actual evapotranspiration (cumulative) during previous 10 months (Mar-Dec; in)
-either,SAGW,annual,savi,savi_z,Soil-adjusted vegetation index (Apr-Mar; max)
-detection,all,occasion,day,day_z,Day of the year
-detection,all,occasion,day2,day_z + I(day_z^2),Day of the year
-detection,all,occasion,deploy_exp,deploy_exp,Deployment personnel experience
-detection,all,occasion,effort,effort_z,Proportion of days camera was operational
-detection,all,annual,camera,camera,"Indicator for 2022-2024, when different cameras were used"
-detection,SAGW,annual,lens,lens,"Indicator for 2023-2024, when more sensitive lens was used"
-detection,ORPI,annual,lens,lens,"Indicator for 2023-2024, when more sensitive lens was used"
+parameter,park,temporal_variation,short_name,formula,axis_label,table_label
+either,all,none,boundary,boundary_z,Distance to nearest unprotected park boundary (m),Distance to unprotected park boundary
+either,all,none,aspect,east_z + north_z,NA,NA
+either,all,none,east,east_z,Eastness,Eastness
+either,all,none,north,north_z,Northness,Northness
+either,all,none,elev,elev_z,Elevation (m),Elevation
+either,all,none,elev2,elev_z + I(elev_z^2),Elevation (m),Elevation^2
+either,all,none,pois,pois_z,Distance to nearest point of interest (m),Distance to nearest point of interest
+either,all,none,roads,roads_z,Distance to nearest road (m),Distance to nearest road
+either,all,none,slope,slope_z,Slope (degrees),Slope
+either,all,none,slope2,slope_z + I(slope_z^2),Slope (degrees),Slope
+either,all,none,trail,trail_z,Distance to nearest trail (m),Distance to trail
+either,all,none,roadbound,roadbound_z,Distance to nearest road or unprotected boundary (m),Distance to road or unprotected boundary
+either,all,none,trailpoi,trailpoi_z,Distance to nearest trail or point of interest (m),Distance to trail or point of interest
+either,CHIR,none,burn,burn_severity_2011_z,Burn severity,Burn severity
+either,SAGW,none,wash,wash_z,Distance to nearest wash (m),Distance to nearest wash
+either,SAGW,none,veg,vegclass2 + vegclass3,NA,NA
+either,SAGW,none,rocksize,rocksizeclass2 + rocksizeclass3,NA,NA
+either,SAGW,none,rockpct,rockpctclass2 + rockpctclass3,NA,NA
+either,all,none,site,site,Index for site (for random effects),Index for site
+either,all,annual,years,years_z,Year,Year
+either,SAGW,annual,visits,visits_z,Number of visitors,Number of visitors
+either,SAGW,annual,traffic,traffic_z,Average traffic volume (no. cars),Average traffic volume
+either,all,annual,monsoon_vpd,monsoon_vpd_z,Average vapor pressure deficit during previous monsoon (mm),VPD (monsoon)
+either,SAGW,annual,vpd10,vpd10_z,Average vapor pressure deficit during previous 10 months (Mar-Dec; mm),VPD (10 months prior)
+either,ORPI,annual,vpd10,vpd10_z,Average vapor pressure deficit during previous 10 months (May-Feb; mm),VPD (10 months prior)
+either,SAGW,annual,vpd6,vpd6_z,Average vapor pressure deficit during previous 6 months (Jul-Dec; mm),VPD (6 months prior)
+either,all,annual,monsoon_ppt,monsoon_ppt_z,Precipitation during previous monsoon (mm),Precipitation (monsoon)
+either,SAGW,annual,ppt10,ppt10_z,Precipitation during previous 10 months (Mar-Dec; mm),Precipitation (10 months prior)
+either,ORPI,annual,ppt10,ppt10_z,Precipitation during previous 10 months (May-Feb; mm),Precipitation (10 months prior)
+either,SAGW,annual,ppt6,ppt6_z,Precipitation during previous 6 months (Jul-Dec; mm),Precipitation (6 months prior)
+either,SAGW,annual,deficit10,deficit10_z,Climatic water deficit (cumulative) during previous 10 months (Mar-Dec; in),Climatic water deficit (10 months prior)
+either,SAGW,annual,aet10,aet10_z,Actual evapotranspiration (cumulative) during previous 10 months (Mar-Dec; in),Actual evapotranspiration (10 months prior)
+either,SAGW,annual,savi,savi_z,Soil-adjusted vegetation index (Apr-Mar; max),Soil-adjusted vegetation index
+detection,all,occasion,day,day_z,Day of the year,Day of the year
+detection,all,occasion,day2,day_z + I(day_z^2),Day of the year,(Day of the year)^2
+detection,all,occasion,deploy_exp,deploy_exp,Deployment personnel experience,Personnel experience
+detection,all,occasion,effort,effort_z,Proportion of days camera was operational,Camera operational proportion
+detection,all,annual,camera,camera,"Indicator for 2022-2025, when different cameras were used",Camera type (Cuddeback G-5017)
+detection,SAGW,annual,lens,lens,"Indicator for 2023-2025, when more sensitive lens was used",Camera lens (Center)
+detection,ORPI,annual,lens,lens,"Indicator for 2023-2025, when more sensitive lens was used",Camera lens (Center)
+,SAGW,none,vegclass2,NA,NA,Vegetation / landform class #2
+,SAGW,none,vegclass3,NA,NA,Vegetation / landform class #3

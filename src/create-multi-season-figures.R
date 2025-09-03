@@ -20,14 +20,14 @@ library(ggspatial)
 # Park, year, and species
 PARK <- "SAGW"
 YEARS <- 2017:2025
-SPECIES <- "LYRU"
+SPECIES <- "SYAU"
 
 # Logical indicating whether to create maps with mean occurrence probabilities (with roads/trails)
 MAP <- TRUE
 # Logical indicating whether to create maps with SD of occurrence probabilities (with roads/trails)
 MAP_SD <- TRUE
 # Logical indicating whether to create maps with mean occurrence probabilities and raw detections
-MAP_DETECT <- FALSE  # if TRUE, MAP must also be true
+MAP_DETECT <- TRUE  # if TRUE, MAP must also be true
 # Logical indicating whether to create a 4-panel figure with mean and SD
 # of occurrence probabilities in first and last year in addition to the single
 # panel figures for each parameter. (Only relevant if MAP_SD == TRUE)
@@ -37,15 +37,15 @@ LATLONG <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the occurrence part of the model
-MARG_OCC <- FALSE
+MARG_OCC <- TRUE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the detection part of the model
-MARG_DET <- FALSE
+MARG_DET <- TRUE
 
 # Logical indicating whether to create a figure with naive/estimated occurrence
 # over time (including trend, if relevant)
-OCC_TIME <- FALSE
+OCC_TIME <- TRUE
 
 # Parameters, for single-panel figures
 file_extension1 <- ".png"   # can update to jpg
@@ -66,6 +66,9 @@ height_4 <- 8
 #------------------------------------------------------------------------------#
 # Load/create objects needed for any figure
 #------------------------------------------------------------------------------#
+# Load dataframe with information about covariates, including axis and table labels:
+covariates <- read.csv("data/covariates/covariates-MS.csv", header = TRUE)
+
 # Load functions and raw data
 source("src/photo-data/format-mammal-data.R")
 source("src/functions.R")
@@ -143,8 +146,15 @@ occ_estimates <- occ_estimates %>%
 det_estimates <- det_estimates %>%
   rename(Covariate = Parameter) %>%
   mutate(Parameter = "Detection", .before = "Covariate")
-estimates <- rbind(occ_estimates, det_estimates) %>% mutate(`95% CI` = paste0(round(`Lower95%`,2), ", ",round(`Upper95%`,2), sep=""))
-estimates %>% dplyr::select(Parameter, Covariate, Mean, SD, `95% CI`, Rhat, ESS, f)
+estimates <- rbind(occ_estimates, det_estimates) 
+estimates %>% 
+  mutate(`95% CI` = paste0(round(`Lower95%`,2), ", ",round(`Upper95%`,2), sep="")) %>%
+  mutate(short_name = str_remove(Covariate, "_z")) %>%
+  left_join(., covariates %>% dplyr::select(short_name, table_label) %>% distinct(), by = "short_name") %>%
+  dplyr::select(-Covariate) %>%
+  rename(Covariate = table_label) %>%
+  mutate(Covariate = ifelse(short_name=="(Intercept)", short_name, Covariate)) %>% 
+  dplyr::select(Parameter, Covariate, Mean, SD, `95% CI`, Rhat, ESS, f)
 
 # Create basename for output files
 base_out <- paste0("output/NPS-figures/multi-season/",
@@ -213,9 +223,6 @@ psi_n_cont <- length(psi_cont_unique)
 
 if (OCC_TIME) { 
   
-  # Load general information about covariates
-  covariates <- read.csv("data/covariates/covariates-MS.csv")
-  
   occ_time <- occ_time_plot(model = best, 
                             data_list = data_list,
                             covariate_table = covariates,
@@ -265,9 +272,6 @@ apply(best$beta.star.samples[,yrREcols], 2, mean)
 #------------------------------------------------------------------------------#  
 if (MARG_OCC) { 
   
-  # Load general information about covariates
-  covariates <- read.csv("data/covariates/covariates-MS.csv")
-  
   # If there are any continuous covariates, create a figure for each:
   if (psi_n_cont > 0) {
     # Loop through each covariate
@@ -287,7 +291,7 @@ if (MARG_OCC) {
         theme_NPS +
         ggtitle(str_wrap(title, 60), subtitle)
       plotname <- paste0("marg-occ-", str_remove(cov, "_z"))
-      
+
       ggsave(plot_marg, 
              file = paste0(base_out, plotname, file_extension1),
              dpi = dpi, 
@@ -355,9 +359,6 @@ p_n_cont <- length(p_cont_unique)
 
 if (MARG_DET) { 
   
-  # Load general information about covariates
-  covariates <- read.csv("data/covariates/covariates-MS.csv")
-  
   # If there are any continuous covariates, create a figure for each:
   if (p_n_cont > 0) {
     # Loop through each covariate
@@ -387,6 +388,11 @@ if (MARG_DET) {
         theme_NPS +
         ggtitle(str_wrap(title, 60), subtitle)
       plotname <- paste0("marg-det-", str_remove(cov, "_z"))
+      
+      if(cov=="day_z" & PARK=="SAGW")plot_marg <- plot_marg + scale_x_continuous(limits=c(10,59), expand=c(0,0), 
+                                                                                  breaks= c(10,24,38,52), 
+                                                                                  labels= c("Jan 10", "Jan 24", "Feb 7", "Feb 21")) 
+      
       
       ggsave(plot_marg, 
              file = paste0(base_out, plotname, file_extension1),
@@ -477,7 +483,7 @@ if(MAP | MAP_SD | MAP_DETECT) {
   source("src/multi-season-models/spOccupancy-MS-predictions.R")
   
   # Create figures
-  mn_title <- paste0("Mean occurrence probability of ",
+  mn_title <- paste0("Occurrence probability of ",
                      species$Common_name[species$Species_code == SPECIES])
   sd_title <- paste0("Standard deviation of occurrence probability of ",
                      species$Common_name[species$Species_code == SPECIES])
