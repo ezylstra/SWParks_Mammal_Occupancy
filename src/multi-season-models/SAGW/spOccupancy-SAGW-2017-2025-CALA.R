@@ -361,7 +361,7 @@ View(model_stats %>% arrange(waic))
 # "best_index" directly.
 
 # Specify STAT as either: waic or model_no
-STAT <- "model_no"   
+STAT <- "waic"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
   best_index <- 7
@@ -400,7 +400,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
   STAT <- "waic"   
   if (STAT == "model_no") {
     # If STAT == "model_no", specify model of interest by model number in table
-    best_index <- 1  
+    best_index <- 2  
   } else {
     min_stat <- min(model_stats[,STAT])
     best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 

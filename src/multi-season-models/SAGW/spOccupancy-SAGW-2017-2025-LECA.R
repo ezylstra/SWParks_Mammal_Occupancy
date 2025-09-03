@@ -384,7 +384,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 # power from the model for occurrence.
 
   # Identify new set(s) of spatial covariates to explore:
-  scov_new <- list(c("slope", "wash"))
+  scov_new <- list(c("slope", "wash"),c("slope", "wash", "trail"))
   OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
   # If needed, refine the detection model
   # DET_MODELS <- list(c("burn", "effort"))
@@ -400,7 +400,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
   STAT <- "waic"   
   if (STAT == "model_no") {
     # If STAT == "model_no", specify model of interest by model number in table
-    best_index <- 4  
+    best_index <- 2  
   } else {
     min_stat <- min(model_stats[,STAT])
     best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 

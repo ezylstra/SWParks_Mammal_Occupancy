@@ -201,7 +201,7 @@ View(model_stats %>% arrange(waic))
 # select the covariate included in the model with the lowest WAIC. If none are 
 # better than the null model, set BEST_ANNUAL <- NA, as random effects will 
 # allow for variation in occurrence probability among years.
-BEST_ANNUAL <- "vpd10"
+BEST_ANNUAL <- NA #"vpd10"
 
 # Look at parameter estimates for detection part of highest-ranking model and 
 # decide what detection model we'd like to use in the next set of candidate 
@@ -364,7 +364,7 @@ View(model_stats %>% arrange(waic))
 STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 7
+  best_index <- 12
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -384,9 +384,9 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
 # power from the model for occurrence.
 
   # Identify new set(s) of spatial covariates to explore:
-  scov_new <- list(c("slope", "trail", "wash"), c("slope", "trail", "wash", "vpd10"),
-                 c("slope", "trail"), c("slope", "trail", "vpd10"),
-                 c("slope"), c("slope", "vpd10"))
+  scov_new <- list(c("slope", "trail", "wash"), 
+                 c("slope", "trail"), 
+                 c("slope"))
   OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
   # If needed, refine the detection model
   # DET_MODELS <- list(c("burn", "effort"))

@@ -364,7 +364,7 @@ View(model_stats %>% arrange(waic))
 STAT <- "model_no"   
 if (STAT == "model_no") {
   # If STAT == "model_no", specify model of interest by model number in table
-  best_index <- 10
+  best_index <- 12
 } else {
   min_stat <- min(model_stats[,STAT])
   best_index <- model_stats$model_no[model_stats[,STAT] == min_stat] 
@@ -386,7 +386,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
   # Identify new set(s) of spatial covariates to explore:
   #scov_new <- list(c("elev", "burn"))
   #OCC_MODELS <- lapply(scov_new, function(x) c(x, BEST_ANNUAL))
-  OCC_MODELS <- list(c("slope", "years"), "slope")
+  OCC_MODELS <- list(c("slope", "years"), "slope", c("veg", "years"), "veg")
   # If needed, refine the detection model
   # DET_MODELS <- list(c("burn", "effort"))
   source("src/multi-season-models/spOccupancy-MS-create-model-formulas.R")
@@ -395,7 +395,7 @@ samps <- cbind(out_list[[best_index]]$beta.samples[, -1],
   
   # Run model(s)
   source("src/multi-season-models/spOccupancy-MS-run-candidate-models.R")
-  model_stats %>% arrange(waic)
+  View(model_stats %>% arrange(waic))
 
   # Specify STAT as either: waic or model_no
   STAT <- "waic"   
