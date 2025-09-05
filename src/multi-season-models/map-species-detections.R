@@ -126,17 +126,17 @@ dat_simple <- dat %>%
   filter(Species_code %in% species$Species_code) %>%
   dplyr::select(Species_code, obsdate, yr, loc)
 
-# Create list of species detected in the park
-spp_detect <- dat_simple %>%
+# Create list of species observed in the park
+spp_obs <- dat_simple %>%
   group_by(Species_code) %>%
-  summarize(ndetects = length(Species_code),
+  summarize(nobs = length(Species_code),
             nyrs = length(unique(yr)),
             nlocs = length(unique(loc))) %>%
   data.frame()
 species <- left_join(species, spp_detect, by = "Species_code") %>%
-  filter(!is.na(ndetects))
+  filter(!is.na(nobs))
 
-# Calculate the number of species detected at each camera location
+# Calculate the number of species observed at each camera location
 dets <- dat_simple %>%
   left_join(species[, c("Species_code", "modeled", "rare")], 
             by = "Species_code") %>%

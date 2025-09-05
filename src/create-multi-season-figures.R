@@ -20,7 +20,7 @@ library(ggspatial)
 # Park, year, and species
 PARK <- "SAGW"
 YEARS <- 2017:2025
-SPECIES <- "SYAU"
+SPECIES <- "LYRU"
 
 # Logical indicating whether to create maps with mean occurrence probabilities (with roads/trails)
 MAP <- TRUE
@@ -822,5 +822,11 @@ if(MAP | MAP_SD | MAP_DETECT) {
     }
 }
 
-estimates %>% dplyr::select(Parameter, Covariate, Mean, SD, `95% CI`, Rhat, ESS, f)
-
+estimates %>% 
+  mutate(`95% CI` = paste0(round(`Lower95%`,2), ", ",round(`Upper95%`,2), sep="")) %>%
+  mutate(short_name = str_remove(Covariate, "_z")) %>%
+  left_join(., covariates %>% dplyr::select(short_name, table_label) %>% distinct(), by = "short_name") %>%
+  dplyr::select(-Covariate) %>%
+  rename(Covariate = table_label) %>%
+  mutate(Covariate = ifelse(short_name=="(Intercept)", short_name, Covariate)) %>% 
+  dplyr::select(Parameter, Covariate, Mean, SD, `95% CI`, Rhat, ESS, f)
