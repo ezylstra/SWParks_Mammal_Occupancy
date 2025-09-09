@@ -52,6 +52,14 @@ theme_NPS <- ggplot2::theme_classic() +
 # (this way 4 is the same color on all maps)
 scale_color_count <- function(...){
   ggplot2:::manual_scale('colour', 
+                         values = setNames(c("#111111", "#364B9A", "#364B9A", "#364B9A", "#95187E", "#95187E", "#95187E", 
+                                             "#95187E","#A50026", "#A50026", "#A50026"),
+                                           c( "0","1","2", "3", "4","5", "6", "7", "8", "9", "10")), 
+                         ...)
+}
+
+scale_color_count2 <- function(...){
+  ggplot2:::manual_scale('colour', 
                          values = setNames(c("#364B9A", "#4A7BB7", "#6EA6CD", "#98CAE1", "#C2E4EF", "#EAECCC", "#FEDA8B", 
                                              "#FDB366","#F67E4B", "#DD3D2D", "#A50026"),
                                            c( "0","1","2", "3", "4","5", "6", "7", "8", "9", "10")), 
