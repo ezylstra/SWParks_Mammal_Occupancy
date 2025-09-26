@@ -56,7 +56,7 @@ yr_max = max(dat$yr, na.rm=TRUE)
 # Extract columns from events data and limit events to only those years when
 # we have photo data
 events <- events %>%
-  select(Park, LocationName, loc, d_yr, active_start, active_end, 
+  dplyr::select(Park, LocationName, loc, d_yr, active_start, active_end, 
          operational, start_day, end_day) %>%
   filter(d_yr %in% yr_min:yr_max)
 
@@ -129,7 +129,7 @@ occasions_max$max_keep <- ifelse(occasions_max$max_occ > occ_max,
                                  occ_max, 
                                  occasions_max$max_occ)
 occasions <- left_join(occasions, 
-                       select(occasions_max, c(streak, max_keep, yr)), 
+                       dplyr::select(occasions_max, c(streak, max_keep, yr)), 
                        by = "streak")
 occasions$keep <- ifelse(occasions$occasion > occasions$max_keep, 0, 1)
 
@@ -137,7 +137,7 @@ occasions$keep <- ifelse(occasions$occasion > occasions$max_keep, 0, 1)
 # (Assuming only one streak starts per year, we can use yr instead of streak)
 occasions <- occasions %>% 
   filter(keep == 1) %>%
-  select(-c(streak, full_duration, max_keep, keep))
+  dplyr::select(-c(streak, full_duration, max_keep, keep))
 
 # Add occasion ID and convert occasion start/end dates to day numbers
 occasions <- occasions %>%
@@ -165,7 +165,7 @@ for (i in 1:nrow(occasions)) {
 # Retain only one species observation per day at a given location
 obs <- dat %>% 
   filter(o_day %in% occ_days) %>%
-  select(Park, LocationName, loc, Species_code, yr, o_day) %>%
+  dplyr::select(Park, LocationName, loc, Species_code, yr, o_day) %>%
   rename(spp = Species_code) %>%
   distinct
   
@@ -176,7 +176,7 @@ for (i in 1:nrow(obs)) {
 }
 # Remove replicate observations of species at a location during each occasion
 obs <- obs %>%
-  select(-o_day) %>%
+  dplyr::select(-o_day) %>%
   distinct() %>%
   mutate(detect = 1)
 
