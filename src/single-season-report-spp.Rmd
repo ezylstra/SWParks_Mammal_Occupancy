@@ -129,26 +129,29 @@ estimates_ft
 
 alpha_samples <- best$alpha.samples
 
-# Calculate overall detection probability (for experienced deployment personnel
-# if that was included in the model)
-if ("deploy_exp" %in% p_covs) {
-  alpha_deploy <- alpha_samples[ ,c("(Intercept)", "deploy_exp")]
-  X0 <- as.vector(c(1, 2))
-  probs_logit <- alpha_deploy %*% X0
-} else {
+# Calculate overall detection probability or detection probability by deployment experience level present in data
+if (!("deploy_exp" %in% p_covs)) {
   probs_logit <- alpha_samples[ ,"(Intercept)"]
+  det_probs <- exp(probs_logit) / (1 + exp(probs_logit))
+  mean_det <- mean(det_probs)
+  lcl_det <- quantile(det_probs, 0.025)
+  ucl_det <- quantile(det_probs, 0.975)
+  deploy_text <- paste0("Overall detection probability for ", spp_plural, " was ", sprintf("%.2f", mean_det), " (95% credible interval [CI] = ", sprintf("%.2f", lcl_det),", ", sprintf("%.2f", ucl_det),").", sep="")
+} else {
+    deployclass_table <- deployclass_estimates(model_list$model,
+                                       model_list$data,
+                                       parameter = "det",
+                                       lower_ci = 0.025,
+                                       upper_ci = 0.975) %>%
+    mutate(text = paste0(sprintf("%.2f", mean_prob), " (95% CI = ", sprintf("%.2f", ci_lower),", ", sprintf("%.2f", ci_upper), ") with ", experience_level, " personnel", sep="")) 
+   
+    deploy_text <- ifelse(length(p_covs)==1, paste0("Detection probability depended on the experience level of deployment personnel. Overall detection probability for ", spp_plural, " was ", paste(unlist(deployclass_table$text), collapse=", "), "."), paste0("Detection probability depended on the experience level of deployment personnel. With all other covariates in the model equal to their mean value, detection probability for ", spp_plural, " was ", paste(unlist(deployclass_table$text), collapse=", "), "."))
 }
-det_probs <- exp(probs_logit) / (1 + exp(probs_logit))
-mean_det <- mean(det_probs)
-lcl_det <- quantile(det_probs, 0.025)
-ucl_det <- quantile(det_probs, 0.975)
+
 
 ```
 
-Overall detection probability for `r spp_plural` `r if("deploy_exp" %in% p_covs) 
-{"with experienced deployment personnel "}`was `r sprintf("%.2f", mean_det)` 
-(95% credible interval [CI] = `r sprintf("%.2f", lcl_det)`, 
-`r sprintf("%.2f", ucl_det)`). 
+`r deploy_text`
 
 #### Estimated occurrence probabilities
 

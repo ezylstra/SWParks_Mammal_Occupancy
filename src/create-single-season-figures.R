@@ -16,12 +16,12 @@ library(ggspatial)
 # Specify parameters of interest
 #------------------------------------------------------------------------------#
 # Park, year, and species
-PARK <- "ORPI"
+PARK <- "CHIR"
 YEAR <- 2024
-SPECIES <- "VUMA"
+SPECIES <- "ODVI"
 
 # Logical indicating whether to create a map with mean occurrence probabilities 
-MAP <- TRUE
+MAP <- FALSE
 # Logical indicating whether to create a map with SD of occurrence probabilities
 MAP_SD <- FALSE
 # Logical indicating whether to create maps with mean occurrence probabilities and raw detections
@@ -187,8 +187,9 @@ if (MARG_DET) {
   # Load general information about covariates
   covariates <- read.csv("data/covariates/covariates.csv")
   
-  # Identify continuous covariates in detection part of the best model
-  p_continuous <- p_covs_z[p_covs_z != "1"]
+  # Identify continuous covariates in detection part of the best model 
+  #p_continuous <- p_covs_z[p_covs_z != "1"]
+  p_continuous <- p_covs_z[!p_covs_z %in% c("1", "deploy_exp")]
   p_cont_unique <- unique(p_continuous)
   p_n_cont <- length(p_cont_unique)
 

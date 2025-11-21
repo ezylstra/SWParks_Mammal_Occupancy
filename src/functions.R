@@ -10,6 +10,7 @@
   # vegclass_estimates()
   # rockpctclass_estimates()
   # rocksizeclass_estimates()
+  # deployclass_estimates()
   # mean_estimate()
   # marginal_plot_occ()
   # marginal_plot_det()
@@ -351,72 +352,66 @@ rocksizeclass_estimates <- function(model,
 }
 
 #------------------------------------------------------------------------------#
-# vegclass_estimates: Create a table with occupancy or detection probabilities 
-# in each vegetation class
+# deploy_estimates: Create a table with detection probabilities 
+# in each deployment experience class present in the data
 #------------------------------------------------------------------------------#
 
 # INPUTS
 # model: output from spOccupancy single-season model
-# parameter: character indicating whether to calculate occupancy or detection 
-# probabilities (note: vegclasses must have been included as a covariate
+# data: input data used in single-season model
+# parameter: character indicating to calculate detection 
+# probabilities (note: deploy_exp must have been included as a covariate
 # in the model formula for that parameter)
 # lower_ci: quantile for lower bound of credible interval (0.025 for 95% CI)
 # upper_ci: quantile for upper bound of credible interval (0.975 for 95% CI)
 
 # RETURNS
-# vegclass_table: a dataframe with mean, SD, and 95% CI for occupancy/detection
-# probabilities in each vegetation class
+# deployclass_table: a dataframe with mean, SD, and 95% CI for detection
+# probabilities in deployment experience level present in the data
 
-vegclass_estimates <- function(model, 
-                               parameter = c("occ", "det"),
+deployclass_estimates <- function(model, 
+                               data,
+                               parameter = "det",
                                lower_ci = 0.025,
                                upper_ci = 0.975) {
   
   parameter <- match.arg(arg = parameter)
   
+  # Get the experience levels in the data
+  deplevels <- na.omit(unique(as.vector(data[["det.covs"]][["deploy_exp"]])))
+  
   # Create table to hold results
-  vegclass_table <- data.frame(vegclass = 1:3,
+  deployclass_table <- data.frame(deployclass = deplevels,
+                               experience_level = NA,
                                mean_prob = NA,
-                               sd_prob = NA,
                                ci_lower = NA,
                                ci_upper = NA)
   
-  if (parameter == "occ") {
-    samples <- model$beta.samples
-    submodel <- "occupancy"
-  } else {
-    samples <- model$alpha.samples
-    submodel <- "detection"
+  samples <- model$alpha.samples
+  submodel <- "detection"
+  alpha_deploy <- samples[ ,c("(Intercept)", "deploy_exp")]
+  
+  if (sum(str_detect(colnames(samples), "deploy_exp")) == 0) {
+    stop("deploy_exp must be included in model for ", submodel)
   }
   
-  if (sum(str_detect(colnames(samples), "vegclass")) == 0) {
-    stop("vegclasses must be included in model for ", submodel)
+  for (i in unique(deplevels)){
+       row_num <- which(deplevels == i)
+       X0 <- as.vector(c(1, i))
+       probs_logit <- alpha_deploy %*% X0
+       det_probs <- exp(probs_logit) / (1 + exp(probs_logit))
+       mean_det <- mean(det_probs)
+       lcl_det <- quantile(det_probs, lower_ci)
+       ucl_det <- quantile(det_probs, upper_ci)
+       
+       deployclass_table$mean_prob[row_num] <- mean_det
+       deployclass_table$experience_level[row_num] <- ifelse(i==0, "novice", 
+                                                      ifelse(i==1, "experienced", "expert"))
+       deployclass_table$ci_lower[row_num] <- lcl_det
+       deployclass_table$ci_upper[row_num] <- ucl_det
   }
   
-  # Probability of occupancy/detection in vegclass1 (reference level)
-  vegclass1 <- exp(samples[,"(Intercept)"])/(1 + exp(samples[,"(Intercept)"])) 
-  vegclass_table$mean_prob[1] <- mean(vegclass1)
-  vegclass_table$sd_prob[1] <- sd(vegclass1)
-  vegclass_table$ci_lower[1] <- quantile(vegclass1, lower_ci)
-  vegclass_table$ci_upper[1] <- quantile(vegclass1, upper_ci)
-  
-  # Probability of occupancy/detection in vegclass2
-  vegclass2 <- samples[,"(Intercept)"] + samples[,"vegclass2"]
-  vegclass2 <- exp(vegclass2)/(1 + exp(vegclass2)) 
-  vegclass_table$mean_prob[2] <- mean(vegclass2)
-  vegclass_table$sd_prob[2] <- sd(vegclass2)
-  vegclass_table$ci_lower[2] <- quantile(vegclass2, lower_ci)
-  vegclass_table$ci_upper[2] <- quantile(vegclass2, upper_ci)
-  
-  # Probability of occupancy/detectin in vegclass3
-  vegclass3 <- samples[,"(Intercept)"] + samples[,"vegclass3"]
-  vegclass3 <- exp(vegclass3)/(1 + exp(vegclass3)) 
-  vegclass_table$mean_prob[3] <- mean(vegclass3)
-  vegclass_table$sd_prob[3] <- sd(vegclass3)
-  vegclass_table$ci_lower[3] <- quantile(vegclass3, lower_ci)
-  vegclass_table$ci_upper[3] <- quantile(vegclass3, upper_ci)
-  
-  return(vegclass_table)
+  return(deployclass_table)
 }
 
 

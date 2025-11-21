@@ -20,24 +20,24 @@ library(ggspatial)
 # Park, year, and species
 PARK <- "SAGW"
 YEARS <- 2017:2025
-SPECIES <- "LYRU"
+SPECIES <- "SYAU"
 
 # Logical indicating whether to create maps with mean occurrence probabilities (with roads/trails)
-MAP <- TRUE
+MAP <- FALSE
 # Logical indicating whether to create maps with SD of occurrence probabilities (with roads/trails)
-MAP_SD <- TRUE
+MAP_SD <- FALSE
 # Logical indicating whether to create maps with mean occurrence probabilities and raw detections
-MAP_DETECT <- TRUE  # if TRUE, MAP must also be true
+MAP_DETECT <- FALSE  # if TRUE, MAP must also be true
 # Logical indicating whether to create a 4-panel figure with mean and SD
 # of occurrence probabilities in first and last year in addition to the single
 # panel figures for each parameter. (Only relevant if MAP_SD == TRUE)
-FOUR_PANEL <- TRUE
+FOUR_PANEL <- FALSE
 # If creating maps, indicate whether to include lat/long axes labels
 LATLONG <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the occurrence part of the model
-MARG_OCC <- TRUE
+MARG_OCC <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the detection part of the model
@@ -45,7 +45,7 @@ MARG_DET <- TRUE
 
 # Logical indicating whether to create a figure with naive/estimated occurrence
 # over time (including trend, if relevant)
-OCC_TIME <- TRUE
+OCC_TIME <- FALSE
 
 # Parameters, for single-panel figures
 file_extension1 <- ".png"   # can update to jpg
@@ -352,7 +352,7 @@ if (psi_n_cont == 0 & length(psi_covs) == 0) {
 
 # Identify continuous covariates in detection part of the best model
 p_continuous <- p_covs_z[!p_covs_z %in% c("vegclass2", "vegclass3", 
-                                          "camera", "lens")]
+                                          "camera", "lens", "deploy_exp")]
 p_cont_unique <- unique(p_continuous)
 p_n_cont <- length(p_cont_unique)
 
@@ -421,6 +421,19 @@ if (sum(str_detect(p_covs, c("camera|lens"))) > 0) {
   print(detprob_cat)
 }
 
+
+# If experience of deployment personnel was included as a covariate in the model, extract 
+# detection probabilities for each combination of covariate levels
+if ("deploy_exp" %in% p_covs) {
+    deployclass_table <- deployclass_estimates(best,
+                                               data_list,
+                                       parameter = "det",
+                                       lower_ci = 0.025,
+                                       upper_ci = 0.975) %>%
+      arrange(deployclass)
+    print(deployclass_table)
+}
+    
 # If there are no covariates in the model (a null model), print overall 
 # detection probability
 if (p_n_cont == 0 & length(p_covs) == 0) {
