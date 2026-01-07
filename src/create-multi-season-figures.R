@@ -41,7 +41,7 @@ MARG_OCC <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the detection part of the model
-MARG_DET <- TRUE
+MARG_DET <- FALSE
 
 # Logical indicating whether to create a figure with naive/estimated occurrence
 # over time (including trend, if relevant)
@@ -162,10 +162,8 @@ base_out <- paste0("output/NPS-figures/multi-season/",
 
 # Create custom theme
 # Use Frutiger font - NPS standard - whenever possible. NPS employees can 
-# download Fruiter to their NPS computer from 
-# https://www.nps.gov/subjects/hfc/nps-typefaces.htm
-# (must be on the vpn to do the download)
-windowsFonts("Frutiger LT Std 55 Roman" = windowsFont("Frutiger LT Std 55 Roman"))
+# download Frutiger to their NPS computer from Software Center
+windowsFonts("Frutiger LT Std" = windowsFont("Frutiger LT Std"))
 
 theme_NPS <- ggplot2::theme_classic() + 
   theme(legend.title = element_text(size = 10, color = "black")) +
@@ -176,7 +174,7 @@ theme_NPS <- ggplot2::theme_classic() +
   theme(axis.ticks = element_line(color = 'black')) + 
   theme(axis.line = element_line(color = 'black')) +
   theme(plot.subtitle = element_text(size = 10, color = "black", hjust = 0.5)) +
-  theme(text = element_text(family = "Frutiger LT Std 55 Roman", face = "plain"))
+  theme(text = element_text(family = "Frutiger LT Std", face = "plain"))
 
 # Define shape and color for detections
 scale_color_detect <- function(...){
