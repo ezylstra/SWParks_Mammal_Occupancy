@@ -36,7 +36,7 @@ YEARS <- 2017:2025
 LATLONG <- FALSE
 
 # Create custom NPS theme
-windowsFonts("Frutiger LT Std 55 Roman" = windowsFont("Frutiger LT Std 55 Roman"))
+windowsFonts("Frutiger LT Std" = windowsFont("Frutiger LT Std"))
 theme_NPS <- ggplot2::theme_classic() + 
   theme(legend.title = element_text(size = 10, color = "black")) +
   theme(legend.text = element_text(size = 9,color = "black")) +
@@ -46,7 +46,7 @@ theme_NPS <- ggplot2::theme_classic() +
   theme(axis.ticks = element_line(color = 'black')) + 
   theme(axis.line = element_line(color = 'black')) +
   theme(plot.subtitle = element_text(size = 10, color = "black", hjust = 0.5)) +
-  theme(text = element_text(family = "Frutiger LT Std 55 Roman", face = "plain"))
+  theme(text = element_text(family = "Frutiger LT Std", face = "plain"))
 
 # Create custom color ramp from Paul Tol's sunset color ramp
 # (this way 4 is the same color on all maps)

@@ -105,11 +105,11 @@ base_out <- paste0("output/NPS-figures/single-season/",
                    PARK, "-", YEAR, "-", SPECIES, "-")
 
 # Create custom theme
-  # Use Frutiger font - NPS standard - whenever possible. NPS employees can 
+ # Use Frutiger font - NPS standard - whenever possible. NPS employees can 
   # download Fruiter to their NPS computer from 
   # https://www.nps.gov/subjects/hfc/nps-typefaces.htm
   # (must be on the vpn to do the download)
-windowsFonts("Frutiger LT Std 55 Roman" = windowsFont("Frutiger LT Std 55 Roman"))
+windowsFonts("Frutiger LT Std" = windowsFont("Frutiger LT Std"))
 
 theme_NPS <- ggplot2::theme_classic() + 
   theme(legend.title = element_text(size = 10, color = "black")) +
@@ -120,7 +120,7 @@ theme_NPS <- ggplot2::theme_classic() +
   theme(axis.ticks = element_line(color = 'black')) + 
   theme(axis.line = element_line(color = 'black')) +
   theme(plot.subtitle = element_text(size = 10, color = "black", hjust = 0.5)) +
-  theme(text = element_text(family = "Frutiger LT Std 55 Roman", face = "plain"))
+  theme(text = element_text(family = "Frutiger LT Std", face = "plain"))
 
 # Create longer park name for use in plots
 park <- ifelse(PARK == "CHIR", "Chiricahua NM",
