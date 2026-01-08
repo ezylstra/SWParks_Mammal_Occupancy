@@ -105,8 +105,10 @@ base_out <- paste0("output/NPS-figures/single-season/",
                    PARK, "-", YEAR, "-", SPECIES, "-")
 
 # Create custom theme
-  # Use Frutiger font - NPS standard - whenever possible. NPS employees can 
-  # download Frutiger to their NPS computer from Software Center
+ # Use Frutiger font - NPS standard - whenever possible. NPS employees can 
+  # download Fruiter to their NPS computer from 
+  # https://www.nps.gov/subjects/hfc/nps-typefaces.htm
+  # (must be on the vpn to do the download)
 windowsFonts("Frutiger LT Std" = windowsFont("Frutiger LT Std"))
 
 theme_NPS <- ggplot2::theme_classic() + 
