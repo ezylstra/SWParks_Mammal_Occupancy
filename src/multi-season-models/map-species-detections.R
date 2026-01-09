@@ -141,7 +141,7 @@ spp_obs <- dat_simple %>%
             nyrs = length(unique(yr)),
             nlocs = length(unique(loc))) %>%
   data.frame()
-species <- left_join(species, spp_detect, by = "Species_code") %>%
+species <- left_join(species, spp_obs, by = "Species_code") %>%
   filter(!is.na(nobs))
 
 # Calculate the number of species observed at each camera location
@@ -265,7 +265,7 @@ if (LATLONG) {
 ggsave(plot_nspp_rare, 
        file = paste0("output/NPS-figures/multi-season/", PARK, "-", 
                      YEARS[1], "-", YEARS[length(YEARS)], 
-                     "-nspp-uncommmon-detected", file_extension1),
+                     "-nspp-uncommon-detected", file_extension1),
        device = device, 
        dpi = dpi, 
        width = width, 
@@ -274,7 +274,7 @@ ggsave(plot_nspp_rare,
 ggsave(plot_nspp_rare, 
        file = paste0("output/NPS-figures/multi-season/", PARK, "-", 
                      YEARS[1], "-", YEARS[length(YEARS)], 
-                     "-nspp-rare-detected", file_extension2),
+                     "-nspp-uncommon-detected", file_extension2),
        dpi = dpi, 
        width = width, 
        height = height, 
