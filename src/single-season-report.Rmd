@@ -7,7 +7,7 @@ title: "Summary of camera trap data, `r params$PARK`, `r params$YEAR`"
 date: "`r params$date`"
 output:
   officedown::rdocx_document:
-    reference_docx: "word-styles-02.docx"
+    reference_docx: "SR_Report_Style.docx"
 ---
 
 
@@ -248,7 +248,7 @@ A total of `r nrow(events)` cameras (`r cam_type_text`) were deployed in `r PARK
 `r deploy_start` and `r deploy_end` and were retrieved between 
 `r retr_start` and `r retr_end`, `r YEAR`. We delineated a total of 
 `r nrow(occasions)` sampling occasions that were each `r occasions$duration[1]` 
-days long. The first sampling occasion began on `r season_start` and the last sampling occasion ended on `r season_end`. Community scientists, park staff, and/or partner organizations typically assist with camera deployments and retrievals. In `r YEAR`, __##__ volunteers, __##__ interns, and __##__ park staff helped deploy and retrieve cameras in `r PARKL`. We are grateful for their support.
+days long. The first sampling occasion began on `r season_start` and the last sampling occasion ended on `r season_end`. Community scientists, park staff, and/or partner organizations typically assist with camera deployments and retrievals. In `r YEAR`,  __##__ volunteers,  __##__ interns, and  __##__ park staff helped deploy and retrieve cameras in `r PARKL`. We are grateful for their support.
 
 ```{r deployment-table}
 
@@ -293,7 +293,10 @@ segs
 # Clean up species table
 species <- species %>%
   select(-c(TSN, Family, Nativeness)) 
-species$Species[species$Species_code == "FOX"] <- "Vulpes or Urocyon sp."
+species$Species[species$Species_code == "UNFO"] <- "Vulpes spp. or Urocyon spp."
+species$Species[species$Species_code == "UNLE"] <- "Lepus spp."
+species$Species[species$Species_code == "UNOD"] <- "Odocoileus spp."
+species$Common_name[species$Species_code == "UNCA"] <- "unknown canid"
 
 # Filter observation data
 # total photos during deployment 
@@ -303,7 +306,7 @@ total_photos <- (dat %>%
   count())$n
 
 # any new species observation
-if(PARK != "ORPI")obs_new <- dat %>%
+obs_new <- dat %>%
   mutate(visit = ifelse(yr == YEAR, "Current", ifelse(yr > YEAR, "Future", "Past"))) %>%
   filter(visit != "Future") %>%
   ungroup() %>%
@@ -312,7 +315,7 @@ if(PARK != "ORPI")obs_new <- dat %>%
   pivot_wider(., names_from="visit", values_from="sumobs", values_fill=0) %>%
   filter(Past==0 & Current > 0) %>%
   left_join(species, by = "Species_code") %>%
-  mutate(name = paste0(Common_name," (",Species,")", sep=""))
+  mutate(name = paste0(Common_name," (_",Species,"_)", sep=""))
   
 
 obs_new_run = ifelse(PARK == "ORPI", FALSE, ifelse(nrow(obs_new) > 0, TRUE, FALSE))
@@ -334,7 +337,7 @@ dat <- dat %>%
 detects <- read.csv(paste0("output/species-detections-byyr-", PARK, ".csv"))
 
 # any new detections
-if(PARK != "ORPI")detects_new <- detects %>%
+detects_new <- detects %>%
   mutate(visit = ifelse(yr == YEAR, "Current", ifelse(yr > YEAR, "Future", "Past"))) %>%
   filter(visit != "Future") %>%
   ungroup() %>%
@@ -343,11 +346,15 @@ if(PARK != "ORPI")detects_new <- detects %>%
   pivot_wider(., names_from="visit", values_from="sumdetects", values_fill=0) %>%
   filter(Past==0 & Current > 0) %>%
   left_join(species, by = c("spp" = "Species_code")) %>%
-  mutate(name = paste0(Common_name," (",Species,")", sep=""))
+  mutate(name = paste0(Common_name," (_",Species,"_)", sep=""))
 
-new_species_run = ifelse(PARK == "ORPI", FALSE, ifelse(nrow(obs_new) > 0 | nrow(detects_new) > 0, TRUE, FALSE))
+#new_species_run = ifelse(PARK == "ORPI", FALSE, ifelse(nrow(obs_new) > 0 | nrow(detects_new) > 0, TRUE, FALSE))
 
-new_species_text = ifelse(PARK == "ORPI", "Past observation and detection data are not available for comparison.", ifelse(nrow(obs_new) > 0 & nrow(detects_new) == 0, paste("In ",YEAR, ", our cameras captured ",paste(unlist(detects_new$name), collapse=", "), " for the first time during SODN monitoring.", sep=""), ifelse(nrow(detects_new) > 0, paste("In ",YEAR, ", we detected ",paste(unlist(detects_new$name), collapse=", "), " for the first time during a sampling occasion. ", sep=""), "All species listed in Table X were observed and detected during previous SODN monitoring.")))
+new_species_obs_text = ifelse(nrow(obs_new) > 0, paste("In ",YEAR, ", our cameras captured ",paste(unlist(obs_new$name), collapse=", "), " for the first time during a SODN camera deployment.", sep=""), "")
+
+new_species_det_text = ifelse(nrow(detects_new) > 0, paste("In ",YEAR, ", we detected ",paste(unlist(detects_new$name), collapse=", "), " for the first time during a sampling occasion.", sep=""), "")
+                              
+new_species_text <- ifelse(new_species_obs_text == "" & new_species_det_text == "", "All species listed in Table 1 were observed and detected during previous SODN monitoring.", paste(new_species_obs_text, new_species_det_text))
 
 
 # for selected year
@@ -392,7 +399,7 @@ species_text_det <- ifelse(species_count_obs == species_count_det & genera_count
 
 ```
 
-`r species_text_obs` in `r total_photos` photos from the `r nrow(events)` cameras during the `r YEAR` camera deployment. During the `r nrow(occasions)` sampling occasions (weeks) in `r YEAR`, we recorded `r nrow(dat)` detections `r species_text_det` (Table #). 
+`r species_text_obs` in `r total_photos` photos from the `r nrow(events)` cameras during the `r YEAR` camera deployment. During the `r nrow(occasions)` sampling occasions (weeks) in `r YEAR`, we recorded `r nrow(dat)` detections `r species_text_det` (Table 1). 
 `r {new_species_text}`
 
 **Take a look and see if there are any interesting or notable detections, even if there weren’t many of them. If there were new observations or detections, those will be mentioned above.**
@@ -409,9 +416,8 @@ nphotos_cap <- paste0("Mammal species detected in ",
   "framework (maximum of one photographic detection per camera location per ",
   "sampling occasion). No. locations is the unique number of camera locations ",
   "where the species was photographed.") 
-nphotos_cap_sens<-ifelse(nrow(nphotos %>% filter(Protected=="yes"))>0,paste("Note: ",nrow(nphotos %>% filter(Protected=="yes"))," protected species removed from table."),"")
 
-nphotos_ft <- flextable(nphotos %>% filter(Protected != "yes") %>% dplyr::select(-Protected)) %>%
+nphotos_ft <- flextable(nphotos %>% dplyr::select(-Protected)) %>%
   align(j = 1:2, align = "left") %>%
   align(j = 3:5, align = "center") %>%
   italic(j = 2, italic = TRUE, part = "body") %>%
@@ -421,7 +427,7 @@ nphotos_ft <- flextable(nphotos %>% filter(Protected != "yes") %>% dplyr::select
                     n_photos = "No. photos",
                     n_detects = "No. detections",
                     n_locs = "No. locations") %>%
-  set_caption(caption = paste(nphotos_cap, nphotos_cap_sens), autonum = tab_num) %>%
+  set_caption(caption = nphotos_cap, autonum = tab_num) %>%
   add_footer_lines("")
 
 ```
