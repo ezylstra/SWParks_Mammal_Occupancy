@@ -3,11 +3,10 @@ params:
   date: "2023-06-20"
   PARK: "SAGW"
   YEAR: 2023    
-title: "Summary of camera trap data, `r params$PARK`, `r params$YEAR`"
-date: "`r params$date`"
 output:
-  officedown::rdocx_document:
-    reference_docx: "SR_Report_Style.docx"
+  word_document:
+    reference_docx: SR_Report_Style.docx
+    df_print: paged
 ---
 
 
@@ -51,6 +50,10 @@ set_flextable_defaults(
 tab_num = run_autonum(seq_id = "table", bkm = NULL)
 fig_num = run_autonum(seq_id = "figure", bkm = NULL)
 
+Fig_alt_text <- ":::{custom-style='sr Alternate text'}\n\nFigure X. Alt Text\n\n:::\n\n"
+
+Fig_credit <- ":::{custom-style='sr Image credit'}\n\nNPS (update as needed)\n\n:::\n\n"
+
 ```
 
 ```{r data-formatting}
@@ -63,6 +66,10 @@ PARKL <- ifelse(PARK == "SAGW",
                 ifelse(PARK == "CHIR", "Chiricahua National Monument",
                        "Organ Pipe Cactus National Monument"))
 
+title_var <- paste("Wildlife Monitoring at", PARKL,"–",YEAR)
+
+date2 <- as.character(Sys.Date())
+
 
 source("src/photo-data/format-mammal-data.R")
 source("src/functions.R")
@@ -71,13 +78,78 @@ source("src/functions.R")
 occasions <- read.csv(paste0("data/occasions/occasions-", PARK, ".csv"))
 ```
 
-Use the text and outputs below to populate the text highlighted in yellow and the sections that tell you to 
-copy from the Rmd output in the Annual Report template on Teams. In general, the yellow in the overview and 
-key points can be populated once you've finished the results section.
+:::{custom-style="sr Title"}
+`r title_var`
+:::
 
-We may or may want to include all outputs for all species. The idea is that someone looks at the outputs and selects examples to include in the report. That may mean focusing on a few species or a few themes. Or it may mean including all species but not showing all tables/figures for each species. You will also need to produce publication quality graphics for your figures of interest. 
+:::{custom-style="sr Image line"}
+Add your cover image here.
+:::
+:::{custom-style="sr Cover image caption"}
+Cover Image Caption
+:::
+:::{custom-style="sr Alternate text"}
+  Cover IMAGE Alt Text
+:::
+:::{custom-style="sr Cover image credit"}
+© COVER IMAGE CREDIT
+::: 
+
+  
+FirstName MiddleInitial. LastName (ORCID if available)^1^, FirstName MiddleInitial. LastName(ORCID if available)^2^, Erin Zylstra (ORCID 0000-0002-2536-0403)^3\*,4^
+  
+^1^ National Park Service, Chihuahuan Desert Network,  
+3655 Research Dr., Genesis Building D,  
+Las Cruces, NM 88003
+  
+^2^ National Park Service, Sonoran Desert Network,  
+12661 E. Broadway Blvd.,  
+Tucson, AZ 85748
+
+^3^ Tucson Bird Alliance
+300 E University Blvd. #120
+Tucson, AZ 85705
+
+^4^ USA National Phenology Network
+1311 E 4th St
+Tucson, AZ 85721
+
+^5^ Organization Name, Office/Unit Name 2 (optional) (NPS Office/Unit, University Dept., etc.), Street Address, City Name, ST ZipCode (zip is optional)
+
+^\*^ formerly
+
+\newpage
+# Abstract
+You must write an abstract in paragraph format (400 words or less). You will also need to choose which figures you want to include, number them, write alt text for them, and reinsert the png into the Word document (to get higher resolution). You should also ensure that tables and figures are formatted properly.
+
+This report was generated on `r date2`. Use the text and outputs below to populate the text highlighted in yellow and the sections that tell you tocopy from the Rmd output in the Annual Report template on Teams. In general, the yellow in the overview and key points can be populated once you've finished the results section.
+
+We may or may not want to include all outputs for all species. The idea is that someone looks at the outputs and selects examples to include in the report. That may mean focusing on a few species or a few themes. Or it may mean including all species but not showing all tables/figures for each species. You will also need to produce publication quality graphics for your figures of interest. 
+
+__Keywords:__ mammals, monitoring, wildlife, wildlife cameras, wildlife monitoring, occupancy, `r PARKL`
+
+\newpage
+# Executive Summary
+Use the Annual Report template on Teams
+
+## Key points
+Use the Annual Report template on Teams
+
+\newpage
+# Background
+Use the Annual Report template on Teams
+
+## Occupancy modeling
+Use the Annual Report template on Teams
 
 # Methods
+Use the Annual Report template on Teams and integrate the information below.
+
+## Field methods
+Use the Annual Report template on Teams
+
+## Photo identification
+Use the Annual Report template on Teams
 
 ## Single-species single-season occupancy models
 
@@ -177,6 +249,9 @@ mean was < 0 or the proportion of posterior samples > 0 if the posterior mean wa
 When necessary to estimate spatial variation in occupancy
 or detection, we included camera location as a random effect. 
 We used the resulting model for all inferences.
+
+## Data and code availability
+Use the Annual Report template on Teams
 
 # Results 
 
@@ -438,7 +513,7 @@ nphotos_ft
 
 ```
 
-## Single Season Occupancy
+## Single-species, single-season occupancy
 ```{r spp-loop, results = "asis"}
 
 modelfile_base <- paste0(getwd(), "/output/single-season-models/")
@@ -455,3 +530,40 @@ child <- lapply(spp_code, function(x) {
 cat(unlist(child), sep = "\n")
 
 ```
+
+
+\newpage
+# Literature Cited
+Beery, S., D. Morris, and S. Yang. 2020. Efficient Pipeline for Camera Trap Image Review [Computer software]. http://github.com/agentmorris/MegaDetector  
+
+Brashares, J. S. 2010. Filtering wildlife. Science 329:402.
+
+Carroll, C. 2010. Role of climatic niche models in focal-species-based conservation planning: Assessing potential effects of climate change on Northern Spotted Owl in the Pacific Northwest, USA. Biological Conservation 143:1432–1437.
+
+Chen, C., and others. 2022. Global camera trap synthesis highlights the importance of protected areas in maintaining mammal diversity. Conservation Letters 15(2).
+
+Doser, J. W., A. O. Finley, M. Kéry, and E. F. Zipkin. 2022. spOccupancy: An R package for single-species, multi-species, and integrated spatial occupancy models. Methods in Ecology and Evolution 13:1670–1678.
+
+Hubbard, J. A., E. C. Dillingham, and A. Buckisch. In prep. Terrestrial mammal monitoring protocol implementation plan for the Sonoran Desert Network.
+
+`r if(PARK!="SAGW"){"Hubbard, J. A., C. L. McIntyre, S. E. Studd, T. Nauman, D. Angell, K. Beaupre, B. Vance, and M. K. Connor. 2012. Terrestrial vegetation and soils monitoring protocol and standard operating procedures: Sonoran Desert and Chihuahuan Desert networks, version 1.1. Natural Resource Report NPS/SODN/NRR—2012/509. National Park Service, Fort Collins, Colorado."}`
+
+Ivan, J. S., and E. S. Newkirk. 2016. CPW Photo Warehouse: A custom database to facilitate archiving, identifying, summarizing and managing photo data collected from camera traps. Methods in Ecology and Evolution 7:499–504.
+MacKenzie, D. I., and J. A. Royle. 2005. Designing occupancy studies: general advice and allocating survey effort. Journal of Applied Ecology 42:1105-1114.
+
+MacKenzie, D. I., J. D. Nichols, G. B. Lachman, S. Droege, J. Andrew Royle, and C. A. Langtimm. 2002. Estimating site occupancy rates when detection probabilities are less than one. Ecology 83:2248–2255.
+
+MacKenzie, D. I., J. D. Nichols, J. E. Hines, M. G. Knutson, and A. B. Franklin. 2003. Estimating site occupancy, colonization, and local extinction when a species is detected imperfectly. Ecology 84:2200–2207. 
+
+McIntyre C.L., M. Christensen, A. Buckisch, E. Dillingham, T. Atella, and J. McGeverly J. 2025. Mammal data from PARK, Arizona: year-year - internal. National Park Service. Fort Collins CO 
+
+Post, E., J. Brodie, M. Hebblewhite, A. D. Anders, J. A. K. Maier, and C. C. Wilmers. 2009. Global population dynamics and hot spots of response to climate change. Bioscience 59:489–497.
+
+Steenweg, R., J. Whittington, and M. Hebblewhite. 2015. Canadian Rockies Remote Camera Multi-Species Occupancy Project: Examining trends in carnivore populations and their prey using remote cameras in Banff, Jasper, Kootenay, Yoho and Waterton Lakes National Parks. Final Report. University of Montana. 88p. 
+
+`r if(PARK!="SAGW"){"Theobald, D. M., D. L. Stevens, Jr., D. White, N. S. Urquart, A. R. Olsen, and J. B. Norman. 2007. Using GIS to generate spatially balanced designs for natural resource applications. Environmental Management 40:134–146."}`
+
+Zylstra, E. 2025. SWParks_Mammal_Occupancy repository, new-data-exports branch. Available online at https://github.com/ezylstra/SWParks_Mammal_Occupancy/tree/new-data-exports
+
+\newpage
+# Appendix A
