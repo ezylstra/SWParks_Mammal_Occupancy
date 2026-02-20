@@ -74,7 +74,7 @@ exclude <- c("Harris's antelope squirrel", "Merriam's kangaroo rat",
              "round-tailed ground squirrel", "unknown animal", 
              "unknown kangaroo rat", "unknown rodent", 
              "unknown woodrat", "western white-throated woodrat",
-             "rock squirrel")
+             "rock squirrel", "cliff chipmunk")
 
 species <- species_list %>%
   filter(!Common_Name %in% exclude) %>%

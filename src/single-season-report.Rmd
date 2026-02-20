@@ -450,6 +450,7 @@ nphotos <- nphotos %>%
 # summarize species & genera counts for observations 
 species_type_obs <- nphotos %>%
   mutate(separate_wider_delim(., cols=Species, delim=" ", names=c("Genus", "SpEp"), too_few = "align_start", too_many="drop")) %>%
+  mutate(SpEp = ifelse(SpEp=="spp.",NA,SpEp)) %>%
   mutate(Type = ifelse(is.na(SpEp),"Genera","Species")) %>%
   mutate(Type = ifelse(Common_name == "unknown animal", "Unknown", Type))
 
@@ -457,7 +458,7 @@ species_type_obs <- nphotos %>%
 species_count_obs <- nrow(filter(species_type_obs, Type == "Species"))
 genera_count_obs <- nrow(filter(species_type_obs, Type == "Genera"))
 
-species_text_obs <- ifelse(genera_count_obs > 0, paste("We observed a total of ", species_count_obs, " mammal species plus ", genera_count_obs, " mammalian families or genera", sep=""), paste("We observed a total of ", species_count_obs, " mammal species", sep=""))
+species_text_obs <- ifelse(genera_count_obs > 0, paste("We observed a total of ", species_count_obs, " medium- to large-sized mammal species plus ", genera_count_obs, " mammalian families or genera", sep=""), paste("We observed a total of ", species_count_obs, " medium- to large-sized mammal species", sep=""))
 
 # summarize species & genera counts for detections 
 species_type_det <- nphotos %>%
@@ -474,15 +475,14 @@ species_text_det <- ifelse(species_count_obs == species_count_det & genera_count
 
 ```
 
-`r species_text_obs` in `r total_photos` photos from the `r nrow(events)` cameras during the `r YEAR` camera deployment. During the `r nrow(occasions)` sampling occasions (weeks) in `r YEAR`, we recorded `r nrow(dat)` detections `r species_text_det` (Table 1). 
-`r {new_species_text}`
+`r species_text_obs` in `r total_photos` photos from the `r nrow(events)` cameras during the `r YEAR` camera deployment. During the `r nrow(occasions)` sampling occasions (weeks) in `r YEAR`, we recorded `r nrow(dat)` detections `r species_text_det` (Table 1). `r {new_species_text}` Appendix A includes highlights of the photos, including some not listed in Table 1. 
 
 **Take a look and see if there are any interesting or notable detections, even if there weren’t many of them. If there were new observations or detections, those will be mentioned above.**
 
 
 ```{r detections-table}
 
-nphotos_cap <- paste0("Mammal species detected in ",
+nphotos_cap <- paste0("Medium- to large-sized mammal species detected in ",
   PARKL, " in ", YEAR, 
   ". No. photos is the total number of photographs obtained (multiple photos ",
   "may occur at the same camera location in the same day) in ", YEAR, 
@@ -514,7 +514,7 @@ nphotos_ft
 ```
 
 ## Single-species, single-season occupancy
-```{r spp-loop, results = "asis"}
+```{r spp-loop, results = "asis", eval=FALSE}
 
 modelfile_base <- paste0(getwd(), "/output/single-season-models/")
 knitchild_base <- paste0(getwd(), "/src/")
