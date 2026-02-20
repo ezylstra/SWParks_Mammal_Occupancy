@@ -514,7 +514,7 @@ nphotos_ft
 ```
 
 ## Single-species, single-season occupancy
-```{r spp-loop, results = "asis", eval=FALSE}
+```{r spp-loop, results = "asis"}
 
 modelfile_base <- paste0(getwd(), "/output/single-season-models/")
 knitchild_base <- paste0(getwd(), "/src/")
