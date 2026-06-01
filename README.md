@@ -40,7 +40,11 @@ can be found in JAGS-labeled folders, but are not part of current workflows.
 
 The first step is to organize and format raw photo observation, events, and 
 location data. However, the scripts should only need to be modified once per 
-year after all the photos are processed.  
+year after all the photos are processed. 
+
+Each year you also need to delineate the sampling occasions and update the detections.
+Open [delinate-sampling-occasions.R](src/photo-data/delineate-sampling-occasions.R), define
+your park of interest, and run through the end of the script. 
 
 **To run a single-season model** and estimate occurrence and detection
 probabilities, you'll need to access files in the src/single-season-models
@@ -48,9 +52,9 @@ folder. These files will call scripts in other folders (e.g., src/functions.R,
 src/photo-data/format-mammal-data.R) as needed. _Note: we are now using the 
 spOccupancy package to run single-season models._
 
-1. Open [spOccupancy-TEMPLATE.R](src/single-season-models/spOccupancy-TEMPLATE.R) 
-   and run through line 68, where you'll specify the park (PARK), year (YEAR), 
-   and species (SPECIES) of interest. 
+1. Open [spOccupancy-TEMPLATE.R](src/single-season-models/spOccupancy-TEMPLATE.R). 
+   Define your park of interest (PARK) in line 35, year of interest (YEAR) in line 54,
+   and species of interest (SPECIES) in line 68. Run the script through line 68. 
 
 2. Save this script as: src/single-season-models/YEAR/spOccupancy-PARK-YEAR-SPECIES.R.
 
