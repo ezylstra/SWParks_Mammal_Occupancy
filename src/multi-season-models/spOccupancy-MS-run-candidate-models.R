@@ -98,7 +98,7 @@ max_rhat_re <- lapply(out_list, function(x)
 # Assess effective sample sizes (ESS; minimum across all parameters, calculated
 # separately for fixed and random effects). Would like to see a value > 400.
 min_ESS <- lapply(out_list, function(x) 
-  if(length(x) == 2) NA else min(unlist(x$ESS$beta, x$ESS$alpha)))
+  if(length(x) == 2) NA else min(unlist(c(x$ESS$beta, x$ESS$alpha))))
 min_ESS_re <- lapply(out_list, function(x)
   if(length(x) == 2) NA else min(x$ESS$sigma.sq.psi))
 
