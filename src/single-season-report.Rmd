@@ -464,6 +464,7 @@ species_text_obs <- ifelse(genera_count_obs > 0, paste("We observed a total of "
 species_type_det <- nphotos %>%
   filter(n_detects > 0) %>%
   mutate(separate_wider_delim(., cols=Species, delim=" ", names=c("Genus", "SpEp"), too_few = "align_start", too_many="drop")) %>%
+  mutate(SpEp = ifelse(SpEp=="spp.",NA,SpEp)) %>%
   mutate(Type = ifelse(is.na(SpEp),"Genera","Species")) %>%
   mutate(Type = ifelse(Common_name == "unknown animal", "Unknown", Type))
 
