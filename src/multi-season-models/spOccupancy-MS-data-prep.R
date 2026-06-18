@@ -215,13 +215,18 @@ years_mn <- mean(years)
 years_sd <- sd(years)
 years_z <- (years - years_mn)/years_sd
 
-# Indicator for 2022 and beyond, when different types of cameras were used 
-# same camera in 2022-2025
-camera <- matrix(rep(c(0, 1), 
-                          times = c(sum(YEARS < 2022), sum(YEARS >= 2022))),
-                      nrow = dim(dh)[1],
-                      ncol = dim(dh)[2],
-                      byrow = TRUE)
+# Indicator for camera make/model
+# updated to use camera type in events table (rather than binary assumption) 
+# binary 1 = Cuddeback G series [Cuddeback G-5017 in 2022-2025; Cuddeback G-5079 in 2026), 0 = other
+# accounts for situatins where older camera was used but "other" may be false if camera type wasn't recorded
+camera <- matrix(NA, nrow = dim(dh)[1], ncol = dim(dh)[2], dimnames = c(dimnames(dh)[1],dimnames(dh)[2]), byrow = TRUE)
+for (t in 1:length(YEARS)) {
+  YR <- YEARS[t]
+  for (i in 1:dim(camera)[1]) {
+    if (!is.na(table(events_park$loc == rownames(camera)[i]  &  events_park$d_yr == YR)["TRUE"]))
+      camera[i,t] <- events_park$camera[events_park$loc == rownames(camera)[i]  &  events_park$d_yr == YR]
+  }
+}
 
 # Indicator for lens type SAGW & ORPI 
 # updated to use lens type in events table (rather than binary assumption)
@@ -240,12 +245,12 @@ for (t in 1:length(YEARS)) {
 }
 
 # Monthly visitation data (now SAGW only rather than all of SAGU) 
-# through April 2025 (updated 6/20/2025)
+# through May 2026 (updated 6/16/2026)
 # since monthly visits to the 2 districts have to be populated by hand,  
 # only went back to 2016 (instead of 1979 for all of SAGU)
 if (PARK == "SAGW") {
   # Read in data
-  monthlyvisits <- read.csv("data/covariates/SAGW_MonthlyVisits_2016-2025.csv")
+  monthlyvisits <- read.csv("data/covariates/SAGW_MonthlyVisits_2016-2026.csv")
   # Identify months when surveys occurred
   surveymonths <- unique(c(month(occasions$start), month(occasions$end)))
   # Calculate the total number of visitors during survey months each year
@@ -269,10 +274,10 @@ if (PARK == "SAGW") {
   visits_z <- (visits - visits_mn)/visits_sd
 }
 
-# Monthly traffic data (currently only available for SAGW, through April 2025 (updated 6/20/2025)
+# Monthly traffic data (currently only available for SAGW, through May 2026 (updated 6/16/2026)
 if (PARK == "SAGW") {
   # Read in data
-  monthlytraffic <- read.csv("data/covariates/SAGW_MonthlyTraffic_1992-2025.csv")
+  monthlytraffic <- read.csv("data/covariates/SAGW_MonthlyTraffic_1992-2026.csv")
   # Identify months when surveys occurred
   surveymonths <- unique(c(month(occasions$start), month(occasions$end)))
   # Calculate total traffic (averaged across locations) during survey months 
@@ -304,59 +309,61 @@ if (PARK == "SAGW") {
 # more info here: https://www.climateanalyzer.biz/water_balance.html
 # Daily deficit and actual evapotranspiration (currently only available for SAGW, through December 2024 (updated 6/24/2025)
 
+# dropping since data are only available through 2024 (aet was included for one species in 2017-2025 analyses)
+
 # Generate cumulative deficit during 10 months prior to sampling. 
 # For SAGW, want deficit for Mar-Dec (sampling Jan-Feb)
-if (PARK == "SAGW") {
-  # Read in data
-  dailyWB <- read.csv("data/covariates/SAGU_04_water_balance_historical.csv")
-  # Calculate total deficit for Mar-Dec
-  deficit <- dailyWB %>%
-    mutate(Date = as.Date(Date)) %>%
-    mutate(MonthDay = format(Date, format="%m-%d")) %>%
-    mutate(Year = year(Date)) %>%
-    filter(MonthDay > "02-29") %>%
-    filter(Year >= (min(YEARS) - 1) & Year < (max(YEARS))) %>%  # want data for year Mar-Dec for year prior
-    group_by(Year) %>%
-    summarize(deficit = sum(Deficit.in), .groups = "keep") %>%
-    group_by(Year) %>%
-    summarize(deficit = mean(deficit)) %>%
-    data.frame()   # 2023 is ridiculously low, by factor of 10?
-  deficit10 <- matrix(deficit$deficit, 
-                    nrow = dim(dh)[1],
-                    ncol = dim(dh)[2],
-                    byrow = TRUE)
-  # Standardize
-  deficit10_mn <- mean(deficit10)
-  deficit10_sd <- sd(deficit10)
-  deficit10_z <- (deficit10 - deficit10_mn)/deficit10_sd
-}
-
-# Generate cumulative AET during 10 months prior to sampling. 
-# For SAGW, want AET for Mar-Dec (sampling Jan-Feb)
-if (PARK == "SAGW") {
-  # Read in data
-  dailyWB <- read.csv("data/covariates/SAGU_04_water_balance_historical.csv")
-  # Calculate total deficit for Mar-Dec
-  aet <- dailyWB %>%
-    mutate(Date = as.Date(Date)) %>%
-    mutate(MonthDay = format(Date, format="%m-%d")) %>%
-    mutate(Year = year(Date)) %>%
-    filter(MonthDay > "02-29") %>%
-    filter(Year >= (min(YEARS) - 1) & Year < (max(YEARS))) %>%  # want data for year Mar-Dec for year prior
-    group_by(Year) %>%
-    summarize(aet = sum(AET.in), .groups = "keep") %>%
-    group_by(Year) %>%
-    summarize(aet = mean(aet)) %>%
-    data.frame()  # 2023 is ridiculously low, by factor of 10?
-  aet10 <- matrix(aet$aet, 
-                      nrow = dim(dh)[1],
-                      ncol = dim(dh)[2],
-                      byrow = TRUE)
-  # Standardize
-  aet10_mn <- mean(aet10)
-  aet10_sd <- sd(aet10)
-  aet10_z <- (aet10 - aet10_mn)/aet10_sd
-}
+# if (PARK == "SAGW") {
+#   # Read in data
+#   dailyWB <- read.csv("data/covariates/SAGU_04_water_balance_historical.csv")
+#   # Calculate total deficit for Mar-Dec
+#   deficit <- dailyWB %>%
+#     mutate(Date = as.Date(Date)) %>%
+#     mutate(MonthDay = format(Date, format="%m-%d")) %>%
+#     mutate(Year = year(Date)) %>%
+#     filter(MonthDay > "02-29") %>%
+#     filter(Year >= (min(YEARS) - 1) & Year < (max(YEARS))) %>%  # want data for year Mar-Dec for year prior
+#     group_by(Year) %>%
+#     summarize(deficit = sum(Deficit.in), .groups = "keep") %>%
+#     group_by(Year) %>%
+#     summarize(deficit = mean(deficit)) %>%
+#     data.frame()   # 2023 is ridiculously low, by factor of 10?
+#   deficit10 <- matrix(deficit$deficit, 
+#                     nrow = dim(dh)[1],
+#                     ncol = dim(dh)[2],
+#                     byrow = TRUE)
+#   # Standardize
+#   deficit10_mn <- mean(deficit10)
+#   deficit10_sd <- sd(deficit10)
+#   deficit10_z <- (deficit10 - deficit10_mn)/deficit10_sd
+# }
+# 
+# # Generate cumulative AET during 10 months prior to sampling. 
+# # For SAGW, want AET for Mar-Dec (sampling Jan-Feb)
+# if (PARK == "SAGW") {
+#   # Read in data
+#   dailyWB <- read.csv("data/covariates/SAGU_04_water_balance_historical.csv")
+#   # Calculate total deficit for Mar-Dec
+#   aet <- dailyWB %>%
+#     mutate(Date = as.Date(Date)) %>%
+#     mutate(MonthDay = format(Date, format="%m-%d")) %>%
+#     mutate(Year = year(Date)) %>%
+#     filter(MonthDay > "02-29") %>%
+#     filter(Year >= (min(YEARS) - 1) & Year < (max(YEARS))) %>%  # want data for year Mar-Dec for year prior
+#     group_by(Year) %>%
+#     summarize(aet = sum(AET.in), .groups = "keep") %>%
+#     group_by(Year) %>%
+#     summarize(aet = mean(aet)) %>%
+#     data.frame()  # 2023 is ridiculously low, by factor of 10?
+#   aet10 <- matrix(aet$aet, 
+#                       nrow = dim(dh)[1],
+#                       ncol = dim(dh)[2],
+#                       byrow = TRUE)
+#   # Standardize
+#   aet10_mn <- mean(aet10)
+#   aet10_sd <- sd(aet10)
+#   aet10_z <- (aet10 - aet10_mn)/aet10_sd
+# }
 
 # Soil-adjusted vegetation index from Climate Engine (http://climateengine.org)
 # Park-wide average of maximum SAVI for April - March (so overlaps sampling)
@@ -690,10 +697,10 @@ if (PARK == "SAGW") {
                      rocksizeclass3 = spatial_covs$rocksizeclass3,
                      rockpctclass2 = spatial_covs$rockpctclass2,
                      rockpctclass3 = spatial_covs$rockpctclass3, 
-                     deficit10 = deficit10,
-                     deficit10_z = deficit10_z,
-                     aet10 = aet10,
-                     aet10_z = aet10_z,
+                     #deficit10 = deficit10,
+                     #deficit10_z = deficit10_z,
+                     #aet10 = aet10,
+                     #aet10_z = aet10_z,
                      ppt10 = ppt10,
                      ppt10_z = ppt10_z,
                      ppt6 = ppt6,

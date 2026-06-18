@@ -175,6 +175,9 @@ events$operational <- as.double(difftime(as.POSIXct(events$active_end),
 # Convert lens type to a binary 1 = sensitive, 0 = standard
 events <- events %>% mutate(lens = ifelse(LensType=="sensitive",1,0))
 
+# Convert camera make/model type to a binary 1 = Cuddeback G-5017 or Cuddeback G-5079 (G series), 0 = other
+events <- events %>% mutate(camera = ifelse(CameraType=="Cuddeback G-5017" | CameraType=="Cuddeback G-5079",1,0))
+
 # Summarize/Visualize
 # summary(events$operational)
 # hist(events$operational, breaks = 25)
