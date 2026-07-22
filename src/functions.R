@@ -340,7 +340,7 @@ rocksizeclass_estimates <- function(model,
   rocksizeclass_table$ci_lower[2] <- quantile(rocksizeclass2, lower_ci)
   rocksizeclass_table$ci_upper[2] <- quantile(rocksizeclass2, upper_ci)
   
-  # Probability of occupancy/detectin in rocksizeclass3
+  # Probability of occupancy/detection in rocksizeclass3
   rocksizeclass3 <- samples[,"(Intercept)"] + samples[,"rocksizeclass3"]
   rocksizeclass3 <- exp(rocksizeclass3)/(1 + exp(rocksizeclass3)) 
   rocksizeclass_table$mean_prob[3] <- mean(rocksizeclass3)
@@ -571,7 +571,17 @@ marginal_plot_occ <- function(covariate,
                               transparency = 0.2) {
   
   cols <- str_subset(colnames(model$beta.samples), pattern = covariate)
+  n_cols_cov <- length(cols)
+  cat_covs <- c("vegclass2", "vegclass3","rocksizeclass2", "rocksizeclass3",
+                "rockpctclass2", "rockpctclass3")
+  cat_cols <- str_subset(colnames(model$beta.samples), 
+                         pattern = paste0(cat_covs, collapse = "|"))
+  n_cat <- length(cat_cols)
+  
+  if (n_cat==0) {
   beta_samples <- model$beta.samples[,c("(Intercept)", cols)]
+  
+  
   X_cov <- seq(from = min(data_list$occ.covs[[covariate]]), 
                to = max(data_list$occ.covs[[covariate]]),
                length = 100)
@@ -583,6 +593,55 @@ marginal_plot_occ <- function(covariate,
   } 
   
   preds <-  X_cov %*% t(beta_samples)
+  } 
+  
+  if (n_cat>0) {
+    beta_samples <- model$beta.samples[,c("(Intercept)", cols, cat_cols)]
+    
+    if (any(str_detect(cat_cols,"veg")) & PARK=="SAGW") {
+      pred_cats <- as.data.frame(beta_samples) %>% 
+        mutate(cat1 = (`(Intercept)`)*0.4963,
+               cat2 = (`(Intercept)` + vegclass2)*0.1944,
+               cat3 = (`(Intercept)` + vegclass3)*0.3092) %>%
+        dplyr::select(all_of(cols), cat1, cat2, cat3) 
+      pred_cats <- coda::as.mcmc(pred_cats)
+    }
+    
+    if (any(str_detect(cat_cols,"rocksize")) & PARK=="SAGW") {
+      pred_cats <- as.data.frame(beta_samples) %>% 
+        mutate(cat1 = (`(Intercept)`)*0.0874,
+               cat2 = (`(Intercept)` + rocksizeclass2)*0.8040,
+               cat3 = (`(Intercept)` + rocksizeclass3)*0.1086) %>%
+        dplyr::select(all_of(cols), cat1, cat2, cat3) 
+      pred_cats <- coda::as.mcmc(pred_cats)
+    }
+    
+    if (any(str_detect(cat_cols,"rockpct")) & PARK=="SAGW") {
+      pred_cats <- as.data.frame(beta_samples) %>% 
+        mutate(cat1 = (`(Intercept)`)*0.1335,
+               cat2 = (`(Intercept)` + rockpctclass2)*0.2915,
+               cat3 = (`(Intercept)` + rockpctclass3)*0.5750) %>%
+        dplyr::select(all_of(cols), cat1, cat2, cat3) 
+      pred_cats <- coda::as.mcmc(pred_cats)
+    }
+    
+    X_cov <- seq(from = min(data_list$occ.covs[[covariate]]), 
+                 to = max(data_list$occ.covs[[covariate]]),
+                 length = 100)
+    X_cov <- cbind(X_cov)
+    
+    # If there are quadratic effects, add column in X_cov
+    if (n_cols_cov>1) {
+      X_cov <- cbind(X_cov, X_cov[,2]^2)
+    } 
+    
+    # bind the categorical columns as 1
+    X_cov <- cbind(X_cov, matrix(1, nrow = length(X_cov), ncol = (n_cat+1)))
+    
+    preds <-  X_cov %*% t(pred_cats)
+  } 
+  
+  
   preds <- exp(preds)/(1 + exp(preds))
   preds_cent <- apply(preds, 1, central_meas)
   preds_lcl <- apply(preds, 1, quantile, lower_ci)
@@ -594,18 +653,18 @@ marginal_plot_occ <- function(covariate,
     if (str_detect(covariate, "_z")) {
       cov_mn <- mean(spatial_covs[,str_remove(covariate, "_z")])
       cov_sd <- sd(spatial_covs[,str_remove(covariate, "_z")])
-      cov_plot <- X_cov[,2] * cov_sd + cov_mn
+      cov_plot <- X_cov[,"X_cov"] * cov_sd + cov_mn
     } else {
-      cov_plot <- X_cov[,2] 
+      cov_plot <- X_cov[,"X_cov"] 
     }
   } else {
   # Otherwise it's an annual covariate (other than years)
     if (str_detect(covariate, "_z")) {
       cov_mn <- mean(data_list$occ.covs[[str_remove(covariate, "_z")]])
       cov_sd <- sd(data_list$occ.covs[[str_remove(covariate, "_z")]])
-      cov_plot <- X_cov[,2] * cov_sd + cov_mn
+      cov_plot <- X_cov[,"X_cov"] * cov_sd + cov_mn
     } else {
-      cov_plot <- X_cov[,2] 
+      cov_plot <- X_cov[,"X_cov"]
     }
   }
   
@@ -803,23 +862,77 @@ occ_time_plot <- function(model,
   
   # Get annual estimates (for any model) 
   # (we're assuming a maximum of one annual covariate in the model)
-  ann_covs <- c("years_z", "traffic_z", "visits_z", "monsoon_ppt_z", "ppt10_z", 
-                "monsoon_vpd_z","vpd10_z","aet10_z","deficit10_z", "savi_z")
+  ann_covs <- c("years_z", "traffic_z", "visits_z", "monsoon_ppt_z", "ppt10_z", "ppt6_z",
+                "monsoon_vpd_z","vpd10_z","vpd6_z","aet10_z","deficit10_z", "savi_z")
   ann_cols <- str_subset(colnames(model$beta.samples), 
                          pattern = paste0(ann_covs, collapse = "|"))
+  cat_covs <- c("vegclass2", "vegclass3","rocksizeclass2", "rocksizeclass3",
+                "rockpctclass2", "rockpctclass3")
+  cat_cols <- str_subset(colnames(model$beta.samples), 
+                         pattern = paste0(cat_covs, collapse = "|"))
   ann_samples <- model$beta.samples[,c("(Intercept)", ann_cols)]
-  if (!is.null(dim(ann_samples))) {
-    ann_values <- data_list$occ.covs[ann_cols][[1]][1,]
-    X_ann <- cbind(1, ann_values)
-  } else {
-    X_ann <- as.matrix(data.frame(int = rep(1, length(YEARS))))
+  cat_samples <- model$beta.samples[,c("(Intercept)", ann_cols, cat_cols)]
+  n_cat <- length(cat_cols)
+  
+  if (is.null(dim(cat_samples))) {
+    if (!is.null(dim(ann_samples))) {
+      ann_values <- data_list$occ.covs[ann_cols][[1]][1,]
+      X_ann <- cbind(1, ann_values)
+    } else {
+      X_ann <- as.matrix(data.frame(int = rep(1, length(YEARS))))
+    }
+    preds_ann <- X_ann %*% t(ann_samples)
+    if (yrRE == 1) {
+      yrREcols <- grepl("years", colnames(model$beta.star.samples))
+      yrREs <- t(model$beta.star.samples[,yrREcols])
+      preds_ann <- preds_ann + yrREs
+    }
   }
-  preds_ann <- X_ann %*% t(ann_samples)
-  if (yrRE == 1) {
-    yrREcols <- grepl("years", colnames(model$beta.star.samples))
-    yrREs <- t(model$beta.star.samples[,yrREcols])
-    preds_ann <- preds_ann + yrREs
+  
+  if (!is.null(dim(cat_samples))) {
+    if (any(str_detect(cat_cols,"veg")) & PARK=="SAGW") {
+      pred_cats <- as.data.frame(cat_samples) %>% 
+        mutate(cat1 = (`(Intercept)`)*0.4963,
+               cat2 = (`(Intercept)` + vegclass2)*0.1944,
+               cat3 = (`(Intercept)` + vegclass3)*0.3092) %>%
+        dplyr::select(all_of(ann_cols), cat1, cat2, cat3) 
+      pred_cats <- coda::as.mcmc(pred_cats)
+    }
+
+    if (any(str_detect(cat_cols,"rocksize")) & PARK=="SAGW") {
+      pred_cats <- as.data.frame(cat_samples) %>% 
+        mutate(cat1 = (`(Intercept)`)*0.0874,
+           cat2 = (`(Intercept)` + rocksizeclass2)*0.8040,
+           cat3 = (`(Intercept)` + rocksizeclass3)*0.1086) %>%
+        dplyr::select(all_of(ann_cols), cat1, cat2, cat3) 
+      pred_cats <- coda::as.mcmc(pred_cats)
+    }
+
+    if (any(str_detect(cat_cols,"rockpct")) & PARK=="SAGW") {
+      pred_cats <- as.data.frame(cat_samples) %>% 
+        mutate(cat1 = (`(Intercept)`)*0.1335,
+           cat2 = (`(Intercept)` + rockpctclass2)*0.2915,
+           cat3 = (`(Intercept)` + rockpctclass3)*0.5750) %>%
+        dplyr::select(all_of(ann_cols), cat1, cat2, cat3) 
+      pred_cats <- coda::as.mcmc(pred_cats)
+    }
+
+    if (!is.null(dim(ann_samples))) {
+      ann_values <- data_list$occ.covs[ann_cols][[1]][1,]
+      X_ann <- cbind(ann_values, matrix(1, nrow = length(ann_values), ncol = (n_cat+1)))
+      #X_ann <- cbind(1, ann_values, matrix(1, nrow = length(ann_values), ncol = n_cat))
+    } else {
+      #X_ann <- as.matrix(data.frame(int = rep(1, length(YEARS))))
+      X_ann <- matrix(1, nrow = length(YEARS), ncol = (n_cat+1))
+    }
+    preds_ann <- X_ann %*% t(pred_cats)
+    if (yrRE == 1) {
+      yrREcols <- grepl("years", colnames(model$beta.star.samples))
+      yrREs <- t(model$beta.star.samples[,yrREcols])
+      preds_ann <- preds_ann + yrREs
+    }
   }
+  
   preds_ann <- exp(preds_ann)/(1 + exp(preds_ann))
   preds_ann_cent <- apply(preds_ann, 1, central_meas)
   preds_ann_lcl <- apply(preds_ann, 1, quantile, lower_ci)
