@@ -19,33 +19,33 @@ library(ggspatial)
 #------------------------------------------------------------------------------#
 # Park, year, and species
 PARK <- "SAGW"
-YEARS <- 2017:2025
-SPECIES <- "SYAU"
+YEARS <- 2017:2026
+SPECIES <- "CALA"
 
 # Logical indicating whether to create maps with mean occurrence probabilities (with roads/trails)
-MAP <- FALSE
+MAP <- TRUE
 # Logical indicating whether to create maps with SD of occurrence probabilities (with roads/trails)
-MAP_SD <- FALSE
+MAP_SD <- TRUE
 # Logical indicating whether to create maps with mean occurrence probabilities and raw detections
 MAP_DETECT <- FALSE  # if TRUE, MAP must also be true
 # Logical indicating whether to create a 4-panel figure with mean and SD
 # of occurrence probabilities in first and last year in addition to the single
 # panel figures for each parameter. (Only relevant if MAP_SD == TRUE)
-FOUR_PANEL <- FALSE
+FOUR_PANEL <- TRUE
 # If creating maps, indicate whether to include lat/long axes labels
 LATLONG <- FALSE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the occurrence part of the model
-MARG_OCC <- FALSE
+MARG_OCC <- TRUE
 
 # Logical indicating whether to create figures with marginal effects of 
 # covariates in the detection part of the model
-MARG_DET <- FALSE
+MARG_DET <- TRUE
 
 # Logical indicating whether to create a figure with naive/estimated occurrence
 # over time (including trend, if relevant)
-OCC_TIME <- FALSE
+OCC_TIME <- TRUE
 
 # Parameters, for single-panel figures
 file_extension1 <- ".png"   # can update to jpg
@@ -109,8 +109,8 @@ spatial_covs <- as.data.frame(spatial_covs)
 
 # Extract names of covariates (with and without "_z" subscripts) from best model
 # And for occurrence, extract names of spatial covariates
-nonspat_z <- c("years_z", "visits_z", "traffic_z", "monsoon_ppt_z", "ppt10_z",
-               "monsoon_vpd_z","vpd10_z","aet10_z","deficit10_z", "savi_z")
+nonspat_z <- c("years_z", "visits_z", "traffic_z", "monsoon_ppt_z", "ppt10_z","ppt6_z",
+               "monsoon_vpd_z","vpd10_z","vpd6_z","aet10_z","deficit10_z", "savi_z")
 nonspat <- str_remove(nonspat_z, "_z")
 psi_covs_z <- create_cov_list(psi_model)
 if (length(psi_covs_z) == 1 & any(psi_covs_z == "1")) {
@@ -220,6 +220,12 @@ psi_continuous <- psi_covs_z[!psi_covs_z %in% c("vegclass2", "vegclass3", "years
                                                 "rockpctclass2", "rockpctclass3")]
 psi_cont_unique <- unique(psi_continuous)
 psi_n_cont <- length(psi_cont_unique)
+
+psi_categorical <- psi_covs_z[psi_covs_z %in% c("vegclass2", "vegclass3", "years_z", 
+                                                 "rocksizeclass2", "rocksizeclass3",
+                                                 "rockpctclass2", "rockpctclass3")]
+psi_cat_unique <- unique(psi_categorical)
+psi_n_cat <- length(psi_cat_unique)
 
 if (OCC_TIME) { 
   
@@ -486,8 +492,8 @@ if(MAP | MAP_SD | MAP_DETECT) {
   # year will be very similar (but not identical if we're incorporating random 
   # effects).
   if (any(str_detect(string = psi_covs, 
-                     pattern = paste(c("visits", "traffic", "monsoon_ppt", "ppt10", 
-                                       "monsoon_vpd", "vpd10", "aet10", "deficit10", "savi"),
+                     pattern = paste(c("visits", "traffic", "monsoon_ppt", "ppt10", "ppt6",
+                                       "monsoon_vpd", "vpd10", "vpd6", "aet10", "deficit10", "savi"),
                                      collapse = "|")))) {
     ANN_PREDS <- "observed"
   }  
