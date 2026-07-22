@@ -685,7 +685,7 @@ soil_rocksize2 <- as.numeric(soil_rocksize2)
 # 1 = none
 # 2 = gravel
 # 3 = cobble
-
+# Proportion of TMD in each class: 1 = 8.74%, 2 = 80.40%, 3 = 10.86%
 
 # Aggregate polygons into 3-class surface rock fragment percentage (category),
 # get rid of variables we don't need, and 
@@ -721,6 +721,7 @@ count(camera_soil_rockpct, RockPctClass)
 # but if cobble or bigger (>3" diameter), then anything >15% is poorly suited (<5% = well suited)
 # tortoise suitability uses thickest layer in top 30in whereas our data are for surface
 
+
 # Convert to factor
 soil_rockpct2 <- as.factor(soil_rockpct_raster)
 
@@ -731,6 +732,8 @@ soil_rockpct2 <- as.numeric(soil_rockpct2)
 # 1 = <35% by volume
 # 2 = 35-<60% by volume
 # 3 = 60-<90% by volume
+# Proportion of TMD in each class: 1 = 13.35%, 2 = 29.15%, 3 = 57.50%
+
 
 #------------------------------------------------------------------------------#
 # Distance to desert wash (based on veg classes, in SAGW only)
