@@ -30,7 +30,7 @@ source("src/functions.R")
 #------------------------------------------------------------------------------#
 
 # Select years
-YEARS <- 2017:2025
+YEARS <- 2017:2026
 
 # Logical indicating whether to include lat/longs on maps
 LATLONG <- FALSE
@@ -77,7 +77,7 @@ scale_shape_count <- function(...){
 
 # Create longer park name
 park <- ifelse(PARK == "CHIR", "Chiricahua NM",
-               ifelse(PARK == "SAGW", "Saguaro NP", "Organ Pipe Cactus NM"))
+               ifelse(PARK == "SAGW", "Saguaro NP (TMD)", "Organ Pipe Cactus NM"))
 
 # Figure parameters
 file_extension1 <- ".pdf"
