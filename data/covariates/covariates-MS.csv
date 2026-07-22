@@ -36,8 +36,13 @@ detection,all,occasion,day,day_z,Day of the year,Day of the year
 detection,all,occasion,day2,day_z + I(day_z^2),Day of the year,(Day of the year)^2
 detection,all,occasion,deploy_exp,deploy_exp,Deployment personnel experience,Personnel experience
 detection,all,occasion,effort,effort_z,Proportion of days camera was operational,Camera operational proportion
-detection,all,annual,camera,camera,"Indicator for 2022-2025, when different cameras were used",Camera type (Cuddeback G-5017)
+detection,all,annual,camera,camera,"Indicator for 2022-2025, when different cameras were used",Camera type (Cuddeback G-series)
 detection,SAGW,annual,lens,lens,"Indicator for 2023-2025, when more sensitive lens was used",Camera lens (Center)
 detection,ORPI,annual,lens,lens,"Indicator for 2023-2025, when more sensitive lens was used",Camera lens (Center)
 ,SAGW,none,vegclass2,NA,NA,Vegetation / landform class #2
 ,SAGW,none,vegclass3,NA,NA,Vegetation / landform class #3
+,SAGW,none,rockpctclass2,NA,NA,Rock fragment percent class #2
+,SAGW,none,rockpctclass3,NA,NA,Rock fragment percent class #3
+,SAGW,none,rocksizeclass2,NA,NA,Rock fragment size class #2
+,SAGW,none,rocksizeclass3,NA,NA,Rock fragment size class #3
+,,none,I(day^2),,,(Day of the year)^2
