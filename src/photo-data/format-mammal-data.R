@@ -15,7 +15,7 @@ library(sf)
 library(terra)
 
 # Need to specify park if not calling this script via source()
-# PARK <- "SAGW"
+# PARK <- "ORPI"
 
 #------------------------------------------------------------------------------#
 # Import data
@@ -74,7 +74,7 @@ exclude <- c("Harris's antelope squirrel", "Merriam's kangaroo rat",
              "round-tailed ground squirrel", "unknown animal", 
              "unknown kangaroo rat", "unknown rodent", 
              "unknown woodrat", "western white-throated woodrat",
-             "rock squirrel", "cliff chipmunk")
+             "rock squirrel", "cliff chipmunk", "desert kangaroo rat")
 
 species <- species_list %>%
   filter(!Common_Name %in% exclude) %>%
@@ -127,13 +127,14 @@ events <- dplyr::select(events, -c(DeployDate, RetrievalDate, ActiveStart, Activ
   #
   # # At a few locations at ORPI in 2021, two cameras were deployed at the same 
   # # location simultaneously (removing event information for 1 of the cameras)
-  events <- events %>%
-    filter(!(UnitCode == "ORPI" & LocationName == "101_16W" &
-               year(d_date) == 2021 & CameraName == "SODN_040")) %>%
-    filter(!(UnitCode == "ORPI" & LocationName ==  "102_107W" &
-               year(d_date) == 2021 & CameraName == "SODN_134")) %>%
-    filter(!(UnitCode == "ORPI" & LocationName ==  "103_06W" &
-               year(d_date) == 2021 & CameraName == "SODN_167"))
+      # this is now resolved in the data itself
+  # events <- events %>%
+  #   filter(!(UnitCode == "ORPI" & LocationName == "101_16W" &
+  #              year(d_date) == 2021 & CameraName == "SODN_040")) %>%
+  #   filter(!(UnitCode == "ORPI" & LocationName ==  "102_107W" &
+  #              year(d_date) == 2021 & CameraName == "SODN_134")) %>%
+  #   filter(!(UnitCode == "ORPI" & LocationName ==  "103_06W" &
+  #              year(d_date) == 2021 & CameraName == "SODN_167"))
   # 
   # # Change the retrieval date for CHIR camera 502-003 deployed in 2019
   # events <- events %>%
